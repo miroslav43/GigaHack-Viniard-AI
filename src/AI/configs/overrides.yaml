@@ -1,0 +1,9 @@
+# Human QA overrides (A§2.4), applied deterministically in UTM (EPSG:32635) by perception/overrides.py.
+# Order of application: exclude_areas -> force_empty_tiles -> delete_rows -> extend_rows -> add_rows.
+# Every entry carries an `id` so QA issues (override_applied / override_unmatched) can point at it.
+version: 1
+force_empty_tiles: []   # e.g. [siret3_r010_c005]
+exclude_areas: []       # e.g. [{id: X001, wkt: "POLYGON ((...))", note: "orchard"}]
+delete_rows: []         # e.g. [{id: D001, wkt: "POINT (629500 5220250)", note: "hedge"}]
+extend_rows: []         # e.g. [{id: E001, row_hint_wkt: "POINT (...)", to_wkt: "POINT (...)"}]
+add_rows: []            # e.g. [{id: A001, wkt: "LINESTRING (...)", note: "missed row"}]

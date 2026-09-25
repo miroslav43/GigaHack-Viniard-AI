@@ -1,0 +1,132 @@
+"""Post-Marcaj sections: derive, targets, route, measure, publish, web (design 04 §4, I14 single keys)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Annotated, Literal
+
+from pydantic import Field
+
+from vineyard.config.sections_core import Frac, NonNegFloat, NonNegInt, PosFloat, PosInt, Section
+
+
+class DeriveConfig(Section):
+    join_lateral_max_m: PosFloat
+    row_missing_min_len_m: NonNegFloat
+    vertex_dedupe_m: PosFloat
+    blocks_merge_warn_m: NonNegFloat
+    interrow_link_max_m: PosFloat
+    garden_forbidden_dist_m: NonNegFloat
+    garden_max_rows: NonNegInt
+
+
+class TargetsConfig(Section):
+    gap_min_m: PosFloat
+    long_gap_m: PosFloat
+    gap_step_m: PosFloat
+    gap_sample_step_m: PosFloat
+    missing_min_m: PosFloat
+    include_missing: bool
+    include_sparse: bool
+    sparse_window_m: PosFloat
+    sparse_step_m: PosFloat
+    sparse_occ_max: Frac
+    sparse_known_min: Frac
+    end_short_min_m: PosFloat
+    missing_row_spacing_factor: PosFloat
+    include_waste: bool
+    priority_long_gap_m: PosFloat
+    dedupe_m: NonNegFloat
+
+
+class RouteDomainConfig(Section):
+    grid_size_m: PosFloat
+    inner_buffer_m: NonNegFloat
+    eroded_buffer_m: NonNegFloat
+    seam_close_m: NonNegFloat
+    subtract_canopies: bool
+
+
+class RouteGraphConfig(Section):
+    centerline_step_m: PosFloat
+    centerline_min_len_m: NonNegFloat
+    skeleton_res_m: PosFloat
+    skeleton_erode_m: NonNegFloat
+    spur_min_m: NonNegFloat
+    simplify_tol_m: NonNegFloat
+    connector_max_m: PosFloat
+    connector_outside_penalty: NonNegFloat
+    snap_join_m: NonNegFloat
+    pull_lookahead: PosInt
+    target_spur_standoff_m: NonNegFloat
+
+
+class RouteSolverConfig(Section):
+    method: Literal["auto", "ortools", "fallback"]
+    time_limit_s: PosInt
+    time_limit_final_s: PosInt
+    final: bool
+    first_solution: str
+    metaheuristic: str
+    cost_per_m: PosInt
+    cover_iterations: NonNegInt
+    fallback_time_s: PosInt
+    max_tsp_nodes: PosInt
+    merge_node_m: NonNegFloat
+    dijkstra_chunk: PosInt
+
+
+class RouteValidateConfig(Section):
+    coord_decimals: Annotated[int, Field(ge=0, le=6)]
+    closure_max_m: NonNegFloat
+    length_tol_m: NonNegFloat
+    zero_len_eps_m: NonNegFloat
+
+
+class RouteConfig(Section):
+    start_file: Path
+    start_tolerance_m: NonNegFloat
+    visit_radius_m: PosFloat
+    candidate_radius_m: PosFloat
+    max_candidates_per_side: PosInt
+    max_snap_m: PosFloat
+    max_outside_frac_official: Frac
+    max_outside_frac_publish: Frac
+    walking_speed_kmh: PosFloat
+    domain: RouteDomainConfig
+    graph: RouteGraphConfig
+    solver: RouteSolverConfig
+    validate_: RouteValidateConfig = Field(alias="validate")
+
+
+class MeasureConfig(Section):
+    round_m: PosFloat
+    round_ha: PosFloat
+    total_label: str
+    area_union_sum_warn_frac: NonNegFloat
+
+
+class PublishConfig(Section):
+    require_source: Literal["model", "marcaj", "reference"] | None
+    sum_check_tol_m: NonNegFloat
+
+
+class Gdal2TilesConfig(Section):
+    zoom: str
+    resampling: str
+    tiledriver: Literal["WEBP", "PNG", "JPEG"]
+    webp_quality: Annotated[int, Field(ge=1, le=100)]
+    processes: PosInt
+
+
+class WebConfig(Section):
+    out_dir: Path
+    geojson_decimals_4326: Annotated[int, Field(ge=0, le=9)]
+    utm_decimals: Annotated[int, Field(ge=0, le=6)]
+    ortho_mode: Literal["auto", "xyz", "tiles_jpeg"]
+    ortho_px: PosInt
+    ortho_quality: Annotated[int, Field(ge=1, le=100)]
+    canopy_minzoom: NonNegInt
+    gdal2tiles: Gdal2TilesConfig
+    canopy_mvt: Literal["auto", "off"]
+    utm_copies: bool

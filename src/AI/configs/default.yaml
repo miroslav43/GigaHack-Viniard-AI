@@ -1,0 +1,508 @@
+# Sireț3 vineyard AI — the single merged config (every key is required; the pydantic models hold no defaults).
+# Sources: A = arhitectura/ARHITECTURA_Siret3.md v1.1 (wins), C = arhitectura/00_contracte.md, P = docs/design/00_PLAN.md,
+# D1..D4 = docs/design/0{1,2,3,4}_*.md, X/I = critiques 05/06. Relative paths resolve against src/AI
+# (the project root); paths.route_dir, paths.examples_dir and route.start_file resolve against paths.data_root.
+# Env overrides: VINEYARD_DATA_ROOT, VINEYARD_WORK_DIR. CLI: --config <overlay.yaml> and --set a.b=<yaml value>.
+
+contract_version: "1.1"
+
+project:
+  name: siret3
+  crs: "EPSG:32635"
+
+paths:
+  data_root: "../../data & info"
+  tiles_zip_glob: "01_tiles/siret3_challenge_tiles_part*of5.zip"   # relative to data_root
+  route_dir: 02_route
+  examples_dir: 05_examples/siret3_examples_cvat
+  work_dir: work
+  models_dir: models
+  publish_dir: "../.."                     # repo root: route.geojson + measurements.csv (C§5)
+  overrides: configs/overrides.yaml        # A§2.4, human QA edits
+  waste_confirmed: configs/waste_confirmed.csv   # single key (was waste.review.confirmed_file)
+
+grid:                                      # C§1.3 / §8; must equal geo.tiling constants
+  gsd_m: 0.025
+  tile_px: 2048
+  tile_m: 51.2
+  origin_x: 628992.0
+  origin_y: 5221222.4
+  expected_tiles: 311                      # also the import image count (was import.expected_images)
+  tiepoint_tol_m: 1.0e-6
+
+runtime:
+  n_workers: 8                             # int or "auto" (= cpu_count - workers_auto_reserve)
+  workers_auto_reserve: 3
+  workers_sweep: [5, 8, 10]
+  chunksize: 2
+  maxtasksperchild: 50
+  seed: 0
+  allow_failures: false
+  thread_env:                              # documents vineyard._env.THREAD_ENV_DEFAULTS (A§4.1)
+    OMP_NUM_THREADS: "1"
+    OPENBLAS_NUM_THREADS: "1"
+    VECLIB_MAXIMUM_THREADS: "1"
+    GDAL_NUM_THREADS: "1"
+    GDAL_CACHEMAX: "256"
+
+nodata:                                    # C§1.7
+  max_rgb: 10
+  min_area_m2: 0.5
+  close_px: 5
+  dilate_px: 4
+  veg_erode_px: 4
+  min_valid_frac: 0.02
+  approx_eps_px: 2.0
+
+veg:                                       # D2 §4 (Lab a*: na = -(a*-128), blur, threshold)
+  method: lab_a
+  blur_sigma_px: 2.5
+  threshold: 4.0
+  morph_close_px: 0
+  otsu_fallback_enabled: false             # P1
+  otsu_fallback_veg_frac: [0.10, 0.90]
+  shadow_v_max: 50                         # A§4.7, single key (X4)
+  overexposed_v_min: 245
+  texture_fallback:
+    enabled: false                         # P1
+    window_m: 0.25
+    top_frac: 0.30
+    trigger_min_veg_frac: 0.50
+
+nn:                                        # D3 §4; disabled until after Publish (X4)
+  enabled: false
+  name: vine-unet
+  version: v1
+  arch: unet
+  encoder: resnet18
+  in_gsd_m: 0.05
+  out_channels: 1
+  axis_sigma_m: 0.15
+  device: mps
+  fallback_device: cpu
+  batch_size: 8
+  infer_batch_size: 4
+  prob_threshold: 0.5
+  weights_sha256: null
+  weights_url: null
+  fusion: A                                # A=veg∩corr, B=nn∩corr, C=veg∧nn∩corr, D=(veg∨nn)∩corr, E=nn only (ablation)
+  use_in_rows: false
+  use_in_interrow: false
+  holdout_tiles: [siret3_r006_c004, siret3_r021_c012]
+  mps_high_watermark_ratio: 0.8
+  pseudolabels:
+    ignore_band_px: 3
+    ignore_small_in_corridor: true
+    ignore_clumps: true
+    train_tiles_file: null
+    include_empty_tiles: true
+    max_empty_tile_frac: 0.2
+    min_train_tiles: 30
+    patch_px: 512
+    patch_stride_px: 512
+  train:
+    epochs: 20
+    lr: 3.0e-4
+    weight_decay: 0.01
+    label_smoothing: 0.05
+    patience: 3
+    bce_weight: 1.0
+    dice_weight: 1.0
+    num_workers: 4
+    colour_jitter: 0.10
+    encoder_weights: imagenet
+    smoke_max_batches: 50
+    drop_noisy:
+      enabled: false
+      after_epoch: 5
+      frac: 0.10
+  ablation:
+    variants: [A, B, C, D, E, F]
+    promotable: [B, C, D]
+    min_gain: 0.0
+    axes_sources: [model, reference]
+    panel_tiles: []
+    n_auto_panels: 2
+
+rows:                                      # D2 §4 (A names inside the C structure)
+  detect:
+    angle_step_deg: 0.5
+    angle_coarse_step_deg: 2.0
+    angle_bin_m: 0.1
+    max_sample_points: 200000
+    profile_bin_m: 0.05
+    smooth_sigma_bins: 3
+    spacing_estimate: autocorr
+    spacing_min_m: 1.8                     # user decision: rows spacing gate 1.8-3.8 m
+    spacing_max_m: 3.8
+    peak_min_dist_factor: 0.6
+    periodicity_min_snr: 3.0
+    snr_band_m: [0.5, 10.0]
+    onlattice_tol_factor: 0.25
+    band_init_m: 0.45
+    band_m: 0.35
+    band_max_drift_m: 0.8
+    min_band_area_m2: 0.2
+    fit_iterations: 3
+    angle_gate_deg: 3.0
+    end_percentiles: [0.5, 99.5]
+    snap_to_edge_m: 3.0
+    min_row_len_m: 1.0
+    residual_split_m: 0.15
+    track_window_px: 256
+    track_vertex_m: 7.5
+    dp_tolerance_m: 0.1
+    tracking_enabled: false                # P1
+    max_orientations: 3
+    multi_min_residual_frac: 0.15
+    multi_min_angle_sep_deg: 10.0
+    gap_record_min_m: 3.0
+    mask_forbidden: true
+  link:
+    link_angle_max_deg: 3.0
+    link_offset_max_m: 0.3
+    link_gap_max_tiles: 1
+    angle_min_len_m: 5.0
+    passage_erode_m: 0.5
+    dup_overlap_m: 0.5
+    rescue_soft_rejects: true
+  filter:
+    width_p80_max_m: 1.2
+    width_station_m: 0.25
+    occupancy_min: 0.15
+    min_vine_score: 0.35                   # only when NN probabilities are present
+
+orchard:
+  width_spacing_ratio_max: 0.45
+  along_period_m: [3.0, 6.0]
+  along_duty_max: 0.60
+  tree_blob_area_m2: 2.0
+  tree_blob_axis_ratio_max: 1.5
+  block_reject_enabled: false              # P1
+  block_majority_frac: 0.5
+
+blocks:
+  neighbour_max_m: 4.0
+  parallel_max_deg: 5.0
+  min_overlap_frac: 0.20
+  collinear_gap_max_m: 5.0                 # also: chains split at unsupported holes >= this (P item 11)
+  skip_one_enabled: true                   # P item 11: a missing row must not split a block
+  skip_one_spacing_factor: [1.6, 2.3]      # edge when spacing in [1.6, 2.3] x local s -> missing_row_suspect
+  spacing_cut_enabled: false               # r021 evidence (D2)
+  spacing_jump_max_m: 0.2
+  phase_tol_factor: 0.3
+  headland_min_rows: 3
+  transverse_band_min_m: 4.0
+  transverse_full_width: true
+  min_rows_per_block: 3                    # also derive's warning threshold (was derive.min_rows_per_block_warn)
+  cut_by_passages: true
+  outline_buffer_m: 2.5                    # C§2.5.6; also derive's outline (was derive.block_buffer_m)
+  id_prefix: V
+  id_width: 2
+  row_id_width: 3
+  garden_max_row_length_m: 300.0
+
+canopy:
+  corridor_half_m: 0.30                    # single key for the 0.30 m corridor (I14: derive/targets read it)
+  min_area_m2: 0.19                        # on the vector area (F5)
+  connectivity: 8
+  simplify_px: 2.5
+  vector_offset_px: 0.0                    # raw findContours convention (R1 / C3)
+  vector_outset_px: 0.0
+  clump_area_m2: 2.0
+  split_clumps: false
+  max_perp_width_tree_m: 1.5
+  tree_filter_enabled: false               # P1
+  rows_margin_m: 1.0
+
+interrow:
+  offset_m: 0.30
+  cover_bare_max: 0.25
+  cover_veg_min: 0.75
+  shadow_unassessable: 0.5
+  min_width_assessable_m: 0.4
+  cover_borderline_margin: 0.05
+  hole_min_area_m2: 1.0
+  hole_sources: [forbidden]
+
+row_structure:
+  gap_disrupted_m: 5.0
+  include_end_gaps: true
+  borderline_m: [4.5, 7.0]
+  unassessable_visible_min: 0.5
+  occ_bin_m: 0.05
+  occ_close_m: 0.4
+  occ_window_m: 0.5
+  occ_min: 0.20
+  occ_smoothing_enabled: false             # S2: window+closing only for model canopies, re-validate 51/51 first
+  gap_fill_max_width_m: 1.2
+  visible_bin_max_hidden: 0.5
+
+waste:                                     # D3 §4
+  enabled: true
+  min_area_m2: 0.015
+  max_area_m2: 6.0
+  white_min_area_m2: 0.03
+  axis_exclusion_m: 0.6
+  axis_exclusion_mode: all
+  plant_phase_tol: 0.25
+  lattice:
+    pitch_range_m: [0.8, 2.0]
+    min_points: 4
+  tube_max_aspect: 2.5
+  tube_max_area_m2: 0.12
+  hose_min_len_m: 3.0
+  hose_max_width_m: 0.05
+  nms_iou: 0.3
+  box_pad: 0.10
+  block_assign_max_m: 10.0                 # single 10 m rule (was export.cvat.waste_empty_vid_min_dist_m)
+  max_candidates_total: 9999
+  colour:
+    vivid_s_min: 150
+    vivid_v_min: 70
+    veg_hue_range: [25, 95]
+    bright_v_min: 200
+    bright_s_max: 45
+    open_px: 1
+  decide:
+    auto_accept_enabled: false             # nothing auto-exported before Publish; only waste_confirmed.csv
+    candidate_min: 0.3
+    auto_probe_min: 0.9
+    auto_sam3_min: 0.5
+    auto_clip_margin_min: 0.2
+    rule_only_max_review: 300
+  probe:
+    enabled: true
+    name: waste-probe
+    version: v1
+    clip_model: ViT-B-32
+    clip_pretrained: laion2b_s34b_b79k
+    device: mps
+    embed_batch: 64
+    crop_context: 0.5
+    crop_min_px: 64
+    crop_resize_px: 224
+    lr_c: 1.0
+    calibration_margin: 0.02
+    min_recall: 0.2
+    positives:
+      mode: both
+      long_side_px: [8, 40]
+      max_n: 1500
+      jpeg_quality: 90
+      paste_blur_sigma_px: 0.5
+      zenodo_record: 8214061
+      repo_url: https://github.com/PUTvision/UAVVaste
+      licence: Apache-2.0
+      max_download_gb: 8.0
+    negatives:
+      random_per_tile: 200
+    clip_pos_prompts: ["trash", "a plastic bag", "a plastic bottle", "a tire", "a heap of rubbish", "litter on the ground"]
+    clip_neg_prompts: ["a white plastic vine tube", "a wooden stake", "a stone", "bare soil", "grass", "a grapevine",
+                       "an irrigation hose", "a car"]
+  sam3:
+    enabled: true
+    model_ids: [facebook/sam3]             # 3.1 has no transformers weights (P facts)
+    local_checkpoint: ../../models/sam3.1/sam3.1_multiplex.pt
+    device: cpu
+    crop_px: 512
+    text_prompts: [trash, plastic bag, plastic bottle, tire, rubbish heap]
+    prompt_categories:
+      trash: debris
+      plastic bag: bag
+      plastic bottle: bottle
+      tire: tyre
+      rubbish heap: heap
+    max_negative_boxes: 3
+    threshold: 0.4
+    mask_threshold: 0.5
+    min_overlap_frac: 0.2
+    time_budget_s: 1800.0
+    min_probe_to_verify: 0.3
+  review:
+    crop_px: 256
+    confirm_match_iou: 0.5
+    edge_tol_px: 1.0
+
+qa:                                        # D2 §4
+  preview_px: 1024
+  preview_jpeg_quality: 85
+  overview_px_per_tile: 128
+  colors_bgr:
+    row: [0, 0, 255]
+    disrupted: [255, 0, 255]
+    unassessable: [0, 165, 255]
+    canopy: [0, 255, 0]
+    interrow: [255, 255, 0]
+    waste: [0, 255, 255]
+    rejected: [128, 128, 128]
+    tree: [255, 0, 0]
+  canopy_fill_alpha: 0.35
+  snr_review_max: 6.0
+
+derive:                                    # D4 §4 (outline buffer, min rows and corridor come from blocks/canopy)
+  join_lateral_max_m: 0.4
+  row_missing_min_len_m: 0.5
+  vertex_dedupe_m: 0.001
+  blocks_merge_warn_m: 5.0
+  interrow_link_max_m: 3.8
+  garden_forbidden_dist_m: 20.0
+  garden_max_rows: 15
+
+targets:
+  gap_min_m: 5.0
+  long_gap_m: 20.0
+  gap_step_m: 15.0
+  gap_sample_step_m: 3.0
+  missing_min_m: 2.0
+  include_missing: true
+  include_sparse: true
+  sparse_window_m: 20.0
+  sparse_step_m: 10.0
+  sparse_occ_max: 0.10
+  sparse_known_min: 0.9
+  end_short_min_m: 5.0
+  missing_row_spacing_factor: 1.8
+  include_waste: true
+  priority_long_gap_m: 10.0
+  dedupe_m: 1.0
+
+route:                                     # D4 §4 (A§4.11 names)
+  start_file: 02_route/start.geojson       # relative to data_root
+  start_tolerance_m: 5.0
+  visit_radius_m: 2.0
+  candidate_radius_m: 1.9
+  max_candidates_per_side: 3
+  max_snap_m: 5.0
+  max_outside_frac_official: 0.02
+  max_outside_frac_publish: 0.005
+  walking_speed_kmh: 4.0
+  domain:
+    grid_size_m: 0.001
+    inner_buffer_m: 0.05
+    eroded_buffer_m: 0.3
+    seam_close_m: 0.05
+    subtract_canopies: true
+  graph:
+    centerline_step_m: 2.0
+    centerline_min_len_m: 1.0
+    skeleton_res_m: 0.25
+    skeleton_erode_m: 0.3
+    spur_min_m: 2.0
+    simplify_tol_m: 0.25
+    connector_max_m: 6.0
+    connector_outside_penalty: 10.0
+    snap_join_m: 0.5
+    pull_lookahead: 200
+    target_spur_standoff_m: 1.5
+  solver:
+    method: auto
+    time_limit_s: 30
+    time_limit_final_s: 60
+    final: false                           # CLI --final / `vineyard final` sets true
+    first_solution: PATH_CHEAPEST_ARC
+    metaheuristic: GUIDED_LOCAL_SEARCH
+    cost_per_m: 100
+    cover_iterations: 3
+    fallback_time_s: 20
+    max_tsp_nodes: 1500
+    merge_node_m: 1.0
+    dijkstra_chunk: 256
+  validate:
+    coord_decimals: 2
+    closure_max_m: 0.01
+    length_tol_m: 0.01
+    zero_len_eps_m: 0.005
+
+export:
+  min_row_piece_m: 0.5
+  min_interrow_piece_m2: 0.25
+  cvat:
+    coord_decimals: 1
+    shape_source: manual                   # user decision (X17)
+    max_zip_bytes: 85000000
+    n_parts: null                          # derived by greedy packing (5 measured)
+    balance_parts: true
+    zip_name: "siret3_upload_{i:02d}of{n:02d}.zip"
+    verify_roundtrip: true
+    min_polygon_px2: 16.0
+    min_polyline_px: 4.0
+    simplify_px: 0.5                       # never applied a second time to canopies (C2)
+    notch_width_px: 1.0                    # >= 1 px so 0.1 px rounding cannot close it (C7)
+    max_canopy_interrow_overlap_m2: 0.05   # checked after px conversion (C2)
+    roundtrip_max_dev_px: 0.06
+    selfcheck_min_union_iou: 0.98
+    xml_deflate_level: 9
+    manual_row_start: 900
+    allow_qa_errors: false                 # CLI --allow-qa-errors
+
+import:
+  files: []                                # CLI positional args of import-marcaj / from-marcaj / final
+  accept_enum_synonyms: true
+  duplicate_policy: last_wins
+  require_all_tiles: true                  # CLI --partial sets false
+  enum_synonyms:
+    bare soil: bare_soil
+    bare: bare_soil
+    grass: vegetation
+    veg: vegetation
+    unknown: unassessable
+  canopy_row_assign_max_m: 0.5
+  min_line_length_m: 0.05
+  accept_masks: true
+
+measure:
+  round_m: 0.01
+  round_ha: 0.0001
+  total_label: ALL
+  area_union_sum_warn_frac: 0.001
+
+publish:
+  require_source: null                     # `make final` sets marcaj
+  sum_check_tol_m: 0.05
+
+web:
+  out_dir: ../Web/data
+  geojson_decimals_4326: 7
+  utm_decimals: 3
+  ortho_mode: auto
+  ortho_px: 512
+  ortho_quality: 80
+  canopy_minzoom: 18
+  gdal2tiles:
+    zoom: "14-20"
+    resampling: average
+    tiledriver: WEBP
+    webp_quality: 75
+    processes: 8
+  canopy_mvt: auto
+  utm_copies: true
+
+eval:
+  example_tiles: [siret3_r006_c004, siret3_r021_c012]
+  reference_annset: LATEST_REFERENCE
+  canopy_match_iou: 0.5
+  canopy_w_iou: 0.6
+  canopy_w_f1: 0.4
+  row_tol_m: 0.4
+  row_min_cover: 0.8
+  waste_match_iou: 0.3
+  count_tol: 0.15
+  length_tol: 0.10
+  fp_canopy_factor: 0.5
+  interrow_match_iou: 0.5
+  regression_max_drop: 0.01
+  enforce_gates: false                     # CLI --gates
+  baseline_file: null                      # CLI --baseline
+  write_baseline: false                    # CLI --write-baseline
+  gates:
+    canopy_score: 0.80
+    row_f1: 0.95
+    interrow_iou: 0.95
+    attributes: 0.90
+
+logging:
+  level: INFO
+  jsonl: true
+  console: rich
+  tz: Europe/Chisinau

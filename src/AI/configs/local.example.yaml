@@ -1,0 +1,13 @@
+# Machine-local overlay example. Copy to configs/local.yaml (gitignore it) and pass it explicitly:
+#   uv run vineyard run --config configs/local.yaml
+# Only list the keys you change; the file is deep-merged over configs/default.yaml.
+# Data and work locations are usually set through the environment instead:
+#   export VINEYARD_DATA_ROOT="/Users/<you>/Vin Gigahack/data & info"
+#   export VINEYARD_WORK_DIR="/Users/<you>/Vin Gigahack/src/AI/work"
+
+runtime:
+  n_workers: 4          # e.g. while another heavy job runs; "auto" = cpu_count - workers_auto_reserve
+
+logging:
+  level: INFO
+  console: plain        # plain output for CI logs
