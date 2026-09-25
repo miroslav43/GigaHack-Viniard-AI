@@ -248,7 +248,7 @@
     "title": "Super-admin",
     "subtitle": "Administrarea platformei Solemtrix: primării (UAT), conturi, survey-uri, stare și jurnal.",
     "tabs": {
-      "overview": "Prezentare generală",
+      "overview": "Panou general",
       "uat": "UAT-uri",
       "users": "Utilizatori",
       "surveys": "Survey-uri",

@@ -14,7 +14,7 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 
 | Email | Rol (`uat_role`) | Primărie (`uat`) | Ce vede |
 |---|---|---|---|
-| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (prezentare generală, UAT-uri, utilizatori, survey-uri, sistem, jurnal); paginile de primărie îl redirecționează acolo |
+| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (panou general, UAT-uri, utilizatori, survey-uri, sistem, jurnal); paginile de primărie îl redirecționează acolo |
 | `primar@sireti.demo` | `uat_admin` — administrator UAT | Sireți | panou, hartă, blocuri, rută pentru Sireți |
 | `inspector@sireti.demo` | `inspector` — inspector de teren | Sireți | panou, hartă, blocuri, rută pentru Sireți |
 | `primar@cojusna.demo` | `uat_admin` — administrator UAT | Cojușna | doar limita comunei Cojușna + „niciun zbor” (nu vede nimic din Sireți) |
