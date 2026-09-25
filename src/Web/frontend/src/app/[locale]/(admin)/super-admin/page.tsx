@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Page, PageHeader } from "@/components/common/PageHeader";
 import { AccessDenied } from "@/components/common/AccessDenied";
-import { AdminTabs } from "@/components/admin/common";
 import { UatPanel } from "@/components/admin/UatPanel";
 import { OverviewPanel, type OverviewData } from "@/components/admin/OverviewPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
@@ -151,8 +150,7 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
 
   return (
     <Page>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
-      <AdminTabs current={tab} />
+      <PageHeader title={t(`tabs.${tab}`)} subtitle={t("subtitle")} />
       {panel}
     </Page>
   );

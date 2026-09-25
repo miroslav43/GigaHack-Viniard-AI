@@ -9,23 +9,9 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Snackbar from "@mui/material/Snackbar";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
-import { Link, useRouter } from "@/i18n/routing";
-import { ADMIN_TABS, type AdminTab } from "./types";
+import { useRouter } from "@/i18n/routing";
 
-
-export function AdminTabs({ current }: { current: AdminTab }) {
-  const t = useTranslations("superAdmin.tabs");
-  return (
-    <Tabs value={current} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 5, borderBottom: 1, borderColor: "divider" }}>
-      {ADMIN_TABS.map((k) => (
-        <Tab key={k} value={k} label={t(k)} component={Link} href={`/super-admin?tab=${k}`} />
-      ))}
-    </Tabs>
-  );
-}
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
