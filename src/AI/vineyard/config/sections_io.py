@@ -28,6 +28,7 @@ class CvatExportConfig(Section):
     xml_deflate_level: Annotated[int, Field(ge=0, le=9)]
     manual_row_start: PosInt
     allow_qa_errors: bool
+    invalid_tile_policy: Literal["block", "empty"]
 
 
 class ExportConfig(Section):
@@ -71,4 +72,5 @@ class EvalConfig(Section):
     enforce_gates: bool
     baseline_file: Path | None
     write_baseline: bool
+    default_baseline_name: str
     gates: EvalGatesConfig

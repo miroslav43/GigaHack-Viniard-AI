@@ -119,6 +119,19 @@ qa/          render review overview   tests/<area>/…  (pytest --import-mode=im
 - Dataclasses are frozen and every threshold lives in config (team style).
 - **Detailed specs:** the 4 design documents and 2 critiques from the design workflow. Step 0 of implementation saves them to `src/AI/docs/design/` and commits them. Where they conflict, this plan wins.
 
+## Execution log and deviations (updated during implementation)
+
+- **Fri 23:26 — Phase 0 done.** G0b passed: 562 tests, 99% coverage, ruff clean, no torch import. Pushed as `44e1b78`.
+  - The `origin` repo moved to `github.com/miroslav43/GigaHack-Viniard-AI`.
+  - Teammates pushed `src/Web` in the meantime. We rebased on top of it, with no overlap.
+- **Deviation: Phase 0 and Phase 1 agents work in the same checkout, on strictly disjoint files, instead of one worktree per WP.** Phase 1 packages import each other's live code (for example `corridor.py`), and merge round-trips would cost time. Ownership is checked with `git status` at each gate.
+- **Deviation: the post-Marcaj chain was pulled forward.** It started Fri 23:45 in its own worktree, `/Users/maleticimiroslav/wt-siret3/post` (branch `wp/post`), and merges after G1. This protects the route, which is 25% of the score.
+- **Web data contract.** `src/Web/CLAUDE.md` §6 (web team) wins over contract §7. `web_bundle` writes an EPSG:32635 bundle to `src/Web/data/surveys/siret3/pipeline/` (`manifest.json`, blocks/rows/canopies.geojsonl/interrows/waste/targets/route, `measurements.csv`). The web team builds the 4326/PMTiles output itself.
+- **`measurements.csv` (root deliverable) uses the web contract §6.4 format:**
+  - columns `level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canopy_area_ha,interrow_area_m2,interrow_area_ha,plant_count,row_structure`;
+  - levels `survey`/`block`/`row`;
+  - areas are unions.
+
 ## Orchestration mechanics
 
 - **Implementation runs as Workflow fan-outs.**

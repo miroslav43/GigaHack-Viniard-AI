@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <track id="0" label="vineyard" source="manual">
+    <polygon frame="0" outside="0" occluded="0" keyframe="1" points="1.00,1.00;5.00,1.00;5.00,5.00" z_order="0"/>
+  </track>
+  <image id="0" name="siret3_r006_c004.tif" width="2048" height="2048">
+    <polygon label="vineyard" source="manual" occluded="0" points="100.0,100.0;120.0,100.0;120.0,120.0" z_order="0"><attribute name="vineyard_id">V02</attribute></polygon>
+    <polygon label="vineyard" source="manual" occluded="0" points="1.0,a;2.0,2.0" z_order="0"><attribute name="vineyard_id">V02</attribute></polygon>
+    <ellipse label="vineyard" source="manual" occluded="0" cx="10" cy="10" rx="2" ry="2" z_order="0"></ellipse>
+  </image>
+</annotations>

@@ -24,6 +24,7 @@ WasteCategory = Literal["bag", "bottle", "tyre", "debris", "heap", "unknown"]
 class WasteLatticeConfig(Section):
     pitch_range_m: tuple[PosFloat, PosFloat]
     min_points: PosInt
+    bin_m: PosFloat
 
 
 class WasteColourConfig(Section):
@@ -33,6 +34,8 @@ class WasteColourConfig(Section):
     bright_v_min: Hsv
     bright_s_max: Hsv
     open_px: NonNegInt
+    white_mean_s_max: Hsv
+    soil_hue_range: IntRange
 
 
 class WasteDecideConfig(Section):
@@ -119,6 +122,7 @@ class WasteConfig(Section):
     box_pad: NonNegFloat
     block_assign_max_m: NonNegFloat
     max_candidates_total: PosInt
+    axis_margin_m: NonNegFloat
     colour: WasteColourConfig
     decide: WasteDecideConfig
     probe: ProbeConfig

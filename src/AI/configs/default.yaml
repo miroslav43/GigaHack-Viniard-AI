@@ -158,6 +158,8 @@ rows:                                      # D2 §4 (A names inside the C struct
     multi_min_angle_sep_deg: 10.0
     gap_record_min_m: 3.0
     mask_forbidden: true
+    snr_peak_rel_width: 0.1                # spectral SNR: +-10% band around 1/s
+    snap_ray_max_factor: 3.0               # edge snap ray <= this x snap_to_edge_m
   link:
     link_angle_max_deg: 3.0
     link_offset_max_m: 0.3
@@ -166,11 +168,14 @@ rows:                                      # D2 §4 (A names inside the C struct
     passage_erode_m: 0.5
     dup_overlap_m: 0.5
     rescue_soft_rejects: true
+    hole_support_min_frac: 0.5             # S4: neighbour rows must cover >= this of a hole
+    refit_sample_m: 0.5
   filter:
     width_p80_max_m: 1.2
     width_station_m: 0.25
     occupancy_min: 0.15
     min_vine_score: 0.35                   # only when NN probabilities are present
+    wide_min_rel_contrast: 0.1
 
 orchard:
   width_spacing_ratio_max: 0.45
@@ -201,12 +206,17 @@ blocks:
   id_width: 2
   row_id_width: 3
   garden_max_row_length_m: 300.0
+  band_bin_m: 0.1                          # transverse-band histogram bin
+  band_pad_m: 1.0
+  spacing_cut_side_rows: 3
+  too_few_rows_issue_min: 2
+  override_match_tol_m: 1.0                # overrides.yaml entries: default `tol_m`
 
 canopy:
   corridor_half_m: 0.30                    # single key for the 0.30 m corridor (I14: derive/targets read it)
   min_area_m2: 0.19                        # on the vector area (F5)
   connectivity: 8
-  simplify_px: 2.5
+  simplify_px: 2.0                         # P1-CAN sweep: 0.8459 vs 0.8405 at 2.5, area +2.1% / +0.5%
   vector_offset_px: 0.0                    # raw findContours convention (R1 / C3)
   vector_outset_px: 0.0
   clump_area_m2: 2.0
@@ -214,6 +224,9 @@ canopy:
   max_perp_width_tree_m: 1.5
   tree_filter_enabled: false               # P1
   rows_margin_m: 1.0
+  corridor_label_convention: index         # raw contour vertices stay inside the 0.30 m corridor
+  clip_to_corridor: false                  # S1: vector clip only for the eval sweep
+  interpolated_min_veg_frac: 0.15          # S4: corridor veg evidence on row_interpolated tiles
 
 interrow:
   offset_m: 0.30
@@ -224,6 +237,8 @@ interrow:
   cover_borderline_margin: 0.05
   hole_min_area_m2: 1.0
   hole_sources: [forbidden]
+  edge_extend_m: 10.0                      # row ends on the data boundary are extended for the bands
+  edge_tol_m: 0.05
 
 row_structure:
   gap_disrupted_m: 5.0
@@ -249,6 +264,7 @@ waste:                                     # D3 §4
   lattice:
     pitch_range_m: [0.8, 2.0]
     min_points: 4
+    bin_m: 0.05
   tube_max_aspect: 2.5
   tube_max_area_m2: 0.12
   hose_min_len_m: 3.0
@@ -257,6 +273,7 @@ waste:                                     # D3 §4
   box_pad: 0.10
   block_assign_max_m: 10.0                 # single 10 m rule (was export.cvat.waste_empty_vid_min_dist_m)
   max_candidates_total: 9999
+  axis_margin_m: 1.0                       # design 03 W2: tile rows grown by 1 m
   colour:
     vivid_s_min: 150
     vivid_v_min: 70
@@ -264,6 +281,8 @@ waste:                                     # D3 §4
     bright_v_min: 200
     bright_s_max: 45
     open_px: 1
+    white_mean_s_max: 30                   # bright_soil rule: mean S >= this and hue in soil_hue_range
+    soil_hue_range: [0, 35]
   decide:
     auto_accept_enabled: false             # nothing auto-exported before Publish; only waste_confirmed.csv
     candidate_min: 0.3
@@ -435,6 +454,7 @@ export:
     xml_deflate_level: 9
     manual_row_start: 900
     allow_qa_errors: false                 # CLI --allow-qa-errors
+    invalid_tile_policy: block             # block | empty (export the bad tile empty, reason invalid)
 
 import:
   files: []                                # CLI positional args of import-marcaj / from-marcaj / final
@@ -495,6 +515,7 @@ eval:
   enforce_gates: false                     # CLI --gates
   baseline_file: null                      # CLI --baseline
   write_baseline: false                    # CLI --write-baseline
+  default_baseline_name: eval_baseline.json   # <work_dir>/<name> when --write-baseline has no --baseline
   gates:
     canopy_score: 0.80
     row_f1: 0.95

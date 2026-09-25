@@ -54,6 +54,8 @@ class RowsDetectConfig(Section):
     multi_min_angle_sep_deg: PosFloat
     gap_record_min_m: PosFloat
     mask_forbidden: bool
+    snr_peak_rel_width: PosFloat
+    snap_ray_max_factor: PosFloat
 
     @model_validator(mode="after")
     def _spacing_ordered(self) -> RowsDetectConfig:
@@ -70,6 +72,8 @@ class RowsLinkConfig(Section):
     passage_erode_m: NonNegFloat
     dup_overlap_m: NonNegFloat
     rescue_soft_rejects: bool
+    hole_support_min_frac: Frac
+    refit_sample_m: PosFloat
 
 
 class RowsFilterConfig(Section):
@@ -77,6 +81,7 @@ class RowsFilterConfig(Section):
     width_station_m: PosFloat
     occupancy_min: Frac
     min_vine_score: Frac
+    wide_min_rel_contrast: NonNegFloat
 
 
 class RowsConfig(Section):
@@ -115,6 +120,11 @@ class BlocksConfig(Section):
     id_width: Literal[2]
     row_id_width: Literal[3]
     garden_max_row_length_m: PosFloat
+    band_bin_m: PosFloat
+    band_pad_m: NonNegFloat
+    spacing_cut_side_rows: PosInt
+    too_few_rows_issue_min: PosInt
+    override_match_tol_m: PosFloat
 
 
 class CanopyConfig(Section):
@@ -129,6 +139,9 @@ class CanopyConfig(Section):
     max_perp_width_tree_m: PosFloat
     tree_filter_enabled: bool
     rows_margin_m: NonNegFloat
+    corridor_label_convention: Literal["index", "continuous"]
+    clip_to_corridor: bool
+    interpolated_min_veg_frac: Frac
 
 
 class InterrowConfig(Section):
@@ -140,6 +153,8 @@ class InterrowConfig(Section):
     cover_borderline_margin: Frac
     hole_min_area_m2: NonNegFloat
     hole_sources: tuple[Literal["forbidden", "tree_mask"], ...]
+    edge_extend_m: NonNegFloat
+    edge_tol_m: NonNegFloat
 
     @model_validator(mode="after")
     def _cover_ordered(self) -> InterrowConfig:
