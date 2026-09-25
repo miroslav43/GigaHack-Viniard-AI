@@ -23,7 +23,6 @@ import RouteOutlined from "@mui/icons-material/RouteOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
-import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
@@ -35,7 +34,7 @@ const BASE_NAV = [
   { href: "/blocuri", label: "nav.blocks", short: "nav.blocksShort", icon: <TableRowsOutlined /> },
   { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
 ];
-const ADMIN_NAV = { href: "/super-admin", label: "superAdmin.nav", short: "superAdmin.nav", icon: <AdminPanelSettingsOutlined /> };
+
 
 const WIDTH_OPEN = 248;
 const WIDTH_CLOSED = 76;
@@ -84,7 +83,8 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
   const [open, setOpen] = useState(!isMap);
   const collapsed = !open;
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
-  const NAV = viewer.role === "platform_admin" && viewer.kind === "user" ? [...BASE_NAV, ADMIN_NAV] : BASE_NAV;
+  // /super-admin is intentionally not in the menu: reachable only by URL (and only for platform admins)
+  const NAV = BASE_NAV;
 
   if (isMobile) {
     return (

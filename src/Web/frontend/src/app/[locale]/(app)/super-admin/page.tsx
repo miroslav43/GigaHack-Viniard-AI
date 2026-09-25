@@ -1,9 +1,9 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Page, PageHeader } from "@/components/common/PageHeader";
+import { AccessDenied } from "@/components/common/AccessDenied";
 import { AdminTabs } from "@/components/admin/common";
 import { UatPanel } from "@/components/admin/UatPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
@@ -37,8 +37,8 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
   const { locale } = await params;
   setRequestLocale(locale);
   const viewer = await getViewer();
-  // the page does not exist for anyone but the platform administrator
-  if (!isPlatformAdmin(viewer)) notFound();
+  // proxy.ts already answers 403 for anyone else; this check is defense in depth
+  if (!isPlatformAdmin(viewer)) return <AccessDenied />;
 
   const t = await getTranslations("superAdmin");
   const raw = (await searchParams).tab;

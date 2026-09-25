@@ -424,5 +424,10 @@
   "country": {
     "MD": "Republic of Moldova",
     "RO": "Romania"
+  },
+  "accessDenied": {
+    "title": "Access denied",
+    "body": "You do not have permission to access this page.",
+    "home": "Back to the home page"
   }
 }
