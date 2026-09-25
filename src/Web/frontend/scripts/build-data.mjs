@@ -90,8 +90,7 @@ const fc = (features) => ({ type: "FeatureCollection", features });
 // ---------- tile index + orthophoto ----------
 // GeoTIFFs are git-ignored; without them (e.g. CI) the committed index keeps every figure identical and ortho is skipped.
 const TILES_DIR = path.join(ORGANIZER, "01_tiles");
-const HAS_TIFFS = fs.existsSync(TILES_DIR);
-const tileFiles = HAS_TIFFS
+const tiffsOnDisk = fs.existsSync(TILES_DIR)
   ? fs
       .readdirSync(TILES_DIR, { withFileTypes: true })
       .filter((d) => d.isDirectory())
@@ -102,8 +101,13 @@ const tileFiles = HAS_TIFFS
           .map((f) => path.join(TILES_DIR, d.name, f)),
       )
       .sort()
+  : [];
+// the folder exists in git (overview.png) but the GeoTIFFs do not — decide on the files, not the folder
+const HAS_TIFFS = tiffsOnDisk.length > 0;
+const tileFiles = HAS_TIFFS
+  ? tiffsOnDisk
   : JSON.parse(fs.readFileSync(path.join(FRONTEND, "data", "tiles_index.json"), "utf8")).tiles.map((id) => `${id}.tif`);
-if (!HAS_TIFFS) console.warn(`! ${TILES_DIR} not found — using data/tiles_index.json, orthophoto skipped`);
+if (!HAS_TIFFS) console.warn(`! no GeoTIFF tiles under ${TILES_DIR} — using data/tiles_index.json, orthophoto skipped`);
 if (tileFiles.length !== 311) console.warn(`! expected 311 tiles, found ${tileFiles.length}`);
 
 const tiles = tileFiles.map((file) => {
