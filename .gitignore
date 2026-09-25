@@ -1,0 +1,32 @@
+# OS junk
+.DS_Store
+**/.DS_Store
+
+# Raw challenge data — too large for git, re-downloadable from the challenge package.
+# 5 zips (~445MB) + their extracted tile folders (~180MB), 311 GeoTIFF tiles total.
+data & info/01_tiles/*.zip
+data & info/01_tiles/siret3_challenge_tiles_part*of5/
+
+# Full source orthomosaic — 637MB single file, exceeds GitHub's 100MB file limit.
+data & info/04_source/*.tif
+
+# Redundant with the already-extracted siret3_examples_cvat/ folder.
+data & info/05_examples/siret3_examples_cvat.zip
+
+# Model checkpoints (e.g. SAM downloads) — never commit weights.
+models/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+*.bin
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets
+.env
+.env.*

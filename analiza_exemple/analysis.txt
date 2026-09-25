@@ -1,0 +1,147 @@
+
+========== siret3_r021_c012.tif
+rows 25 canopies 399 interrows 24 boxes 0
+keys seen: Counter({'label': 448, 'source': 448, 'occluded': 448, 'points': 448, 'z_order': 448})
+sources: Counter({'manual': 448}) z: Counter({'0': 448}) occl: Counter({'0': 448})
+vineyard_ids: Counter({'V01': 448})
+--- ROWS
+n points per row: Counter({2: 25})
+row_structure: Counter({'regular': 25})
+row length m: p0=1.1 p5=6.13 p25=18 p50=36.1 p75=55.8 p95=64.5 p100=64.6 mean=36.4 n=25
+row angle deg: p0=46.7 p5=51.2 p25=52.3 p50=52.5 p75=52.7 p95=53 p100=53.2 mean=52.2 n=25
+row endpoints on tile edge (0/1/2): Counter({2: 25})
+row ids: ['V01-R01', 'V01-R02', 'V01-R03', 'V01-R04', 'V01-R05', 'V01-R06', 'V01-R07', 'V01-R08', 'V01-R09', 'V01-R10', 'V01-R11', 'V01-R12', 'V01-R13', 'V01-R14', 'V01-R15', 'V01-R16', 'V01-R17', 'V01-R18', 'V01-R19', 'V01-R20', 'V01-R21', 'V01-R22', 'V01-R23', 'V01-R24', 'V01-R25']
+row spacing m (perp, sorted): p0=2.49 p5=2.53 p25=2.67 p50=2.78 p75=2.91 p95=3.53 p100=3.73 mean=2.85 n=24
+row order by offset: ['V01-R01', 'V01-R02', 'V01-R03', 'V01-R04', 'V01-R05', 'V01-R06', 'V01-R07', 'V01-R08', 'V01-R09', 'V01-R10', 'V01-R11', 'V01-R12', 'V01-R13', 'V01-R14', 'V01-R15', 'V01-R16', 'V01-R17', 'V01-R18', 'V01-R19', 'V01-R20', 'V01-R21', 'V01-R22', 'V01-R23', 'V01-R24', 'V01-R25']
+--- CANOPIES
+area m2: p0=0.19 p5=0.221 p25=0.324 p50=0.467 p75=0.713 p95=1.4 p100=2.94 mean=0.594 n=399
+vertices: p0=4 p5=7 p25=10 p50=14 p75=19 p95=35.1 p100=58 mean=15.8 n=399
+along-row extent m: p0=0.562 p5=0.736 p25=0.985 p50=1.44 p75=2.03 p95=3.81 p100=6.22 mean=1.7 n=399
+across-row extent m: p0=0.269 p5=0.432 p25=0.565 p50=0.592 p75=0.598 p95=0.607 p100=0.656 mean=0.568 n=399
+edge length m: p0=0.025 p5=0.103 p25=0.16 p50=0.23 p75=0.329 p95=0.625 p100=3.62 mean=0.281 n=6304
+canopy centroid dist to nearest axis m: p0=0.000533 p5=0.00298 p25=0.0171 p50=0.0353 p75=0.0602 p95=0.101 p100=0.171 mean=0.0408 n=399
+canopies per row: [1, 3, 3, 5, 6, 6, 9, 9, 10, 12, 14, 14, 16, 18, 18, 20, 22, 23, 24, 24, 26, 27, 27, 31, 31]
+centroid pitch along row m: p0=0.653 p5=1.08 p25=1.51 p50=1.98 p75=2.89 p95=4.05 p100=6.3 mean=2.26 n=374
+edge gap along row m (neg = touching/overlap): p0=-0.125 p5=0.00902 p25=0.133 p50=0.304 p75=0.709 p95=2.07 p100=3.83 mean=0.572 n=374
+share of gaps <=0.05m (touching): 0.13903743315508021
+gaps >= 5 m: []
+  V01-R01: regular    n=  1 len=  1.1m maxgap= 0.0m axis-overhang start=0.06 end=-0.04
+  V01-R02: regular    n=  3 len=  6.4m maxgap= 0.0m axis-overhang start=-0.04 end=0.48
+  V01-R03: regular    n=  6 len= 12.4m maxgap= 1.2m axis-overhang start=-0.0 end=0.74
+  V01-R04: regular    n=  9 len= 18.0m maxgap= 2.4m axis-overhang start=0.43 end=0.56
+  V01-R05: regular    n= 10 len= 24.3m maxgap= 2.6m axis-overhang start=-0.2 end=0.03
+  V01-R06: regular    n= 14 len= 30.2m maxgap= 1.6m axis-overhang start=1.09 end=0.02
+  V01-R07: regular    n= 18 len= 36.1m maxgap= 1.3m axis-overhang start=0.17 end=0.02
+  V01-R08: regular    n= 16 len= 42.3m maxgap= 1.8m axis-overhang start=-0.05 end=0.02
+  V01-R09: regular    n= 23 len= 48.0m maxgap= 1.4m axis-overhang start=-0.22 end=-0.15
+  V01-R10: regular    n= 27 len= 55.8m maxgap= 1.9m axis-overhang start=-0.14 end=-0.34
+  V01-R11: regular    n= 31 len= 63.3m maxgap= 2.9m axis-overhang start=-0.09 end=0.03
+  V01-R12: regular    n= 22 len= 64.6m maxgap= 3.7m axis-overhang start=0.23 end=2.82
+  V01-R13: regular    n= 31 len= 64.5m maxgap= 2.9m axis-overhang start=0.08 end=-0.11
+  V01-R14: regular    n= 27 len= 64.3m maxgap= 2.5m axis-overhang start=-0.23 end=-0.09
+  V01-R15: regular    n= 26 len= 63.4m maxgap= 2.6m axis-overhang start=0.08 end=1.64
+  V01-R16: regular    n= 24 len= 58.0m maxgap= 3.8m axis-overhang start=2.19 end=0.2
+  V01-R17: regular    n= 24 len= 52.4m maxgap= 2.1m axis-overhang start=0.97 end=2.92
+  V01-R18: regular    n= 18 len= 46.0m maxgap= 3.2m axis-overhang start=1.82 end=1.9
+  V01-R19: regular    n= 20 len= 39.9m maxgap= 2.6m axis-overhang start=0.94 end=0.29
+  V01-R20: regular    n= 14 len= 34.0m maxgap= 3.1m axis-overhang start=0.46 end=-0.19
+  V01-R21: regular    n=  9 len= 28.4m maxgap= 1.5m axis-overhang start=-0.11 end=-0.06
+  V01-R22: regular    n= 12 len= 22.5m maxgap= 2.2m axis-overhang start=0.12 end=-0.14
+  V01-R23: regular    n=  6 len= 16.7m maxgap= 0.9m axis-overhang start=0.02 end=-0.14
+  V01-R24: regular    n=  5 len= 11.3m maxgap= 0.9m axis-overhang start=0.12 end=1.74
+  V01-R25: regular    n=  3 len=  6.1m maxgap= 0.4m axis-overhang start=-0.32 end=-0.12
+canopies touching tile edge: 15
+--- INTERROWS
+cover: Counter({'bare_soil': 24})
+area m2: p0=7.46 p5=17.4 p25=49.8 p50=89.1 p75=123 p95=159 p100=179 mean=86.2 n=24
+vertices: p0=4 p5=4 p25=4 p50=4 p75=4 p95=4.85 p100=5 mean=4.08 n=24
+mean width (area/length) m: p0=1.29 p5=1.59 p25=1.94 p50=2.03 p75=2.13 p95=2.78 p100=2.95 mean=2.06 n=24
+canopy px overlap between canopies (cnt>1) m2: 0.00875
+canopy union area m2: 256.94812500000006  sum of canopy areas m2: 237.11937500000005
+interrow union m2: 2086.2212500000005 ; canopy∩interrow m2: 5.545625000000001
+interrow border distance to nearest canopy m: p5=0 p25=0.035 p50=0.105 p75=0.25 p90=0.5 p95=0.76 mean=0.202 n=101733
+nodata px share: 5.245208740234375e-06
+ExG canopy: p5=0.0691 p25=0.127 p50=0.197 p75=0.297 p95=0.529 mean=0.232 n=8223
+ExG interrow: p5=0.00424 p25=0.019 p50=0.0289 p75=0.0429 p95=0.125 mean=0.0417 n=66760
+ExG other: p5=-0.00543 p25=0.0227 p50=0.0429 p75=0.0799 p95=0.227 mean=0.0668 n=9082
+best ExG thr canopy vs interrow: balanced acc=0.917 thr=0.070
+  ExG>0.02: IoU in zone=0.145; whole tile IoU=0.129
+  ExG>0.05: IoU in zone=0.394; whole tile IoU=0.331
+  ExG>0.08: IoU in zone=0.528; whole tile IoU=0.453
+  ExG>0.1: IoU in zone=0.553; whole tile IoU=0.484
+  ExG>0.12: IoU in zone=0.549; whole tile IoU=0.490
+  ExG>0.15: IoU in zone=0.513; whole tile IoU=0.469
+
+========== siret3_r006_c004.tif
+rows 26 canopies 251 interrows 25 boxes 0
+keys seen: Counter({'label': 302, 'source': 302, 'occluded': 302, 'points': 302, 'z_order': 302})
+sources: Counter({'manual': 302}) z: Counter({'0': 302}) occl: Counter({'0': 302})
+vineyard_ids: Counter({'V02': 302})
+--- ROWS
+n points per row: Counter({2: 26})
+row_structure: Counter({'regular': 21, 'disrupted': 5})
+row length m: p0=4.99 p5=6.84 p25=25.9 p50=47.1 p75=55.5 p95=55.6 p100=55.6 mean=39.7 n=26
+row angle deg: p0=66.7 p5=66.8 p25=67 p50=67.2 p75=67.3 p95=67.5 p100=68.1 mean=67.2 n=26
+row endpoints on tile edge (0/1/2): Counter({2: 26})
+row ids: ['V02-R01', 'V02-R02', 'V02-R03', 'V02-R04', 'V02-R05', 'V02-R06', 'V02-R07', 'V02-R08', 'V02-R09', 'V02-R10', 'V02-R11', 'V02-R12', 'V02-R13', 'V02-R14', 'V02-R15', 'V02-R16', 'V02-R17', 'V02-R18', 'V02-R19', 'V02-R20', 'V02-R21', 'V02-R22', 'V02-R23', 'V02-R24', 'V02-R25', 'V02-R26']
+row spacing m (perp, sorted): p0=2.33 p5=2.41 p25=2.45 p50=2.53 p75=2.58 p95=2.77 p100=2.78 mean=2.54 n=25
+row order by offset: ['V02-R01', 'V02-R02', 'V02-R03', 'V02-R04', 'V02-R05', 'V02-R06', 'V02-R07', 'V02-R08', 'V02-R09', 'V02-R10', 'V02-R11', 'V02-R12', 'V02-R13', 'V02-R14', 'V02-R15', 'V02-R16', 'V02-R17', 'V02-R18', 'V02-R19', 'V02-R20', 'V02-R21', 'V02-R22', 'V02-R23', 'V02-R24', 'V02-R25', 'V02-R26']
+--- CANOPIES
+area m2: p0=0.189 p5=0.217 p25=0.347 p50=0.572 p75=0.994 p95=4.05 p100=31.5 mean=1.19 n=251
+vertices: p0=5 p5=8 p25=11 p50=15 p75=22 p95=53 p100=148 mean=20.4 n=251
+along-row extent m: p0=0.452 p5=0.853 p25=1.15 p50=1.77 p75=2.84 p95=7.79 p100=55.8 mean=3.01 n=251
+across-row extent m: p0=0.308 p5=0.392 p25=0.489 p50=0.574 p75=0.595 p95=0.613 p100=0.742 mean=0.542 n=251
+edge length m: p0=0.025 p5=0.103 p25=0.175 p50=0.247 p75=0.364 p95=0.706 p100=19.3 mean=0.346 n=5122
+canopy centroid dist to nearest axis m: p0=0.000414 p5=0.00312 p25=0.0166 p50=0.0356 p75=0.0639 p95=0.11 p100=0.142 mean=0.0434 n=251
+canopies per row: [1, 1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 9, 10, 12, 13, 13, 13, 14, 14, 14, 18, 18, 19, 19, 20]
+centroid pitch along row m: p0=0.764 p5=1.41 p25=2.08 p50=2.92 p75=4.04 p95=9.32 p100=21.1 mean=3.6 n=225
+edge gap along row m (neg = touching/overlap): p0=-0.119 p5=0.00511 p25=0.158 p50=0.45 p75=1.19 p95=3.64 p100=12.9 mean=1.03 n=225
+share of gaps <=0.05m (touching): 0.13333333333333333
+gaps >= 5 m: [('V02-R06', 5.1, 'disrupted'), ('V02-R08', 7.7, 'disrupted'), ('V02-R08', 9.3, 'disrupted'), ('V02-R08', 7.1, 'disrupted'), ('V02-R09', 12.9, 'disrupted'), ('V02-R09', 7.8, 'disrupted'), ('V02-R09', 12.7, 'disrupted'), ('V02-R15', 5.0, 'regular')]
+  V02-R01: regular    n=  2 len=  5.1m maxgap= 0.0m axis-overhang start=-0.07 end=-0.26
+  V02-R02: regular    n=  4 len= 12.0m maxgap= 2.0m axis-overhang start=-0.04 end=1.49
+  V02-R03: regular    n=  4 len= 19.0m maxgap= 1.5m axis-overhang start=3.96 end=2.36
+  V02-R04: regular    n=  8 len= 26.5m maxgap= 1.2m axis-overhang start=0.11 end=-0.33
+  V02-R05: regular    n= 13 len= 33.8m maxgap= 2.2m axis-overhang start=0.67 end=0.21
+  V02-R06: disrupted  n= 12 len= 41.0m maxgap= 5.1m axis-overhang start=-0.01 end=0.99
+  V02-R07: disrupted  n= 14 len= 47.7m maxgap= 2.3m axis-overhang start=11.33 end=3.38
+  V02-R08: disrupted  n= 10 len= 55.4m maxgap= 9.3m axis-overhang start=1.78 end=0.68
+  V02-R09: disrupted  n=  9 len= 55.6m maxgap=12.9m axis-overhang start=4.43 end=-0.1
+  V02-R10: regular    n= 18 len= 55.5m maxgap= 1.2m axis-overhang start=-0.09 end=-0.07
+  V02-R11: regular    n= 13 len= 55.5m maxgap= 1.6m axis-overhang start=-0.12 end=-0.09
+  V02-R12: regular    n= 19 len= 55.5m maxgap= 2.4m axis-overhang start=-0.06 end=-0.09
+  V02-R13: regular    n= 19 len= 55.5m maxgap= 3.1m axis-overhang start=0.05 end=0.97
+  V02-R14: regular    n= 20 len= 55.5m maxgap= 2.9m axis-overhang start=-0.02 end=1.0
+  V02-R15: regular    n= 18 len= 55.6m maxgap= 5.0m axis-overhang start=1.81 end=-0.08
+  V02-R16: regular    n=  8 len= 55.6m maxgap= 0.1m axis-overhang start=-0.13 end=-0.1
+  V02-R17: regular    n=  1 len= 55.6m maxgap= 0.0m axis-overhang start=-0.12 end=-0.1
+  V02-R18: regular    n=  4 len= 55.6m maxgap= 0.1m axis-overhang start=-0.12 end=-0.06
+  V02-R19: regular    n=  5 len= 53.8m maxgap= 0.8m axis-overhang start=-0.33 end=0.05
+  V02-R20: regular    n= 14 len= 46.5m maxgap= 2.0m axis-overhang start=1.41 end=0.02
+  V02-R21: regular    n= 14 len= 40.0m maxgap= 1.6m axis-overhang start=-0.44 end=-0.0
+  V02-R22: regular    n= 13 len= 33.6m maxgap= 0.9m axis-overhang start=2.32 end=0.78
+  V02-R23: disrupted  n=  6 len= 25.7m maxgap= 4.7m axis-overhang start=1.22 end=6.77
+  V02-R24: regular    n=  1 len= 18.8m maxgap= 0.0m axis-overhang start=-0.65 end=-0.05
+  V02-R25: regular    n=  1 len= 12.0m maxgap= 0.0m axis-overhang start=-0.71 end=-0.09
+  V02-R26: regular    n=  1 len=  5.0m maxgap= 0.0m axis-overhang start=-0.48 end=-0.09
+canopies touching tile edge: 16
+--- INTERROWS
+cover: Counter({'bare_soil': 21, 'mixed': 4})
+area m2: p0=15.7 p5=18.6 p25=57.6 p50=102 p75=106 p95=112 p100=121 mean=79.9 n=25
+vertices: p0=4 p5=4 p25=4 p50=4 p75=4 p95=4 p100=5 mean=4.04 n=25
+mean width (area/length) m: p0=1.41 p5=1.47 p25=1.71 p50=1.84 p75=1.93 p95=1.99 p100=2.14 mean=1.81 n=25
+canopy px overlap between canopies (cnt>1) m2: 0.004375
+canopy union area m2: 319.35937500000006  sum of canopy areas m2: 299.0556250000001
+interrow union m2: 2019.6012500000004 ; canopy∩interrow m2: 9.626250000000002
+interrow border distance to nearest canopy m: p5=0 p25=0.025 p50=0.125 p75=0.275 p90=1.06 p95=1.89 mean=0.331 n=107575
+nodata px share: 1.430511474609375e-06
+ExG canopy: p5=0.0618 p25=0.115 p50=0.178 p75=0.259 p95=0.451 mean=0.204 n=10220
+ExG interrow: p5=-0.0252 p25=-0.00985 p50=0.00449 p75=0.0385 p95=0.171 mean=0.0288 n=64628
+ExG other: p5=-0.0244 p25=-0.00297 p50=0.0119 p75=0.0421 p95=0.155 mean=0.0309 n=9348
+best ExG thr canopy vs interrow: balanced acc=0.883 thr=0.060
+  ExG>0.02: IoU in zone=0.318; whole tile IoU=0.284
+  ExG>0.05: IoU in zone=0.421; whole tile IoU=0.390
+  ExG>0.08: IoU in zone=0.460; whole tile IoU=0.436
+  ExG>0.1: IoU in zone=0.466; whole tile IoU=0.445
+  ExG>0.12: IoU in zone=0.462; whole tile IoU=0.444
+  ExG>0.15: IoU in zone=0.437; whole tile IoU=0.422

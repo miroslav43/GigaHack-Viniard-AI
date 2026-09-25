@@ -1,0 +1,168 @@
+PROBLEM STATEMENT
+Vineyard operators need reliable maps of planting, row structure, visible waste and locations requiring inspection. Aerial images alone do not provide measured areas or an efficient plan for walking through the planting. Moldova's agriculture ministry estimates vineyard maintenance costs in 2026 at MDL 52,000–80,000 per hectare, including depreciation of fixed assets. A hypothetical 20-hectare holding therefore incurs annual maintenance costs of MDL 1.04–1.60 million. 
+
+The expected economic benefit is less preparation and walking time while maintaining coverage of the target planting, including during area audits to assess compliance with government subsidy requirements. For example, shortening a route from 6 to 4.2 km reduces walking distance by 30%, or 27 minutes at an assumed speed of 4 km/h.
+
+CHALLENGE BRIEF
+Build an end-to-end application that turns Sireț3 — an open, unannotated RGB orthomosaic from Moldova — into an annotated vineyard map and a walking route suitable for practical use. 
+
+Teams may train or adapt models using open labelled vineyard datasets, combine AI/ML with classical computer vision and post-processing, then import pre-annotations into the Marcaj platform for manual correction to improve the quality of the solution. The final deliverable combines a neural-network model, data annotations, calculated measurements, route planning and a working web interface.
+
+SOLUTION SCOPE
+Must-have features
+
+Canopies. Segment top-down grapevine canopies as polygons (label vineyard), excluding inter-row ground. Adjoining canopies must be segmented separately to enable the counting of individual vines.
+
+Waste. Detect clearly visible waste within the vineyard area and the surrounding zone using bounding boxes (label waste). Individually distinguishable items are separate objects; inseparable clusters are annotated as a single object. Bounding-box area is not treated as the actual area of the waste.
+
+Row axes. Extract a separate polyline along each vine-row axis (label row, attribute row_id). Inter-row axes are not annotated. Visible planting gaps do not split a physical row into new row IDs.
+
+Inter-row areas. Derive inter-row polygons within each block (label interrow_area): the ground between the canopies of adjacent rows, excluding canopies, roads, headlands and exterior land. Canopy area and inter-row area do not overlap.
+
+Attributes. Classify each row's structure (row_structure: regular / disrupted / unassessable) and each inter-row area's cover (interrow_cover: bare soil / vegetation / mixed / unassessable). Where a value cannot be made out on the image, use unassessable — this is the exclusion attribute, and it is compared with the reference like any other answer.
+
+Blocks. Associate every object with its vineyard block through the vineyard_id attribute. A vineyard block is a connected planting area. Preserve IDs across image-tile boundaries and remove duplicates.
+
+Inspection locations. Identify locations requiring inspection, such as visible row gaps or potentially missing planting, with an ID, coordinates and links to vineyard_id / row_id. They, together with detected waste, are the targets of the walking route.
+
+Counts and measurements. Count unique vineyard blocks and rows. Calculate individual and total row lengths, canopy area (from the union of canopy polygons) and inter-row area. Report areas in m² and hectares and lengths in metres, in EPSG:32635. Measurements are horizontal, without terrain correction.
+
+Annotation in Marcaj. Upload the supplied tiles together with your AI pre-annotations to your team's Marcaj project, distribute validation work within the team, and manually correct geometry and attributes only on that platform.
+
+Walking route. Plan a walking route from the organizer-supplied starting point for inspection, waste collection, or both. Use passable inter-row areas and authorised passages, not paths through canopies, fences or forbidden areas. Minimise length while visiting every reachable target. The route must return to the starting point.
+
+Web interface. Show routes as polylines with their lengths, vineyard_id / row_id, canopy and inter-row areas, vineyard-block and row counts, and individual and total row lengths in a working web interface.
+
+Submission. Submit the georeferenced route, measurement tables, application and processing code, and instructions for reproducing the results. Also provide neural-network model weights or a reproducible way to obtain them. Annotations are taken from your Marcaj project.
+
+Annotation conventions
+
+Grapevine canopy: label vineyard, polygon geometry, attribute vineyard_id.
+
+Waste: label waste, bounding box geometry, attribute vineyard_id.
+
+Vine-row axis: label row, polyline geometry, attributes vineyard_id, row_id and row_structure.
+
+Inter-row area: label interrow_area, polygon geometry, attributes vineyard_id and interrow_cover.
+
+Attribute values: row_structure = regular / disrupted / unassessable; interrow_cover = bare_soil / vegetation / mixed / unassessable. The full annotation rules are in the Assets.
+
+TECHNICAL STACK (EXPECTED)
+Implementation: any technology stack.
+
+Data processing: georeferenced GeoTIFF, spatial processing and machine-readable geometry and measurement exports. All geometries, the route and the measurement tables are submitted in EPSG:32635 (WGS 84 / UTM zone 35N, metres); GeoJSON coordinates are in this system.
+
+Suggested interchange formats: GeoJSON and CSV/JSON; CVAT for images 1.1 for importing pre-annotations into Marcaj.
+
+AI/ML: any suitable segmentation, detection, line-extraction and classification methods, including classical computer vision.
+
+Backend: spatial post-processing and route optimisation.
+
+Frontend: an interactive web map and measurement and route views.
+
+Annotation: manual creation, review and correction only within the Marcaj platform. If additional import or export formats are needed, teams may implement data converters.
+
+DATA
+Primary task data: Sireț3 / Siret3 from OpenAerialMap, supplied by 3DATA COLLECT — one unannotated, georeferenced RGB GeoTIFF orthomosaic (20 May 2025, UAV, 3.52 cm/px, ~145 ha). The orthomosaic is supplied re-projected to EPSG:32635 and cut into GeoTIFF tiles. The CC BY 4.0 licence permits reuse, adaptation and redistribution, including commercial use, subject to its terms.
+
+Open labelled vineyard data already exist: Riseholme provides 855 UAV RGB images and 40,215 COCO segmentation annotations, including canopy and row classes. UOPNOA offers roughly 34,000 RGB aerial images and land-use masks; its vineyard-block labels are not individual-canopy ground truth. DroneWaste is an additional open annotated aerial-waste reference. Teams should find suitable data, verify their licences and adapt across differences in scale, season and appearance.
+
+Released to every team at the same time, at the start of the hackathon (Assets).
+
+Assets released to every team at the start of the hackathon
+
+Tiles of the study area: GeoTIFF, EPSG:32635, ZIP and cloud link.
+
+Starting point: GeoJSON Point, EPSG:32635.
+
+Authorised passages and forbidden zones: GeoJSON (Multi)Polygon, EPSG:32635, property type = passage / forbidden.
+
+Annotation rules: PDF.
+
+Example tiles with reference annotations (not scored), also a template of the upload ZIP: CVAT for images 1.1.
+
+Marcaj quick-start guide: PDF.
+
+Full source orthomosaic: cloud link / OpenAerialMap.
+
+WORKING IN MARCAJ
+Marcaj accounts are created by the organizers from the team list and emailed to every participant on Friday evening, after team formation — no sign-up needed. Each team gets its own Marcaj project with the labels already configured. Every team member can import pre-annotations, annotate, review and export.
+
+Upload to your project one ZIP in the CVAT for images 1.1 format:
+
+team_upload.zip
+
+├── annotations.xml your model's pre-annotations (labels and attributes as above)
+
+└── images/
+
+└── siret3_r012_c034.tif … the supplied tiles, unchanged, original file names
+
+Without pre-annotations, upload the same ZIP with the tiles only. JPEG/PNG are not accepted: they carry no georeferencing.
+
+Pre-annotations can be imported only before the project is published, and only together with the tiles. Finish your model first, import once, then publish; after publishing, corrections are manual. Until you publish, you may delete the uploaded files and import again.
+
+Upload all supplied tiles, unchanged — the reference is matched by file name, and a missing tile counts as unannotated. After publishing, do not delete or add tiles and do not change the project's label settings.
+
+Only submitted jobs are scored. Frames in a job that was not submitted count as unannotated, and an unpublished project has no jobs at all.
+
+Upload all five tile parts before you publish — pre-annotations cannot be imported afterwards. Check that the project has 311 files, then publish.
+
+Agree on IDs before splitting the work: a block or row crossing a tile edge keeps one vineyard_id / row_id in every tile. The order in which tiles are annotated does not matter; taking neighbouring tiles together helps.
+
+SUBMISSION
+Deadline: 15:00 on Sunday 27 September (Chișinău time) — for both the repository and the Marcaj project. At the deadline the teams' Marcaj projects are frozen and their annotations are exported by the organizers.
+
+Submission is a single repository link. The repository root must contain:
+
+route.geojson — one LineString in EPSG:32635 that starts and ends at the supplied starting point (5 m tolerance), with a length_m property;
+
+measurements.csv — block and row counts, row lengths and areas by vineyard_id / row_id;
+
+README.md — install and run steps from the supplied tiles to route.geojson and measurements.csv, pinned dependencies (a Dockerfile is a plus), where to get the model weights, the processing time for the full tile set and the hardware it was measured on, and any paid APIs or LLMs used;
+
+application and processing code, and a link to the working web interface.
+
+RULES
+Compute: none is provided — use your own laptops or cloud. There is no limit on model size; weights may be shared by link.
+
+Allowed: any open pretrained models (e.g. SAM, YOLO), open datasets with verified licences, libraries and classical computer vision. Paid APIs and LLMs are allowed if the result stays reproducible and their use is listed in the README.
+
+Annotation: manual annotation of Sireț3 is done only in Marcaj; annotating other data for training is unrestricted. You may tile the orthomosaic any way you like for training, but the submission is the annotation of the supplied tiles.
+
+Not allowed: using another team's annotations.
+
+Pitch: 5 minutes plus 5 minutes of questions. Show the working web interface — map, objects, IDs, measurements and the route. A demo from the team's laptop is accepted; the link to the deployed interface goes in the README.
+
+Support: questions about the rules or the Marcaj platform go to the challenge channel in the GigaHack Slack, answered by the Marcaj team 09:00–23:00. Rule clarifications are pinned there and apply to all teams.
+
+Prizes
+For the winning team · up to 1 team
+MDL 30,000 · Cash
+Judging criteria
+Vineyard canopy segmentation
+25%
+0.6 × canopy-class IoU + 0.4 × F1 of individual canopies matched one-to-one at IoU ≥ 0.5, on the reference tiles. False canopies on tiles without vineyards are penalised by 0.5 × the share of the tile they cover.
+Waste detection
+10%
+Bounding-box F1 with one-to-one matching at IoU ≥ 0.3. Misses, false positives and duplicates reduce the score.
+Axes and attributes
+15%
+8% — F1 of row axes: a predicted and a reference axis match when each lies at least 80% within 0.4 m of the other.
+5% — attributes (row_structure, interrow_cover): mean of accuracy and macro-F1, over every reference object. Missing objects count as attribute errors rather than being excluded.
+2% — consistency of grouping objects by vineyard_id: objects of one block should share an ID and objects of different blocks should not. The ID values themselves need not match the reference.
+Counts and measurements
+10%
+2% — number of vineyard blocks (distinct vineyard_id); 2% — number of rows (distinct row_id).
+2% — canopy area; 2% — inter-row area.
+2% — total row length.
+
+Each value is scored as max(0, 1 − relative error / tolerance), with a 15% tolerance for counts and areas and 10% for length. Values are computed from the team's annotations in Marcaj, the same way for every team; measurements.csv is shown to the jury.
+Walking route
+25%
+Up to 15% — coverage of the reference targets: the organizers' hidden list of inspection locations and waste. A target counts as visited if the route passes within 2 m of it.
+Up to 10% — efficiency L_ref / L, awarded from 90% coverage and scaled by coverage. L_ref is the shorter of the organizers' route and the shortest admitted team route.
+A route with more than 2% of its length outside passable inter-row areas and authorised passages, or one that does not return to the start (5 m tolerance), scores 0 on this criterion.
+Engineering quality
+15%
+Expert assessment of architecture (5), robustness (4), scalability (3) and measured performance (3), supported by a working, reproducible demonstration. Performance is judged from the processing time and hardware stated in the README; the jury may ask for a re-run during the demo.
