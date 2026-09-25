@@ -43,7 +43,7 @@ export function LoginForm() {
     setError(null);
     const { error: err } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
     if (err) {
-      setError(err.code === "invalid_credentials" ? t("error") : t("errorGeneric"));
+      setError(err.code === "invalid_credentials" ? t("error") : err.code === "user_banned" ? t("banned") : t("errorGeneric"));
       setBusy(false);
       return;
     }

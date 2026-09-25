@@ -233,7 +233,8 @@
       "uat_admin": "administrator UAT",
       "inspector": "inspector de teren",
       "viewer": "vizualizator"
-    }
+    },
+    "banned": "Contul este dezactivat. Contactați administratorul platformei."
   },
   "noSurvey": {
     "title": "Niciun zbor de dronă în limita acestei primării",

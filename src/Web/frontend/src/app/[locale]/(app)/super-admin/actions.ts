@@ -38,6 +38,12 @@ async function requireAdminStrict() {
   return { ...ctx, admin };
 }
 
+/** Email of an account, for readable audit entries (the id alone is opaque). */
+async function emailOf(admin: ReturnType<typeof createAdminClient>, id: string) {
+  const { data } = await admin.auth.admin.getUserById(id);
+  return data.user?.email ?? null;
+}
+
 async function audit(action: string, entity: string, entityId: string | null, details: Record<string, unknown> = {}) {
   const supabase = await createClient();
   const { viewer } = await requireAdmin();
@@ -211,7 +217,7 @@ export async function updateUserAccess(input: {
       app_metadata: { uat: input.uat, uat_role: input.role },
     });
     if (error) throw new Error(error.message);
-    await audit("user.update_access", "user", input.id, { uat: input.uat, role: input.role });
+    await audit("user.update_access", "user", input.id, { email: await emailOf(admin, input.id), uat: input.uat, role: input.role });
     done();
     return null;
   });
@@ -223,7 +229,7 @@ export async function resetUserPassword(id: string, password: string): Promise<A
     if (password.length < 10) throw new Error("weak_password");
     const { error } = await admin.auth.admin.updateUserById(id, { password });
     if (error) throw new Error(error.message);
-    await audit("user.reset_password", "user", id);
+    await audit("user.reset_password", "user", id, { email: await emailOf(admin, id) });
     done();
     return null;
   });
@@ -235,7 +241,7 @@ export async function setUserBanned(id: string, banned: boolean): Promise<Action
     if (id === viewer.userId) throw new Error("self_ban");
     const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: banned ? "876000h" : "none" });
     if (error) throw new Error(error.message);
-    await audit(banned ? "user.disable" : "user.enable", "user", id);
+    await audit(banned ? "user.disable" : "user.enable", "user", id, { email: await emailOf(admin, id) });
     done();
     return null;
   });
@@ -245,11 +251,12 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   return run(async () => {
     const { admin, viewer } = await requireAdminStrict();
     if (id === viewer.userId) throw new Error("self_delete");
+    const email = await emailOf(admin, id);
     // ban first so no refresh can happen; access tokens already issued stay valid until they expire (≤ 1 h)
     await admin.auth.admin.updateUserById(id, { ban_duration: "876000h" });
     const { error } = await admin.auth.admin.deleteUser(id);
     if (error) throw new Error(error.message);
-    await audit("user.delete", "user", id);
+    await audit("user.delete", "user", id, { email });
     done();
     return null;
   });

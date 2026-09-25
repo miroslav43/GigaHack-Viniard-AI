@@ -233,7 +233,8 @@
       "uat_admin": "municipality administrator",
       "inspector": "field inspector",
       "viewer": "viewer"
-    }
+    },
+    "banned": "This account is disabled. Contact the platform administrator."
   },
   "noSurvey": {
     "title": "No drone flight within this municipality's boundary",
