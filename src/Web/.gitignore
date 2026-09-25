@@ -1,0 +1,2 @@
+# local-only notes with credentials (the repo is public) — never commit
+*.local.md
