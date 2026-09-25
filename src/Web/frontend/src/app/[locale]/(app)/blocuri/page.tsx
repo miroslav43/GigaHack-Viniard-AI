@@ -7,7 +7,7 @@ import { MockBanner, sourceLine } from "@/components/common/SourceNote";
 import { RowsTable } from "@/components/tables/RowsTable";
 import { NoSurvey } from "@/components/common/NoSurvey";
 import { getViewer } from "@/lib/viewer";
-import { dataUrl, getRows, getSummary } from "@/lib/data";
+import { SURVEY_ID, dataUrl, getRows, getSummary } from "@/lib/data";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/blocuri">): Promise<Metadata> {
   const { locale } = await params;
@@ -19,7 +19,7 @@ export default async function BlocksPage({ params }: PageProps<"/[locale]/blocur
   const { locale } = await params;
   setRequestLocale(locale);
   const viewer = await getViewer();
-  if (!viewer.uat.surveys.length) return <NoSurvey viewer={viewer} />;
+  if (!viewer.uat?.surveys.includes(SURVEY_ID)) return <NoSurvey viewer={viewer} />;
   const [summary, rows, t] = await Promise.all([getSummary(), getRows(), getTranslations("blocks")]);
   return (
     <Page>

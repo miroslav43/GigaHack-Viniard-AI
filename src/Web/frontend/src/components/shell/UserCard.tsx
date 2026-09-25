@@ -13,7 +13,7 @@ import Login from "@mui/icons-material/Login";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { AUTH_ENABLED, DEMO_COOKIE } from "@/lib/supabase/config";
-import type { Viewer } from "@/lib/viewer";
+import type { ShellViewer as Viewer } from "./types";
 
 const initials = (v: Viewer) =>
   (v.name ?? v.email ?? "?")

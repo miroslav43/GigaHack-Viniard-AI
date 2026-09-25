@@ -11,6 +11,12 @@ Implementat: panou general, hartă (ortofoto 311 tile-uri, straturi, atribute, c
 - primăria și rolul vin din `app_metadata` (`uat` = `sireti` | `cojusna`, `uat_role`), niciodată din `user_metadata`; o primărie fără zbor în limita ei primește o stare goală și nu i se încarcă datele altui UAT (`src/lib/uats.ts`, `src/lib/viewer.ts`);
 - conturi demo (seed: `supabase/seed/demo_users.sql`, parola NU e în git — se înlocuiește `__DEMO_PASSWORD__` la rulare): `admin@solemtrix.demo` (platform_admin), `primar@sireti.demo` (uat_admin), `inspector@sireti.demo` (inspector), `primar@cojusna.demo` (uat_admin Cojușna);
 - `frontend/.env.local` (ignorat de git, model în `.env.example`): URL-ul proiectului + cheia publishable. Fără ele (CI) aplicația rulează în mod demo deschis;
+**Super-admin (`/super-admin`, doar `uat_role = platform_admin`; pentru ceilalți pagina dă 404):**
+- **UAT-uri:** înrolare din OpenStreetMap (căutare Nominatim, doar relații `boundary=administrative` din MD/RO; geometria se descarcă din nou pe server la salvare), activare / dezactivare, ștergere, hartă cu toate primăriile;
+- **Utilizatori:** creare, primărie + rol (`app_metadata`), resetare parolă, dezactivare, ștergere — prin Admin API, necesită `SUPABASE_SECRET_KEY` în `frontend/.env.local` (doar server, `src/lib/supabase/admin.ts`, `server-only`); fără cheie tab-ul arată pașii de configurare;
+- **Survey-uri:** registrul survey-urilor și primăriile pe care le acoperă (intersecție spațială); înregistrarea pachetelor locale din `public/data/<id>/`;
+- **Sistem:** verificări (Supabase, Auth, DB/RLS, sesiune, date, ortofoto), versiuni, link-uri, comenzi; **Jurnal:** `public.admin_audit_log` (append-only).
+- **Baza de date** (migrație `supabase/migrations/20260926000100_platform_admin.sql`, aplicată pe proiect): `public.uat`, `public.survey`, `public.admin_audit_log`, view-uri `uat_public`, `survey_public`, `uat_survey` (security_invoker), RPC `enroll_uat`, `upsert_survey`; RLS: un utilizator citește doar primăria lui și survey-urile care îi intersectează limita, scrie doar `platform_admin`. Seed: `supabase/seed/uats_surveys.sql` (generat de `frontend/scripts/gen-seed-sql.mjs`). Aplicația citește primăria utilizatorului din DB (`src/lib/viewer.ts`); demo-ul folosește fixture-ul Sireți.
 - limită cunoscută: fișierele din `/data` sunt publice (survey CC BY 4.0); izolarea reală pe UAT vine cu RLS în PostGIS (planul, §5).
 
 Ce rulează acum (din `src/Web/frontend/`):

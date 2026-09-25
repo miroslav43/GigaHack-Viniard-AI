@@ -23,17 +23,19 @@ import RouteOutlined from "@mui/icons-material/RouteOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
+import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
-import type { Viewer } from "@/lib/viewer";
+import type { ShellViewer } from "./types";
 
-const NAV = [
-  { href: "/", key: "dashboard", icon: <DashboardOutlined /> },
-  { href: "/harta", key: "map", icon: <MapOutlined /> },
-  { href: "/blocuri", key: "blocks", icon: <TableRowsOutlined /> },
-  { href: "/ruta", key: "route", icon: <RouteOutlined /> },
-] as const;
+const BASE_NAV = [
+  { href: "/", label: "nav.dashboard", short: "nav.dashboardShort", icon: <DashboardOutlined /> },
+  { href: "/harta", label: "nav.map", short: "nav.mapShort", icon: <MapOutlined /> },
+  { href: "/blocuri", label: "nav.blocks", short: "nav.blocksShort", icon: <TableRowsOutlined /> },
+  { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
+];
+const ADMIN_NAV = { href: "/super-admin", label: "superAdmin.nav", short: "superAdmin.nav", icon: <AdminPanelSettingsOutlined /> };
 
 const WIDTH_OPEN = 248;
 const WIDTH_CLOSED = 76;
@@ -73,7 +75,7 @@ export function LanguageSwitch({ dense = false }: { dense?: boolean }) {
   );
 }
 
-export function AppShell({ children, viewer }: { children: ReactNode; viewer: Viewer }) {
+export function AppShell({ children, viewer }: { children: ReactNode; viewer: ShellViewer }) {
   const t = useTranslations();
   const pathname = usePathname();
   const theme = useTheme();
@@ -82,6 +84,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Vi
   const [open, setOpen] = useState(!isMap);
   const collapsed = !open;
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const NAV = viewer.role === "platform_admin" && viewer.kind === "user" ? [...BASE_NAV, ADMIN_NAV] : BASE_NAV;
 
   if (isMobile) {
     return (
@@ -113,7 +116,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Vi
           sx={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: 1, borderColor: "divider", zIndex: 10 }}
         >
           {NAV.map((n) => (
-            <BottomNavigationAction key={n.href} component={Link} href={n.href} label={t(`nav.${n.key}Short`)} icon={n.icon} />
+            <BottomNavigationAction key={n.href} component={Link} href={n.href} label={t(n.short)} icon={n.icon} />
           ))}
         </BottomNavigation>
       </Box>
@@ -163,18 +166,20 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Vi
               <PlaceOutlined fontSize="small" color="primary" />
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {t(`uat.${viewer.uat.key}.name`)}
+                  {viewer.uat ? t("uat.townHall", { name: viewer.uat.name }) : t("uat.unassigned")}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t(`uat.${viewer.uat.key}.place`)}
-                </Typography>
+                {viewer.uat && (
+                  <Typography variant="caption" color="text.secondary">
+                    {[viewer.uat.district, t(`country.${viewer.uat.country}`)].filter(Boolean).join(" · ")}
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Box>
         )}
         <List sx={{ px: 4, py: 3, display: "flex", flexDirection: "column", gap: 1 }}>
           {NAV.map((n) => (
-            <Tooltip key={n.href} title={collapsed ? t(`nav.${n.key}`) : ""} placement="right">
+            <Tooltip key={n.href} title={collapsed ? t(n.label) : ""} placement="right">
               <ListItemButton
                 component={Link}
                 href={n.href}
@@ -182,7 +187,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Vi
                 sx={{ py: 2.5, px: collapsed ? 3.5 : 4, justifyContent: collapsed ? "center" : "flex-start" }}
               >
                 <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40 }}>{n.icon}</ListItemIcon>
-                {!collapsed && <ListItemText primary={t(`nav.${n.key}`)} slotProps={{ primary: { sx: { fontWeight: 500 } } }} />}
+                {!collapsed && <ListItemText primary={t(n.label)} slotProps={{ primary: { sx: { fontWeight: 500 } } }} />}
               </ListItemButton>
             </Tooltip>
           ))}

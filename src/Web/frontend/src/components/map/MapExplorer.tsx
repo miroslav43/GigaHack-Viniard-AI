@@ -14,7 +14,7 @@ import Map, {
 } from "@vis.gl/react-maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { FeatureCollection, LineString, MultiLineString, Point, Polygon } from "geojson";
+import type { FeatureCollection, Geometry, LineString, MultiLineString, Point, Polygon } from "geojson";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -48,12 +48,12 @@ export function MapExplorer({
   summary,
   rows,
   dataBase,
-  geofenceUrl,
+  geofence: geofenceGeometry,
 }: {
   summary: SurveySummary;
   rows: RowRecord[];
   dataBase: string;
-  geofenceUrl: string;
+  geofence: Geometry;
 }) {
   const t = useTranslations();
   const theme = useTheme();
@@ -66,7 +66,10 @@ export function MapExplorer({
   const [blocksFc, setBlocksFc] = useState<FeatureCollection<Polygon> | null>(null);
   const [targets, setTargets] = useState<FeatureCollection<Point, TargetProps> | null>(null);
   const [route, setRoute] = useState<FeatureCollection<LineString> | null>(null);
-  const [geofence, setGeofence] = useState<FeatureCollection | null>(null);
+  const geofence = useMemo<FeatureCollection>(
+    () => ({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: geofenceGeometry }] }),
+    [geofenceGeometry],
+  );
   const [start, setStart] = useState<[number, number] | null>(null);
   const [studyBbox, setStudyBbox] = useState<BBox | null>(null);
   const [detailTiles, setDetailTiles] = useState<TileIndex["tiles"]>([]);
@@ -86,20 +89,18 @@ export function MapExplorer({
       get<FeatureCollection<Polygon>>(`${dataBase}/blocks.geojson`),
       get<FeatureCollection<Point, TargetProps>>(`${dataBase}/targets.geojson`),
       get<FeatureCollection<LineString>>(`${dataBase}/route.geojson`),
-      get<FeatureCollection>(geofenceUrl),
       get<FeatureCollection<Point>>("/data/ref/start.geojson"),
       get<FeatureCollection>("/data/ref/study_area.geojson"),
-    ]).then(([ti, rw, bl, tg, rt, gf, st, sa]) => {
+    ]).then(([ti, rw, bl, tg, rt, st, sa]) => {
       setTileIndex(ti);
       setRowsFc(rw);
       setBlocksFc(bl);
       setTargets(tg);
       setRoute(rt);
-      setGeofence(gf);
       setStart(st.features[0].geometry.coordinates as [number, number]);
       setStudyBbox(bboxOfCollection(sa));
     });
-  }, [dataBase, geofenceUrl]);
+  }, [dataBase]);
 
   const mask = useMemo(() => (geofence ? maskOutside(geofence) : null), [geofence]);
   const tileBoxes = useMemo(

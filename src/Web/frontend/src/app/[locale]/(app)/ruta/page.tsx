@@ -18,7 +18,7 @@ import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
 import { MockBanner, sourceLine } from "@/components/common/SourceNote";
 import { NoSurvey } from "@/components/common/NoSurvey";
 import { getViewer } from "@/lib/viewer";
-import { dataUrl, getSummary, getTargets } from "@/lib/data";
+import { SURVEY_ID, dataUrl, getSummary, getTargets } from "@/lib/data";
 import { makeFormat } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/ruta">): Promise<Metadata> {
@@ -31,7 +31,7 @@ export default async function RoutePage({ params }: PageProps<"/[locale]/ruta">)
   const { locale } = await params;
   setRequestLocale(locale);
   const viewer = await getViewer();
-  if (!viewer.uat.surveys.length) return <NoSurvey viewer={viewer} />;
+  if (!viewer.uat?.surveys.includes(SURVEY_ID)) return <NoSurvey viewer={viewer} />;
   const [s, targets, t, tc] = await Promise.all([getSummary(), getTargets(), getTranslations("route"), getTranslations()]);
   const f = makeFormat(await getLocale());
   const r = s.route;

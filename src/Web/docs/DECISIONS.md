@@ -235,3 +235,16 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - migrațiile nu ating `public`.
 - **Respins:** `public`, din cauza riscului de coliziune cu tabelele existente și a expunerii implicite.
 - **Consecințe:** clienții Supabase folosesc `db: { schema: 'vine' }`.
+
+### ADR-023 — Primăriile și survey-urile în Postgres (`public`), administrare în `/super-admin`
+- **Context:** primăriile erau o listă în cod; administratorul platformei trebuie să le înroleze fără deploy. Proiectul Supabase e nou și dedicat aplicației.
+- **Decizie:**
+  - tabele `public.uat`, `public.survey`, `public.admin_audit_log` (în `public`, nu în schema `vine` din ADR-022: proiectul e dedicat, iar `public` e expus implicit în Data API), cu RLS pe toate și acces zero pentru `anon`;
+  - geometrii în EPSG:4326 (o primărie din România poate fi în UTM 34N), arii pe `geography`; măsurătorile viei rămân în EPSG:32635 (ADR-010);
+  - limitele vin doar din OpenStreetMap (Nominatim `lookup`), descărcate din nou pe server la salvare — clientul nu trimite niciodată geometrie;
+  - scrierile pentru UAT/survey trec prin sesiunea utilizatorului (RLS `platform_admin`); gestionarea conturilor prin Admin API cu cheia secretă, doar pe server, cu re-verificarea rolului direct din Auth.
+- **Respins:**
+  - funcții `SECURITY DEFINER` care scriu în `auth.users`: ocolesc Auth și sunt riscante;
+  - upload manual de GeoJSON: fără sursă verificabilă a limitei.
+- **Consecințe:** fără `SUPABASE_SECRET_KEY` tab-ul Utilizatori e dezactivat (cu instrucțiuni); schimbările de rol se aplică la reîmprospătarea JWT (≤ 1 h).
+
