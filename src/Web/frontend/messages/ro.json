@@ -242,7 +242,7 @@
     }
   },
   "noSurvey": {
-    "title": "Niciun zbor în limita {uat}",
+    "title": "Niciun zbor de dronă în limita acestei primării",
     "body": "Nu există încă date de dronă în interiorul limitei administrative a acestei primării. Datele altor UAT-uri nu sunt accesibile din acest cont.",
     "boundary": "Limita administrativă: {area} (OSM {id})"
   }

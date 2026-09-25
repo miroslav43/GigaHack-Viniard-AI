@@ -242,7 +242,7 @@
     }
   },
   "noSurvey": {
-    "title": "No flight within {uat}",
+    "title": "No drone flight within this municipality's boundary",
     "body": "There is no drone data inside this municipality's administrative boundary yet. Other municipalities' data is not accessible from this account.",
     "boundary": "Administrative boundary: {area} (OSM {id})"
   }

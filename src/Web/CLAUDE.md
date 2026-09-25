@@ -2,9 +2,16 @@
 
 Documentul-sursă al părții web. Planul complet: `docs/PLAN.md`. Deciziile: `docs/DECISIONS.md`. Scenariul de pitch: `docs/DEMO.md`.
 
-**Stare (25.09, seara): site-ul există în `frontend/`**, doar frontend, pe date statice (`siret3-mock`). API-ul FastAPI, Supabase și login-ul nu sunt încă implementate; restul documentului rămâne planul.
+**Stare (25.09, seara): site-ul există în `frontend/`**, pe date statice (`siret3-mock`), cu login Supabase. API-ul FastAPI și datele în PostGIS nu sunt încă implementate; restul documentului rămâne planul.
 
-Implementat: panou general, hartă (ortofoto 311 tile-uri, straturi, atribute, căutare, deep link-uri, rută cu săgeți de direcție, unealtă de măsurare în UTM 35N), blocuri și rânduri (DataGrid, filtre, export CSV), rută (GPX, GeoJSON EPSG:32635), **RO / EN / RU** (next-intl, RO implicit fără prefix, fără detectare din browser), e2e Playwright pe fluxul de demo (desktop + mobil), CI `.github/workflows/web.yml`.
+Implementat: panou general, hartă (ortofoto 311 tile-uri, straturi, atribute, căutare, deep link-uri, rută cu săgeți de direcție, unealtă de măsurare în UTM 35N), blocuri și rânduri (DataGrid, filtre, export CSV), rută (GPX, GeoJSON EPSG:32635), **RO / EN / RU** (next-intl, RO implicit fără prefix, fără detectare din browser), e2e Playwright (desktop + mobil), CI `.github/workflows/web.yml`.
+
+**Login (Supabase Auth, proiect `htdnuwmnztenevnfahie`, eu-west-1):**
+- email + parolă, `@supabase/ssr`; `src/proxy.ts` = next-intl + reîmprospătarea sesiunii (`getClaims`) + protecția paginilor; „Demo fără cont” = cookie `solemtrix_demo` (date publice, doar vizualizare);
+- primăria și rolul vin din `app_metadata` (`uat` = `sireti` | `cojusna`, `uat_role`), niciodată din `user_metadata`; o primărie fără zbor în limita ei primește o stare goală și nu i se încarcă datele altui UAT (`src/lib/uats.ts`, `src/lib/viewer.ts`);
+- conturi demo (seed: `supabase/seed/demo_users.sql`, parola NU e în git — se înlocuiește `__DEMO_PASSWORD__` la rulare): `admin@solemtrix.demo` (platform_admin), `primar@sireti.demo` (uat_admin), `inspector@sireti.demo` (inspector), `primar@cojusna.demo` (uat_admin Cojușna);
+- `frontend/.env.local` (ignorat de git, model în `.env.example`): URL-ul proiectului + cheia publishable. Fără ele (CI) aplicația rulează în mod demo deschis;
+- limită cunoscută: fișierele din `/data` sunt publice (survey CC BY 4.0); izolarea reală pe UAT vine cu RLS în PostGIS (planul, §5).
 
 Ce rulează acum (din `src/Web/frontend/`):
 
