@@ -1,0 +1,392 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import Map, {
+  Layer,
+  Marker,
+  NavigationControl,
+  ScaleControl,
+  Source,
+  type MapLayerMouseEvent,
+  type MapRef,
+} from "@vis.gl/react-maplibre";
+import { setWorkerUrl } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import type { FeatureCollection, LineString, MultiLineString, Point, Polygon } from "geojson";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
+import { mapPalette } from "@/theme/mapPalette";
+import type { RowRecord, SurveySummary, TargetProps } from "@/lib/types";
+import { baseStyle, ORTHO_ANCHOR, ZOOM } from "./mapStyle";
+import { bboxOf, bboxOfCollection, intersects, maskOutside, type BBox } from "./geo";
+import { LayerPanel, DEFAULT_VISIBILITY, type LayerKey } from "./LayerPanel";
+import { AttributePanel, type Selection } from "./AttributePanel";
+import { KpiStrip } from "./KpiStrip";
+import { MeasureTool } from "./MeasureTool";
+import { ROUTE_ARROW, routeArrowImage } from "./arrowImage";
+import type { LonLat } from "@/lib/utm";
+
+interface TileIndex {
+  overview: { url: string; corners: [number, number][] };
+  tiles: { id: string; url: string; corners: [number, number][] }[];
+}
+
+const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
+const INTERACTIVE = ["rows-hit", "canopies-fill", "interrows-fill", "blocks-fill"];
+const MAX_DETAIL_TILES = 48;
+
+// see scripts/copy-maplibre-worker.mjs
+if (typeof window !== "undefined") setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
+
+const vis = (on: boolean) => ({ visibility: on ? ("visible" as const) : ("none" as const) });
+
+export function MapExplorer({ summary, rows, dataBase }: { summary: SurveySummary; rows: RowRecord[]; dataBase: string }) {
+  const t = useTranslations();
+  const theme = useTheme();
+  const compact = useMediaQuery(theme.breakpoints.down("lg"));
+  const params = useSearchParams();
+  const mapRef = useRef<MapRef>(null);
+
+  const [tileIndex, setTileIndex] = useState<TileIndex | null>(null);
+  const [rowsFc, setRowsFc] = useState<FeatureCollection<MultiLineString> | null>(null);
+  const [blocksFc, setBlocksFc] = useState<FeatureCollection<Polygon> | null>(null);
+  const [targets, setTargets] = useState<FeatureCollection<Point, TargetProps> | null>(null);
+  const [route, setRoute] = useState<FeatureCollection<LineString> | null>(null);
+  const [geofence, setGeofence] = useState<FeatureCollection | null>(null);
+  const [start, setStart] = useState<[number, number] | null>(null);
+  const [studyBbox, setStudyBbox] = useState<BBox | null>(null);
+  const [detailTiles, setDetailTiles] = useState<TileIndex["tiles"]>([]);
+  const [visible, setVisible] = useState<Record<LayerKey, boolean>>(DEFAULT_VISIBILITY);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [cursor, setCursor] = useState<string>("grab");
+  const [panelOpen, setPanelOpen] = useState(!compact);
+  const [measuring, setMeasuring] = useState(false);
+  const [measurePts, setMeasurePts] = useState<LonLat[]>([]);
+  const [arrowReady, setArrowReady] = useState(false);
+
+  useEffect(() => {
+    const get = <T,>(url: string) => fetch(url).then((r) => r.json() as Promise<T>);
+    Promise.all([
+      get<TileIndex>("/data/tiles.json"),
+      get<FeatureCollection<MultiLineString>>(`${dataBase}/rows.geojson`),
+      get<FeatureCollection<Polygon>>(`${dataBase}/blocks.geojson`),
+      get<FeatureCollection<Point, TargetProps>>(`${dataBase}/targets.geojson`),
+      get<FeatureCollection<LineString>>(`${dataBase}/route.geojson`),
+      get<FeatureCollection>("/data/ref/geofence_sireti.geojson"),
+      get<FeatureCollection<Point>>("/data/ref/start.geojson"),
+      get<FeatureCollection>("/data/ref/study_area.geojson"),
+    ]).then(([ti, rw, bl, tg, rt, gf, st, sa]) => {
+      setTileIndex(ti);
+      setRowsFc(rw);
+      setBlocksFc(bl);
+      setTargets(tg);
+      setRoute(rt);
+      setGeofence(gf);
+      setStart(st.features[0].geometry.coordinates as [number, number]);
+      setStudyBbox(bboxOfCollection(sa));
+    });
+  }, [dataBase]);
+
+  const mask = useMemo(() => (geofence ? maskOutside(geofence) : null), [geofence]);
+  const tileBoxes = useMemo(
+    () => tileIndex?.tiles.map((t) => ({ ...t, bbox: bboxOf([{ type: "Polygon", coordinates: [[...t.corners, t.corners[0]]] }])! })) ?? [],
+    [tileIndex],
+  );
+
+  const fit = useCallback((b: BBox | null, maxZoom = 20) => {
+    if (b) mapRef.current?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 60, maxZoom, duration: 800 });
+  }, []);
+
+  const refreshDetail = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (map.getZoom() < ZOOM.orthoDetail) return setDetailTiles([]);
+    const b = map.getBounds();
+    const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+    setDetailTiles(tileBoxes.filter((t) => intersects(t.bbox, view)).slice(0, MAX_DETAIL_TILES));
+  }, [tileBoxes]);
+
+  const selectRow = useCallback(
+    (rowId: string, zoom = true) => {
+      const f = rowsFc?.features.find((x) => x.properties?.row_id === rowId);
+      if (!f) return;
+      setSelection({ layer: "rows", props: f.properties ?? {} });
+      if (zoom) fit(bboxOf([f]), 19.5);
+    },
+    [rowsFc, fit],
+  );
+  const selectBlock = useCallback(
+    (id: string) => {
+      const f = blocksFc?.features.find((x) => x.properties?.vineyard_id === id);
+      if (!f) return;
+      setSelection({ layer: "blocks", props: f.properties ?? {} });
+      fit(bboxOf([f]), 19);
+    },
+    [blocksFc, fit],
+  );
+
+  // deep links: /harta?bloc=V01 or /harta?rand=V01-R05
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !rowsFc || !blocksFc || !studyBbox) return;
+    const frame = requestAnimationFrame(() => {
+      if (!mapRef.current) return;
+      deepLinked.current = true;
+      const rand = params.get("rand"), bloc = params.get("bloc");
+      if (rand) selectRow(rand);
+      else if (bloc) selectBlock(bloc);
+      else fit(studyBbox, 17);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [rowsFc, blocksFc, studyBbox, params, selectRow, selectBlock, fit]);
+
+  const onLoad = () => {
+    const map = mapRef.current?.getMap();
+    if (map && !map.hasImage(ROUTE_ARROW)) map.addImage(ROUTE_ARROW, routeArrowImage(), { pixelRatio: 2 });
+    setArrowReady(true);
+    refreshDetail();
+  };
+
+  const measureFc = useMemo<FeatureCollection>(() => {
+    const features: FeatureCollection["features"] = measurePts.map((p) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: p } }));
+    if (measurePts.length >= 2)
+      features.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: measuring ? measurePts : [...measurePts, ...(measurePts.length >= 3 ? [measurePts[0]] : [])] } });
+    if (!measuring && measurePts.length >= 3)
+      features.push({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[...measurePts, measurePts[0]]] } });
+    return { type: "FeatureCollection", features };
+  }, [measurePts, measuring]);
+
+  const onClick = (e: MapLayerMouseEvent) => {
+    if (measuring) {
+      // the second click of a double-click is ignored; onDblClick finishes the shape
+      if (e.originalEvent.detail > 1) return;
+      setMeasurePts((pts) => [...pts, [e.lngLat.lng, e.lngLat.lat]]);
+      return;
+    }
+    const f = e.features?.[0];
+    if (!f) return setSelection(null);
+    const layer = f.layer.id.split("-")[0] as Selection["layer"];
+    const props = f.properties ?? {};
+    // MapLibre serialises nested objects to strings
+    if (typeof props.tile_structures === "string") props.tile_structures = JSON.parse(props.tile_structures);
+    setSelection({ layer, props });
+  };
+
+  const selectedFilter = (key: string, layer: Selection["layer"]) =>
+    ["==", ["get", key], selection?.layer === layer ? String(selection.props[key]) : "__none__"] as const;
+
+  const overviewCoords = tileIndex?.overview.corners as [[number, number], [number, number], [number, number], [number, number]] | undefined;
+
+  return (
+    <Box sx={{ position: "relative", height: { xs: "calc(100dvh - 64px - 56px)", md: "100dvh" }, display: "flex", flexDirection: "column" }}>
+      <KpiStrip summary={summary} />
+      <Box sx={{ position: "relative", flex: 1, minHeight: 0 }}>
+        <Map
+          ref={mapRef}
+          initialViewState={{ longitude: 28.707, latitude: 47.125, zoom: 15 }}
+          mapStyle={baseStyle}
+          interactiveLayerIds={INTERACTIVE}
+          onClick={onClick}
+          onDblClick={() => measuring && setMeasuring(false)}
+          doubleClickZoom={!measuring}
+          onMouseEnter={() => setCursor("pointer")}
+          onMouseLeave={() => setCursor("grab")}
+          cursor={measuring ? "crosshair" : cursor}
+          onMoveEnd={refreshDetail}
+          onLoad={onLoad}
+          maxZoom={22}
+          attributionControl={{ compact: true, customAttribution: "Ortofoto Sireț3 © 3DATA COLLECT / OpenAerialMap, CC BY 4.0" }}
+          style={{ position: "absolute", inset: 0 }}
+        >
+          <NavigationControl position="bottom-right" showCompass={false} />
+          <ScaleControl position="bottom-left" unit="metric" />
+
+          {/* ---- anchor: always the first layer, so the orthophoto (beforeId) stays under every vector layer ---- */}
+          <Source id="ortho-anchor-src" type="geojson" data={EMPTY}>
+            <Layer id={ORTHO_ANCHOR} type="line" paint={{ "line-opacity": 0 }} />
+          </Source>
+
+          {/* ---- vectors ---- */}
+          {mask && (
+            <Source id="geofence-mask-src" type="geojson" data={mask}>
+              <Layer id="geofence-mask" type="fill" paint={{ "fill-color": mapPalette.geofenceMask, "fill-opacity": 0.45 }} layout={vis(visible.geofence)} />
+            </Source>
+          )}
+          {geofence && (
+            <Source id="geofence" type="geojson" data={geofence}>
+              <Layer id="geofence-casing" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 4, "line-opacity": 0.8 }} layout={vis(visible.geofence)} />
+              <Layer id="geofence-line" type="line" paint={{ "line-color": mapPalette.geofence, "line-width": 2, "line-dasharray": [4, 2] }} layout={vis(visible.geofence)} />
+            </Source>
+          )}
+          <Source id="passages" type="geojson" data="/data/ref/passages.geojson">
+            <Layer id="passages-fill" type="fill" paint={{ "fill-color": mapPalette.passage, "fill-opacity": 0.3 }} layout={vis(visible.reference)} />
+          </Source>
+          <Source id="forbidden" type="geojson" data="/data/ref/forbidden.geojson">
+            <Layer id="forbidden-fill" type="fill" paint={{ "fill-color": mapPalette.forbidden, "fill-opacity": 0.15 }} layout={vis(visible.reference)} />
+            <Layer id="forbidden-line" type="line" paint={{ "line-color": mapPalette.forbidden, "line-width": 1 }} layout={vis(visible.reference)} />
+          </Source>
+          <Source id="study-area" type="geojson" data="/data/ref/study_area.geojson">
+            <Layer id="study-area-line" type="line" paint={{ "line-color": mapPalette.studyArea, "line-width": 1, "line-opacity": 0.6, "line-dasharray": [2, 2] }} />
+          </Source>
+          {blocksFc && (
+            <Source id="blocks" type="geojson" data={blocksFc}>
+              <Layer id="blocks-fill" type="fill" maxzoom={ZOOM.rows} paint={{ "fill-color": mapPalette.block, "fill-opacity": 0.35 }} layout={vis(visible.blocks)} />
+              <Layer id="blocks-line" type="line" paint={{ "line-color": mapPalette.geofence, "line-width": 1.5, "line-opacity": 0.8 }} layout={vis(visible.blocks)} />
+            </Source>
+          )}
+          <Source id="interrows" type="geojson" data={`${dataBase}/interrows.geojson`}>
+            <Layer
+              id="interrows-fill"
+              type="fill"
+              minzoom={ZOOM.interrows}
+              paint={{
+                "fill-color": ["match", ["get", "interrow_cover"], "bare_soil", mapPalette.interrow.bare_soil, "mixed", mapPalette.interrow.mixed, "vegetation", mapPalette.interrow.vegetation, mapPalette.interrow.unassessable],
+                "fill-opacity": 0.28,
+              }}
+              layout={vis(visible.interrows)}
+            />
+            <Layer id="interrows-selected" type="line" filter={selectedFilter("interrow_id", "interrows") as never} paint={{ "line-color": mapPalette.selected, "line-width": 2.5 }} />
+          </Source>
+          <Source id="canopies" type="geojson" data={`${dataBase}/canopies.geojson`}>
+            <Layer id="canopies-fill" type="fill" minzoom={ZOOM.canopies} paint={{ "fill-color": mapPalette.canopyFill, "fill-opacity": 0.4 }} layout={vis(visible.canopies)} />
+            <Layer id="canopies-line" type="line" minzoom={ZOOM.canopies} paint={{ "line-color": mapPalette.canopyLine, "line-width": 1 }} layout={vis(visible.canopies)} />
+            <Layer id="canopies-selected" type="line" filter={selectedFilter("canopy_id", "canopies") as never} paint={{ "line-color": mapPalette.selected, "line-width": 2.5 }} />
+          </Source>
+          {rowsFc && (
+            <Source id="rows" type="geojson" data={rowsFc}>
+              <Layer id="rows-casing" type="line" minzoom={ZOOM.rows} paint={{ "line-color": mapPalette.casing, "line-width": 3.5, "line-opacity": 0.7 }} layout={vis(visible.rows)} />
+              <Layer
+                id="rows-line"
+                type="line"
+                minzoom={ZOOM.rows}
+                paint={{
+                  "line-color": ["match", ["get", "row_structure"], "disrupted", mapPalette.row.disrupted, "unassessable", mapPalette.row.unassessable, mapPalette.row.regular],
+                  "line-width": ["match", ["get", "row_structure"], "disrupted", 3, 2],
+                }}
+                layout={{ ...vis(visible.rows), "line-cap": "round" }}
+              />
+              <Layer id="rows-hit" type="line" minzoom={ZOOM.rows} paint={{ "line-color": mapPalette.casing, "line-width": 14, "line-opacity": 0 }} layout={vis(visible.rows)} />
+              <Layer id="rows-selected" type="line" filter={selectedFilter("row_id", "rows") as never} paint={{ "line-color": mapPalette.selected, "line-width": 5 }} />
+            </Source>
+          )}
+          {route && (
+            <Source id="route" type="geojson" data={route}>
+              <Layer id="route-halo" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 7, "line-opacity": 0.85 }} layout={{ ...vis(visible.route), "line-join": "round", "line-cap": "round" }} />
+              <Layer id="route-line" type="line" paint={{ "line-color": mapPalette.route, "line-width": 4 }} layout={{ ...vis(visible.route), "line-join": "round", "line-cap": "round" }} />
+              {arrowReady && (
+                <Layer
+                  id="route-arrows"
+                  type="symbol"
+                  layout={{
+                    ...vis(visible.route),
+                    "symbol-placement": "line",
+                    "symbol-spacing": 90,
+                    "icon-image": ROUTE_ARROW,
+                    "icon-size": 1,
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                  }}
+                />
+              )}
+            </Source>
+          )}
+
+          <Source id="measure" type="geojson" data={measureFc}>
+            <Layer id="measure-fill" type="fill" filter={["==", ["geometry-type"], "Polygon"]} paint={{ "fill-color": mapPalette.selected, "fill-opacity": 0.2 }} />
+            <Layer id="measure-casing" type="line" filter={["==", ["geometry-type"], "LineString"]} paint={{ "line-color": mapPalette.casing, "line-width": 5 }} />
+            <Layer id="measure-line" type="line" filter={["==", ["geometry-type"], "LineString"]} paint={{ "line-color": mapPalette.selected, "line-width": 2.5, "line-dasharray": [2, 1] }} />
+            <Layer id="measure-points" type="circle" filter={["==", ["geometry-type"], "Point"]} paint={{ "circle-radius": 4.5, "circle-color": mapPalette.selected, "circle-stroke-color": mapPalette.casing, "circle-stroke-width": 2 }} />
+          </Source>
+
+          {/* ---- orthophoto: overview mosaic + full-resolution tiles in view ---- */}
+          {overviewCoords && visible.ortho && (
+            <Source id="ortho-overview" type="image" url={tileIndex!.overview.url} coordinates={overviewCoords}>
+              <Layer id="ortho-overview" type="raster" beforeId={ORTHO_ANCHOR} paint={{ "raster-fade-duration": 0 }} />
+            </Source>
+          )}
+          {visible.ortho &&
+            detailTiles.map((t) => (
+              <Source key={t.id} id={`ortho-${t.id}`} type="image" url={t.url} coordinates={t.corners as never}>
+                <Layer id={`ortho-${t.id}`} type="raster" beforeId={ORTHO_ANCHOR} paint={{ "raster-fade-duration": 150 }} />
+              </Source>
+            ))}
+
+          {/* ---- markers ---- */}
+          {visible.route &&
+            targets?.features.map((f) => {
+              const [lon, lat] = f.geometry.coordinates;
+              const p = f.properties;
+              const active = selection?.layer === "targets" && selection.props.target_id === p.target_id;
+              return (
+                <Marker key={p.target_id} longitude={lon} latitude={lat} onClick={(e) => { e.originalEvent.stopPropagation(); setSelection({ layer: "targets", props: p as unknown as Record<string, unknown> }); }}>
+                  <Box
+                    title={`${p.route_order}. ${p.target_id}`}
+                    sx={{
+                      width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer",
+                      bgcolor: active ? "warning.main" : "info.main", color: "common.white", fontSize: 11, fontWeight: 700,
+                      border: 2, borderColor: "common.white", boxShadow: 2,
+                    }}
+                  >
+                    {p.route_order}
+                  </Box>
+                </Marker>
+              );
+            })}
+          {start && (
+            <Marker longitude={start[0]} latitude={start[1]} anchor="center">
+              <Box
+                title="START / FINISH"
+                sx={{ px: 1.5, py: 0.5, borderRadius: 1, bgcolor: "grey.900", color: "common.white", fontSize: 11, fontWeight: 700, border: 2, borderColor: "common.white", boxShadow: 2 }}
+              >
+                S/F
+              </Box>
+            </Marker>
+          )}
+        </Map>
+
+        <LayerPanel
+          open={panelOpen}
+          onToggleOpen={() => setPanelOpen((v) => !v)}
+          visible={visible}
+          onChange={(k, v) => setVisible((s) => ({ ...s, [k]: v }))}
+          rows={rows}
+          blocks={summary.blocks.map((b) => b.vineyard_id)}
+          onPickRow={selectRow}
+          onPickBlock={selectBlock}
+          onFitAll={() => fit(studyBbox, 17)}
+        />
+        <MeasureTool
+          active={measuring}
+          points={measurePts}
+          onToggle={() => {
+            setSelection(null);
+            if (!measuring) setMeasurePts([]);
+            setMeasuring((v) => !v);
+          }}
+          onClear={() => {
+            setMeasurePts([]);
+            setMeasuring(false);
+          }}
+        />
+        {selection && (
+          <AttributePanel
+            selection={selection}
+            summary={summary}
+            onClose={() => setSelection(null)}
+            onZoomRow={(id) => selectRow(id)}
+          />
+        )}
+        {!rowsFc && (
+          <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+            <Typography color="text.secondary">{t("common.loadingMap")}</Typography>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}

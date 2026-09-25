@@ -1,0 +1,14 @@
+@layer theme, base, mui, components, utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}

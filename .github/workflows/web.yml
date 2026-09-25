@@ -1,0 +1,47 @@
+# Web app checks (approved exception to the "everything in src/Web/" rule — see src/Web/CLAUDE.md §1).
+# Runs only the checks of src/Web/: lint, types, data build (siret3-mock), production build, e2e demo flow.
+name: web
+
+on:
+  push:
+    paths: ["src/Web/**", "data & info/02_route/**", "data & info/05_examples/**", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["src/Web/**", "data & info/02_route/**", "data & info/05_examples/**", ".github/workflows/web.yml"]
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/Web/frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/Web/frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # GeoTIFF tiles are not in git: the build falls back to data/tiles_index.json and skips the orthophoto
+      - run: pnpm data:fast
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+        env:
+          CI: "true"
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: src/Web/frontend/test-results/
+          retention-days: 7
