@@ -25,6 +25,8 @@ import Menu from "@mui/icons-material/Menu";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { Logo } from "./Logo";
+import { UserCard } from "./UserCard";
+import type { Viewer } from "@/lib/viewer";
 
 const NAV = [
   { href: "/", key: "dashboard", icon: <DashboardOutlined /> },
@@ -36,7 +38,7 @@ const NAV = [
 const WIDTH_OPEN = 248;
 const WIDTH_CLOSED = 76;
 
-function LanguageSwitch({ dense = false }: { dense?: boolean }) {
+export function LanguageSwitch({ dense = false }: { dense?: boolean }) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -71,7 +73,7 @@ function LanguageSwitch({ dense = false }: { dense?: boolean }) {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, viewer }: { children: ReactNode; viewer: Viewer }) {
   const t = useTranslations();
   const pathname = usePathname();
   const theme = useTheme();
@@ -97,7 +99,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           }}
         >
           <Logo />
-          <LanguageSwitch dense />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <LanguageSwitch dense />
+            <UserCard viewer={viewer} collapsed />
+          </Box>
         </Box>
         <Box component="main" sx={{ flex: 1, minHeight: 0, pb: 16 }}>
           {children}
@@ -158,10 +163,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <PlaceOutlined fontSize="small" color="primary" />
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {t("shell.uatName")}
+                  {t(`uat.${viewer.uat.key}.name`)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {t("shell.uatPlace")}
+                  {t(`uat.${viewer.uat.key}.place`)}
                 </Typography>
               </Box>
             </Box>
@@ -183,7 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </List>
         <Box sx={{ flex: 1 }} />
-        <Box sx={{ px: collapsed ? 2 : 5, pb: 5 }}>
+        <Box sx={{ px: collapsed ? 2 : 5, pb: 5, display: "flex", flexDirection: "column", alignItems: collapsed ? "center" : "stretch" }}>
           {!collapsed && (
             <>
               <Divider sx={{ mb: 4 }} />
@@ -193,6 +198,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </>
           )}
           {collapsed ? null : <LanguageSwitch />}
+          <Divider sx={{ my: 4 }} />
+          <UserCard viewer={viewer} collapsed={collapsed} />
         </Box>
       </Box>
       <Box component="main" sx={{ flex: 1, minWidth: 0, overflow: "auto" }}>

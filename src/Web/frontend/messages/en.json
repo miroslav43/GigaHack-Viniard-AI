@@ -15,8 +15,6 @@
   },
   "shell": {
     "uat": "Municipality",
-    "uatName": "Sireți Town Hall",
-    "uatPlace": "Strășeni district · Republic of Moldova",
     "collapse": "Collapse menu",
     "expand": "Expand menu",
     "attribution": "Sireț3 orthophoto © 3DATA COLLECT / OpenAerialMap, CC BY 4.0 · Boundaries © OpenStreetMap, ODbL · Annotations corrected in Marcaj",
@@ -35,9 +33,22 @@
     "all": "All",
     "measuredNote": "Planar measurement in EPSG:32635 · Sireț3, 20.05.2025"
   },
-  "structure": { "regular": "regular", "disrupted": "disrupted", "unassessable": "unassessable" },
-  "cover": { "bare_soil": "bare soil", "mixed": "mixed", "vegetation": "vegetation", "unassessable": "unassessable" },
-  "targetType": { "gap": "row gap", "missing": "missing plants", "waste": "waste" },
+  "structure": {
+    "regular": "regular",
+    "disrupted": "disrupted",
+    "unassessable": "unassessable"
+  },
+  "cover": {
+    "bare_soil": "bare soil",
+    "mixed": "mixed",
+    "vegetation": "vegetation",
+    "unassessable": "unassessable"
+  },
+  "targetType": {
+    "gap": "row gap",
+    "missing": "missing plants",
+    "waste": "waste"
+  },
   "layer": {
     "rows": "Row",
     "canopies": "Canopy",
@@ -184,5 +195,55 @@
     "colGap": "Gap",
     "colStatus": "Status",
     "statusOpen": "open"
+  },
+  "uat": {
+    "sireti": {
+      "name": "Sireți Town Hall",
+      "place": "Strășeni district · Republic of Moldova"
+    },
+    "cojusna": {
+      "name": "Cojușna Town Hall",
+      "place": "Strășeni district · Republic of Moldova"
+    }
+  },
+  "auth": {
+    "heroTitle": "Your commune's vineyards, measured and ready for inspection",
+    "heroSubtitle": "Planting inventory, row gaps, waste and short inspection routes from drone imagery.",
+    "featData": "AI data",
+    "featDataHint": "Canopies, rows and inter-rows measured in metres",
+    "featTeams": "For municipalities",
+    "featTeamsHint": "Each municipality sees only the land within its boundary",
+    "featAudit": "Audit & routes",
+    "featAuditHint": "Areas for subsidy audits and short field routes",
+    "welcome": "Welcome back!",
+    "subtitle": "Sign in to your account to continue",
+    "email": "Email",
+    "emailPlaceholder": "Enter your email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signIn": "Sign in",
+    "or": "or",
+    "demo": "Demo without an account",
+    "demoHint": "Public Sireț3 data, read-only",
+    "error": "Wrong email or password.",
+    "errorGeneric": "Sign-in failed. Please try again.",
+    "unavailable": "Sign-in is not configured in this installation; use the demo.",
+    "signOut": "Sign out",
+    "demoMode": "Demo mode",
+    "exitDemo": "Leave demo",
+    "signInCta": "Sign in",
+    "roles": {
+      "platform_admin": "platform administrator",
+      "uat_admin": "municipality administrator",
+      "inspector": "field inspector",
+      "viewer": "viewer"
+    }
+  },
+  "noSurvey": {
+    "title": "No flight within {uat}",
+    "body": "There is no drone data inside this municipality's administrative boundary yet. Other municipalities' data is not accessible from this account.",
+    "boundary": "Administrative boundary: {area} (OSM {id})"
   }
 }

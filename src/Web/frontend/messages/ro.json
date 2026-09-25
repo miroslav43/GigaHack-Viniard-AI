@@ -15,8 +15,6 @@
   },
   "shell": {
     "uat": "UAT",
-    "uatName": "Primăria Sireți",
-    "uatPlace": "r. Strășeni · Republica Moldova",
     "collapse": "Restrânge meniul",
     "expand": "Extinde meniul",
     "attribution": "Ortofoto Sireț3 © 3DATA COLLECT / OpenAerialMap, CC BY 4.0 · Limite © OpenStreetMap, ODbL · Adnotări corectate în Marcaj",
@@ -35,9 +33,22 @@
     "all": "Toate",
     "measuredNote": "Măsurat plan în EPSG:32635 · Sireț3, 20.05.2025"
   },
-  "structure": { "regular": "regulat", "disrupted": "întrerupt", "unassessable": "neevaluabil" },
-  "cover": { "bare_soil": "sol arat", "mixed": "mixt", "vegetation": "vegetație", "unassessable": "neevaluabil" },
-  "targetType": { "gap": "gol în rând", "missing": "plante lipsă", "waste": "deșeu" },
+  "structure": {
+    "regular": "regulat",
+    "disrupted": "întrerupt",
+    "unassessable": "neevaluabil"
+  },
+  "cover": {
+    "bare_soil": "sol arat",
+    "mixed": "mixt",
+    "vegetation": "vegetație",
+    "unassessable": "neevaluabil"
+  },
+  "targetType": {
+    "gap": "gol în rând",
+    "missing": "plante lipsă",
+    "waste": "deșeu"
+  },
   "layer": {
     "rows": "Rând",
     "canopies": "Coroană",
@@ -184,5 +195,55 @@
     "colGap": "Gol",
     "colStatus": "Stare",
     "statusOpen": "deschisă"
+  },
+  "uat": {
+    "sireti": {
+      "name": "Primăria Sireți",
+      "place": "r. Strășeni · Republica Moldova"
+    },
+    "cojusna": {
+      "name": "Primăria Cojușna",
+      "place": "r. Strășeni · Republica Moldova"
+    }
+  },
+  "auth": {
+    "heroTitle": "Viile comunei, măsurate și gata de inspecție",
+    "heroSubtitle": "Inventar de plantații, goluri în rânduri, deșeuri și rute scurte de inspecție, din imagini de dronă.",
+    "featData": "Date din AI",
+    "featDataHint": "Coroane, rânduri și inter-rânduri măsurate în metri",
+    "featTeams": "Pentru primării",
+    "featTeamsHint": "Fiecare UAT vede doar suprafața din limita lui",
+    "featAudit": "Audit și rute",
+    "featAuditHint": "Suprafețe pentru subvenții și trasee scurte pe teren",
+    "welcome": "Bine ați revenit!",
+    "subtitle": "Autentificați-vă pentru a continua",
+    "email": "Email",
+    "emailPlaceholder": "Introduceți emailul",
+    "password": "Parolă",
+    "passwordPlaceholder": "Introduceți parola",
+    "showPassword": "Arată parola",
+    "hidePassword": "Ascunde parola",
+    "signIn": "Autentificare",
+    "or": "sau",
+    "demo": "Demo fără cont",
+    "demoHint": "Date publice Sireț3, doar vizualizare",
+    "error": "Email sau parolă greșită.",
+    "errorGeneric": "Autentificarea nu a reușit. Încercați din nou.",
+    "unavailable": "Autentificarea nu este configurată în această instalare; folosiți demo-ul.",
+    "signOut": "Deconectare",
+    "demoMode": "Mod demo",
+    "exitDemo": "Ieși din demo",
+    "signInCta": "Autentificare",
+    "roles": {
+      "platform_admin": "administrator platformă",
+      "uat_admin": "administrator UAT",
+      "inspector": "inspector de teren",
+      "viewer": "vizualizator"
+    }
+  },
+  "noSurvey": {
+    "title": "Niciun zbor în limita {uat}",
+    "body": "Nu există încă date de dronă în interiorul limitei administrative a acestei primării. Datele altor UAT-uri nu sunt accesibile din acest cont.",
+    "boundary": "Limita administrativă: {area} (OSM {id})"
   }
 }

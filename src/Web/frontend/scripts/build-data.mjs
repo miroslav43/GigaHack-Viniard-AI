@@ -303,12 +303,24 @@ const baselineLength = r2(tourLength(targets)); // naive: visit in id order
 const totalCanopy = canopies.reduce((s, o) => s + o.area, 0);
 const totalInterrow = interrows.reduce((s, o) => s + o.area, 0);
 const totalRowLen = physRows.reduce((s, r) => s + r.length_m, 0);
-const sireti = JSON.parse(fs.readFileSync(path.join(FRONTEND, "data/osm/sireti_19100171.geojson"), "utf8"));
+// municipality boundaries (real OSM administrative relations, data/osm/*)
 const toUtm = proj4("EPSG:4326", UTM);
-const geofenceArea = sireti.features[0].geometry.coordinates.reduce(
-  (s, ring, i) => s + (i === 0 ? 1 : -1) * ringArea(ring.map((p) => toUtm.forward(p))),
-  0,
+const polygonAreaM2 = (geom) =>
+  (geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates).reduce(
+    (sum, poly) => sum + poly.reduce((s, ring, i) => s + (i === 0 ? 1 : -1) * ringArea(ring.map((p) => toUtm.forward(p))), 0),
+    0,
+  );
+const UAT_FILES = { sireti: "sireti_19100171.geojson", cojusna: "cojusna_19100156.geojson" };
+const uats = Object.fromEntries(
+  Object.entries(UAT_FILES).map(([key, file]) => {
+    const geo = JSON.parse(fs.readFileSync(path.join(FRONTEND, "data", "osm", file), "utf8"));
+    writeJson(path.join(PUBLIC, "data", "ref", `geofence_${key}.geojson`), geo);
+    const f = geo.features[0];
+    return [key, { key, name: f.properties.name, osm_relation_id: f.properties.osm_relation_id, area_ha: r2(polygonAreaM2(f.geometry) / 1e4) }];
+  }),
 );
+writeJson(path.join(PUBLIC, "data", "uats.json"), uats);
+const geofenceArea = uats.sireti.area_ha * 1e4;
 const coverCounts = interrows.reduce((m, o) => ((m[o.cover] = (m[o.cover] ?? 0) + 1), m), {});
 const structureCounts = physRows.reduce((m, r) => ((m[r.row_structure] = (m[r.row_structure] ?? 0) + 1), m), {});
 
@@ -431,7 +443,6 @@ for (const name of ["passages", "forbidden", "study_area", "start"]) {
     fc(src.features.map((f) => feature(f.geometry.type, f.geometry.coordinates, f.properties ?? {}))),
   );
 }
-writeJson(path.join(PUBLIC, "data", "ref", "geofence_sireti.geojson"), sireti);
 
 // measurements.csv (format from src/Web/CLAUDE.md §6.4)
 const csv = [

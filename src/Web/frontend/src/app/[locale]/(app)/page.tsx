@@ -15,6 +15,8 @@ import { LinkButton, LinkChip } from "@/components/common/links";
 import { Page, PageHeader } from "@/components/common/PageHeader";
 import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
 import { MockBanner, sourceLine } from "@/components/common/SourceNote";
+import { NoSurvey } from "@/components/common/NoSurvey";
+import { getViewer } from "@/lib/viewer";
 import { dataUrl, getSummary } from "@/lib/data";
 import { makeFormat, type Format } from "@/lib/format";
 import { mapPalette, type InterrowCover, type RowStructure } from "@/theme/mapPalette";
@@ -22,6 +24,8 @@ import { mapPalette, type InterrowCover, type RowStructure } from "@/theme/mapPa
 export default async function DashboardPage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const viewer = await getViewer();
+  if (!viewer.uat.surveys.length) return <NoSurvey viewer={viewer} />;
   const [s, t, tc] = await Promise.all([getSummary(), getTranslations("dashboard"), getTranslations()]);
   const f = makeFormat(await getLocale());
   const tt = s.totals;
@@ -31,7 +35,7 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
   return (
     <Page>
       <PageHeader
-        title={tc("shell.uatName")}
+        title={tc(`uat.${viewer.uat.key}.name`)}
         subtitle={t("subtitle", { source: await sourceLine(s) })}
         action={
           <Box sx={{ display: "flex", gap: 2 }}>

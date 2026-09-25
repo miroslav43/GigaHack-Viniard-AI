@@ -2,6 +2,11 @@
 // overview → map → object IDs → measurements → route, in RO/EN/RU.
 import { expect, test } from "@playwright/test";
 
+// the jury flow runs in the public demo mode (no Supabase session needed)
+test.beforeEach(async ({ context, baseURL }) => {
+  await context.addCookies([{ name: "solemtrix_demo", value: "1", url: baseURL! }]);
+});
+
 // reference values of the two organizer example tiles (src/Web/CLAUDE.md §6.6)
 const MOCK = { rows: "51", rowLengthRo: "1,94 km", canopyRo: "536,2 m²", interrowRo: "4.064,4 m²" };
 

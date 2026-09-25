@@ -8,7 +8,6 @@ import CssBaseline from "@mui/material/CssBaseline";
 import "@fontsource-variable/inter";
 import "../globals.css";
 import { theme } from "@/theme/theme";
-import { AppShell } from "@/components/shell/AppShell";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -32,9 +31,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <NextIntlClientProvider>
-              <AppShell>{children}</AppShell>
-            </NextIntlClientProvider>
+            <NextIntlClientProvider>{children}</NextIntlClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

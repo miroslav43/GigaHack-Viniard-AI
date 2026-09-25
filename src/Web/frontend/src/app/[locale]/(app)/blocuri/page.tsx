@@ -5,6 +5,8 @@ import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import { Page, PageHeader } from "@/components/common/PageHeader";
 import { MockBanner, sourceLine } from "@/components/common/SourceNote";
 import { RowsTable } from "@/components/tables/RowsTable";
+import { NoSurvey } from "@/components/common/NoSurvey";
+import { getViewer } from "@/lib/viewer";
 import { dataUrl, getRows, getSummary } from "@/lib/data";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/blocuri">): Promise<Metadata> {
@@ -16,6 +18,8 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/blocuri"
 export default async function BlocksPage({ params }: PageProps<"/[locale]/blocuri">) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const viewer = await getViewer();
+  if (!viewer.uat.surveys.length) return <NoSurvey viewer={viewer} />;
   const [summary, rows, t] = await Promise.all([getSummary(), getRows(), getTranslations("blocks")]);
   return (
     <Page>

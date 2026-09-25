@@ -33,6 +33,8 @@ export const theme = createTheme({
     overline: { fontSize: 11, fontWeight: 600, letterSpacing: 0.6 },
   },
   components: {
+    // brand-only colours outside the MUI palette, exposed as CSS variables
+    MuiCssBaseline: { styleOverrides: { ":root": { "--solemtrix-night": color.brandNight } } },
     MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: radius.lg } } },
     MuiCard: {
       defaultProps: { elevation: 0 },

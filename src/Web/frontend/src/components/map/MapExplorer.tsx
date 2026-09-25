@@ -44,7 +44,17 @@ if (typeof window !== "undefined") setWorkerUrl("/maplibre/maplibre-gl-worker.mj
 
 const vis = (on: boolean) => ({ visibility: on ? ("visible" as const) : ("none" as const) });
 
-export function MapExplorer({ summary, rows, dataBase }: { summary: SurveySummary; rows: RowRecord[]; dataBase: string }) {
+export function MapExplorer({
+  summary,
+  rows,
+  dataBase,
+  geofenceUrl,
+}: {
+  summary: SurveySummary;
+  rows: RowRecord[];
+  dataBase: string;
+  geofenceUrl: string;
+}) {
   const t = useTranslations();
   const theme = useTheme();
   const compact = useMediaQuery(theme.breakpoints.down("lg"));
@@ -76,7 +86,7 @@ export function MapExplorer({ summary, rows, dataBase }: { summary: SurveySummar
       get<FeatureCollection<Polygon>>(`${dataBase}/blocks.geojson`),
       get<FeatureCollection<Point, TargetProps>>(`${dataBase}/targets.geojson`),
       get<FeatureCollection<LineString>>(`${dataBase}/route.geojson`),
-      get<FeatureCollection>("/data/ref/geofence_sireti.geojson"),
+      get<FeatureCollection>(geofenceUrl),
       get<FeatureCollection<Point>>("/data/ref/start.geojson"),
       get<FeatureCollection>("/data/ref/study_area.geojson"),
     ]).then(([ti, rw, bl, tg, rt, gf, st, sa]) => {
@@ -89,7 +99,7 @@ export function MapExplorer({ summary, rows, dataBase }: { summary: SurveySummar
       setStart(st.features[0].geometry.coordinates as [number, number]);
       setStudyBbox(bboxOfCollection(sa));
     });
-  }, [dataBase]);
+  }, [dataBase, geofenceUrl]);
 
   const mask = useMemo(() => (geofence ? maskOutside(geofence) : null), [geofence]);
   const tileBoxes = useMemo(
