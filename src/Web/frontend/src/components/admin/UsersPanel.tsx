@@ -37,7 +37,7 @@ import {
   resetUserPassword,
   setUserBanned,
   updateUserAccess,
-} from "@/app/[locale]/(app)/super-admin/actions";
+} from "@/app/[locale]/(admin)/super-admin/actions";
 import { ConfirmDialog, useAdminAction } from "./common";
 import { ROLES, type AdminUser, type Role } from "./types";
 
@@ -183,7 +183,7 @@ export function UsersPanel({ users, uats, adminApi, meId }: { users: AdminUser[]
                   {u.id === meId && <Chip size="small" label={t("users.you")} sx={{ ml: 1 }} />}
                 </TableCell>
                 <TableCell>{u.name ?? t("common.none")}</TableCell>
-                <TableCell>{u.uat ? uatName(u.uat) : <em>{t("users.unassigned")}</em>}</TableCell>
+                <TableCell>{u.uat ? uatName(u.uat) : u.role === "platform_admin" ? t("users.platformScope") : <em>{t("users.unassigned")}</em>}</TableCell>
                 <TableCell>
                   {u.role ? <Chip size="small" variant="outlined" color={u.role === "platform_admin" ? "primary" : "default"} label={tr(u.role)} /> : t("common.none")}
                 </TableCell>

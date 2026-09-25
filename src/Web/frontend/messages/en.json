@@ -248,6 +248,7 @@
     "title": "Super admin",
     "subtitle": "Solemtrix platform administration: municipalities (UAT), accounts, surveys, status and audit log.",
     "tabs": {
+      "overview": "Overview",
       "uat": "Municipalities",
       "users": "Users",
       "surveys": "Surveys",
@@ -363,7 +364,8 @@
       "secretTitle": "Account management needs the Supabase secret key",
       "secretBody": "Creating, deleting and changing accounts uses the Admin API, which requires the secret key (sb_secret_…). It lives only on the server, never in the browser.",
       "secretSteps": "Supabase dashboard → Project Settings → API Keys → Secret keys → create or copy a key; add SUPABASE_SECRET_KEY=sb_secret_… to src/Web/frontend/.env.local and restart the server.",
-      "you": "you"
+      "you": "you",
+      "platformScope": "whole platform"
     },
     "surveys": {
       "count": "{n} surveys",
@@ -419,6 +421,28 @@
       "colEntity": "Object",
       "colDetails": "Details",
       "empty": "No action logged yet."
+    },
+    "overview": {
+      "uats": "Active municipalities",
+      "uatsHint": "{total} enrolled · {surveyed} with a flight",
+      "area": "Administered area",
+      "areaHint": "sum of the active municipalities' boundaries",
+      "surveys": "Surveys",
+      "coverage": "Flight coverage",
+      "coverageHint": "{ha} ha flown inside municipal boundaries",
+      "accounts": "Accounts",
+      "accountsHint": "{n} not linked to a municipality",
+      "accountsNoKey": "requires SUPABASE_SECRET_KEY",
+      "map": "Platform map",
+      "legendSurveyed": "with a flight",
+      "legendEnrolled": "no flight",
+      "legendInactive": "inactive",
+      "legendSurvey": "flight footprint",
+      "roles": "Accounts by role",
+      "activity": "Recent activity",
+      "allActivity": "Full log →",
+      "byUat": "By municipality",
+      "manage": "Manage →"
     }
   },
   "country": {

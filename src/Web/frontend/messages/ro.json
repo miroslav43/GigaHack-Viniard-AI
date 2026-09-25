@@ -248,6 +248,7 @@
     "title": "Super-admin",
     "subtitle": "Administrarea platformei Solemtrix: primării (UAT), conturi, survey-uri, stare și jurnal.",
     "tabs": {
+      "overview": "Prezentare generală",
       "uat": "UAT-uri",
       "users": "Utilizatori",
       "surveys": "Survey-uri",
@@ -363,7 +364,8 @@
       "secretTitle": "Gestionarea conturilor are nevoie de cheia secretă Supabase",
       "secretBody": "Crearea, ștergerea și modificarea conturilor folosesc Admin API, care cere cheia secretă (sb_secret_…). Ea stă doar pe server, niciodată în browser.",
       "secretSteps": "Dashboard Supabase → Project Settings → API Keys → Secret keys → creați sau copiați o cheie; adăugați în src/Web/frontend/.env.local linia SUPABASE_SECRET_KEY=sb_secret_… și reporniți serverul.",
-      "you": "tu"
+      "you": "tu",
+      "platformScope": "toată platforma"
     },
     "surveys": {
       "count": "{n} survey-uri",
@@ -419,6 +421,28 @@
       "colEntity": "Obiect",
       "colDetails": "Detalii",
       "empty": "Nicio acțiune înregistrată încă."
+    },
+    "overview": {
+      "uats": "Primării active",
+      "uatsHint": "{total} înrolate · {surveyed} cu zbor",
+      "area": "Suprafață administrată",
+      "areaHint": "suma limitelor primăriilor active",
+      "surveys": "Survey-uri",
+      "coverage": "Acoperire cu zbor",
+      "coverageHint": "{ha} ha zburate în limitele primăriilor",
+      "accounts": "Conturi",
+      "accountsHint": "{n} neasociate unei primării",
+      "accountsNoKey": "necesită SUPABASE_SECRET_KEY",
+      "map": "Harta platformei",
+      "legendSurveyed": "cu zbor",
+      "legendEnrolled": "fără zbor",
+      "legendInactive": "inactivă",
+      "legendSurvey": "amprentă zbor",
+      "roles": "Conturi pe roluri",
+      "activity": "Activitate recentă",
+      "allActivity": "Tot jurnalul →",
+      "byUat": "Pe primării",
+      "manage": "Gestionează →"
     }
   },
   "country": {

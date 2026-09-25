@@ -63,10 +63,15 @@ export default async function proxy(request: NextRequest) {
 
   const isPublic = matches(path, PUBLIC_PATHS);
 
-  if (adminOnly) {
-    // role from app_metadata (server-set); the page and every server action check it again
-    const role = (data?.claims?.app_metadata as { uat_role?: string } | undefined)?.uat_role;
-    return role === "platform_admin" ? response : denyAccess(request, prefix, response);
+  // role from app_metadata (server-set); pages and every server action check it again
+  const role = (data?.claims?.app_metadata as { uat_role?: string } | undefined)?.uat_role;
+  if (adminOnly) return role === "platform_admin" ? response : denyAccess(request, prefix, response);
+  // the platform admin is not a municipality user: the town-hall pages lead to the platform console
+  if (role === "platform_admin" && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${prefix}/super-admin`;
+    url.search = "";
+    return redirectKeepingCookies(url, response);
   }
 
   if (!signedIn && !demo && !isPublic) {
@@ -77,7 +82,7 @@ export default async function proxy(request: NextRequest) {
   }
   if (signedIn && isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = prefix || "/";
+    url.pathname = role === "platform_admin" ? `${prefix}/super-admin` : prefix || "/";
     url.search = "";
     return redirectKeepingCookies(url, response);
   }

@@ -1,8 +1,8 @@
 import type { Geometry } from "geojson";
 
 // shared by server and client modules (a "use client" module cannot export plain values to the server)
-export type AdminTab = "uat" | "users" | "surveys" | "system" | "audit";
-export const ADMIN_TABS: AdminTab[] = ["uat", "users", "surveys", "system", "audit"];
+export type AdminTab = "overview" | "uat" | "users" | "surveys" | "system" | "audit";
+export const ADMIN_TABS: AdminTab[] = ["overview", "uat", "users", "surveys", "system", "audit"];
 
 export type Country = "MD" | "RO";
 export type Role = "platform_admin" | "uat_admin" | "inspector" | "viewer";

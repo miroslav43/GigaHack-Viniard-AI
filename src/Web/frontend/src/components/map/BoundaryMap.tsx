@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import Map, { Layer, NavigationControl, ScaleControl, Source, type MapRef } from "@vis.gl/react-maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -32,19 +32,23 @@ export function BoundaryMap({
   );
   const mask = useMemo(() => (fc && withMask ? maskOutside(fc) : null), [fc, withMask]);
 
-  useEffect(() => {
+  // fit to everything shown — on load (the ref is not ready on the first frame) and whenever the data changes
+  const fit = useCallback(() => {
     const all: FeatureCollection = { type: "FeatureCollection", features: [...(fc?.features ?? []), ...othersFc.features] };
     const b = all.features.length ? bboxOfCollection(all) : null;
-    if (!b) return;
-    const frame = requestAnimationFrame(() => mapRef.current?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, duration: 300 }));
-    return () => cancelAnimationFrame(frame);
+    if (b) mapRef.current?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, duration: 300 });
   }, [fc, othersFc]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(fit);
+    return () => cancelAnimationFrame(frame);
+  }, [fit]);
 
   return (
     <Map
       ref={mapRef}
       initialViewState={{ longitude: 28.68, latitude: 47.11, zoom: 10.5 }}
       mapStyle={baseStyle}
+      onLoad={fit}
       attributionControl={{ compact: true }}
       style={{ width: "100%", height: "100%" }}
     >

@@ -17,7 +17,7 @@ begin
 
   for acc in
     select * from (values
-      ('admin@solemtrix.demo',    'Administrator Solemtrix', 'sireti',  'platform_admin'),
+      ('admin@solemtrix.demo',    'Administrator Solemtrix', null,      'platform_admin'),  -- platform-wide, no municipality
       ('primar@sireti.demo',      'Primar Sireți',           'sireti',  'uat_admin'),
       ('inspector@sireti.demo',   'Inspector Sireți',        'sireti',  'inspector'),
       ('primar@cojusna.demo',     'Primar Cojușna',          'cojusna', 'uat_admin')
@@ -34,7 +34,7 @@ begin
       ) values (
         '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated', acc.email,
         extensions.crypt(demo_password, extensions.gen_salt('bf')), now(),
-        jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email'), 'uat', acc.uat, 'uat_role', acc.uat_role),
+        jsonb_strip_nulls(jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email'), 'uat', acc.uat, 'uat_role', acc.uat_role)),
         jsonb_build_object('full_name', acc.full_name),
         now(), now(), '', '', '', ''
       );
@@ -48,8 +48,8 @@ begin
       update auth.users set
         encrypted_password = extensions.crypt(demo_password, extensions.gen_salt('bf')),
         email_confirmed_at = coalesce(email_confirmed_at, now()),
-        raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
-          || jsonb_build_object('uat', acc.uat, 'uat_role', acc.uat_role),
+        raw_app_meta_data = (coalesce(raw_app_meta_data, '{}'::jsonb) - 'uat')
+          || jsonb_strip_nulls(jsonb_build_object('uat', acc.uat, 'uat_role', acc.uat_role)),
         raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('full_name', acc.full_name),
         updated_at = now()
       where id = uid;

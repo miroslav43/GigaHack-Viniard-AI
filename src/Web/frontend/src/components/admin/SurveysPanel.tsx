@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 import DeleteOutline from "@mui/icons-material/DeleteOutlined";
 import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
 import { useFormat } from "@/lib/useFormat";
-import { deleteSurvey, registerSurvey } from "@/app/[locale]/(app)/super-admin/actions";
+import { deleteSurvey, registerSurvey } from "@/app/[locale]/(admin)/super-admin/actions";
 import { ConfirmDialog, useAdminAction } from "./common";
 import type { AdminSurvey, LocalBundle } from "./types";
 

@@ -248,6 +248,7 @@
     "title": "Супер-админ",
     "subtitle": "Администрирование платформы Solemtrix: примэрии (UAT), аккаунты, съёмки, состояние и журнал.",
     "tabs": {
+      "overview": "Обзор",
       "uat": "Примэрии",
       "users": "Пользователи",
       "surveys": "Съёмки",
@@ -363,7 +364,8 @@
       "secretTitle": "Для управления аккаунтами нужен секретный ключ Supabase",
       "secretBody": "Создание, удаление и изменение аккаунтов идёт через Admin API, которому нужен секретный ключ (sb_secret_…). Он хранится только на сервере, никогда в браузере.",
       "secretSteps": "Панель Supabase → Project Settings → API Keys → Secret keys → создайте или скопируйте ключ; добавьте SUPABASE_SECRET_KEY=sb_secret_… в src/Web/frontend/.env.local и перезапустите сервер.",
-      "you": "вы"
+      "you": "вы",
+      "platformScope": "вся платформа"
     },
     "surveys": {
       "count": "Съёмок: {n}",
@@ -419,6 +421,28 @@
       "colEntity": "Объект",
       "colDetails": "Детали",
       "empty": "Действий пока нет."
+    },
+    "overview": {
+      "uats": "Активные примэрии",
+      "uatsHint": "подключено: {total} · со съёмкой: {surveyed}",
+      "area": "Управляемая площадь",
+      "areaHint": "сумма границ активных примэрий",
+      "surveys": "Съёмки",
+      "coverage": "Покрытие съёмкой",
+      "coverageHint": "{ha} га снято в границах примэрий",
+      "accounts": "Аккаунты",
+      "accountsHint": "не привязано к примэрии: {n}",
+      "accountsNoKey": "нужен SUPABASE_SECRET_KEY",
+      "map": "Карта платформы",
+      "legendSurveyed": "со съёмкой",
+      "legendEnrolled": "без съёмки",
+      "legendInactive": "неактивна",
+      "legendSurvey": "покрытие съёмки",
+      "roles": "Аккаунты по ролям",
+      "activity": "Последние действия",
+      "allActivity": "Весь журнал →",
+      "byUat": "По примэриям",
+      "manage": "Управлять →"
     }
   },
   "country": {

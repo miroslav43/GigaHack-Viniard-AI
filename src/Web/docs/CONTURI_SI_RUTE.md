@@ -14,7 +14,7 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 
 | Email | Rol (`uat_role`) | Primărie (`uat`) | Ce vede |
 |---|---|---|---|
-| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | Sireți | tot ce vede Sireți + **`/super-admin`** (UAT-uri, utilizatori, survey-uri, sistem, jurnal) |
+| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (prezentare generală, UAT-uri, utilizatori, survey-uri, sistem, jurnal); paginile de primărie îl redirecționează acolo |
 | `primar@sireti.demo` | `uat_admin` — administrator UAT | Sireți | panou, hartă, blocuri, rută pentru Sireți |
 | `inspector@sireti.demo` | `inspector` — inspector de teren | Sireți | panou, hartă, blocuri, rută pentru Sireți |
 | `primar@cojusna.demo` | `uat_admin` — administrator UAT | Cojușna | doar limita comunei Cojușna + „niciun zbor” (nu vede nimic din Sireți) |
@@ -47,7 +47,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 | `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc |
 | `/blocuri` | Blocuri și rânduri (tabel, filtre, export CSV) | cont logat sau demo | — |
 | `/ruta` | Rută de inspecție (lungime, durată, ordine ținte, GPX / GeoJSON) | cont logat sau demo | — |
-| `/super-admin` | Administrare platformă | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403** | `?tab=uat` (implicit) · `users` · `surveys` · `system` · `audit` |
+| `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |
 
 Comportament fără cont și fără demo: orice pagină (în afară de `/login` și `/super-admin`) → redirect la `/login?next=…`; `/super-admin` → 403 direct.

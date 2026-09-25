@@ -20,7 +20,7 @@ import AddLocationAltOutlined from "@mui/icons-material/AddLocationAltOutlined";
 import DeleteOutline from "@mui/icons-material/DeleteOutlined";
 import { BoundaryMap } from "@/components/map/BoundaryMap";
 import { useFormat } from "@/lib/useFormat";
-import { deleteUat, setUatActive } from "@/app/[locale]/(app)/super-admin/actions";
+import { deleteUat, setUatActive } from "@/app/[locale]/(admin)/super-admin/actions";
 import { ConfirmDialog, useAdminAction } from "./common";
 import { EnrollUatDialog } from "./EnrollUatDialog";
 import type { AdminUat } from "./types";
@@ -114,7 +114,7 @@ export function UatPanel({ uats }: { uats: AdminUat[] }) {
           {t("uat.mapTitle")}
         </Typography>
         <Box sx={{ height: 420, borderTop: 1, borderColor: "divider" }}>
-          <BoundaryMap geofence={geometries[0] ?? null} others={geometries} mask={false} />
+          <BoundaryMap geofence={null} others={geometries} mask={false} />
         </Box>
       </Card>
 

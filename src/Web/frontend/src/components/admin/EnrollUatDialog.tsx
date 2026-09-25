@@ -19,7 +19,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import { BoundaryMap } from "@/components/map/BoundaryMap";
-import { enrollUat, previewOsm, searchOsm } from "@/app/[locale]/(app)/super-admin/actions";
+import { enrollUat, previewOsm, searchOsm } from "@/app/[locale]/(admin)/super-admin/actions";
 import type { OsmBoundary, OsmSearchHit } from "@/lib/osm";
 import { slugify, useAdminAction } from "./common";
 

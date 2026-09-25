@@ -6,6 +6,7 @@ import { Page, PageHeader } from "@/components/common/PageHeader";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { AdminTabs } from "@/components/admin/common";
 import { UatPanel } from "@/components/admin/UatPanel";
+import { OverviewPanel, type OverviewData } from "@/components/admin/OverviewPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { SurveysPanel } from "@/components/admin/SurveysPanel";
 import { SystemPanel } from "@/components/admin/SystemPanel";
@@ -42,10 +43,45 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
 
   const t = await getTranslations("superAdmin");
   const raw = (await searchParams).tab;
-  const tab: AdminTab = ADMIN_TABS.includes(raw as AdminTab) ? (raw as AdminTab) : "uat";
+  const tab: AdminTab = ADMIN_TABS.includes(raw as AdminTab) ? (raw as AdminTab) : "overview";
   const supabase = await createClient();
 
   let panel: React.ReactNode = null;
+
+  if (tab === "overview") {
+    const [{ data: rows }, { data: links }, { data: surveyRows }, { data: activity }, users] = await Promise.all([
+      supabase.from("uat_public").select("*").order("name"),
+      supabase.from("uat_survey").select("uat_key, survey_id, overlap_ha"),
+      supabase.from("survey_public").select("id, name, captured_at, area_ha, footprint").order("id"),
+      supabase.from("admin_audit_log").select("*").order("at", { ascending: false }).limit(8),
+      listAuthUsers(),
+    ]);
+    const roles: Partial<Record<Role, number>> = {};
+    for (const u of users ?? []) {
+      const r = u.app_metadata?.uat_role as Role | undefined;
+      if (r) roles[r] = (roles[r] ?? 0) + 1;
+    }
+    const data: OverviewData = {
+      uats: ((rows ?? []) as UatRow[]).map((r) => ({
+        key: r.key,
+        name: r.name,
+        district: r.district,
+        country: r.country,
+        active: r.active,
+        area_ha: Number(r.area_ha),
+        geofence: r.geofence,
+        surveys: ((links ?? []) as UatSurveyLink[]).filter((l) => l.uat_key === r.key).map((l) => ({ id: l.survey_id, overlap_ha: Number(l.overlap_ha) })),
+        users: users ? users.filter((u) => u.app_metadata?.uat === r.key).length : null,
+      })),
+      surveys: (surveyRows ?? []).map((s) => ({ ...(s as OverviewData["surveys"][number]), area_ha: Number(s.area_ha) })),
+      roles: users ? roles : null,
+      // platform admins are not municipality users, so they do not count as "unassigned"
+      unassigned: users ? users.filter((u) => !u.app_metadata?.uat && u.app_metadata?.uat_role !== "platform_admin").length : null,
+      totalUsers: users ? users.length : null,
+      activity: (activity ?? []) as OverviewData["activity"],
+    };
+    panel = <OverviewPanel data={data} />;
+  }
 
   if (tab === "uat") {
     const [{ data: rows }, { data: links }, users] = await Promise.all([
