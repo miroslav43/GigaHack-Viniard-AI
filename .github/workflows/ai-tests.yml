@@ -1,0 +1,23 @@
+name: ai-tests
+
+on:
+  push:
+    paths: ["src/AI/**", ".github/workflows/ai-tests.yml"]
+  pull_request:
+    paths: ["src/AI/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: src/AI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.1"
+      - run: uv python install 3.12
+      - run: uv sync --locked --all-extras
+      - run: uv run ruff check vineyard tests
+      - run: uv run pytest -m "not needs_tiles and not mps and not network"

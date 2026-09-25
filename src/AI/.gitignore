@@ -1,0 +1,12 @@
+work/
+.venv/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+dist/
+*.egg-info/
+__pycache__/
+models/
+data/marcaj_intermediate/
