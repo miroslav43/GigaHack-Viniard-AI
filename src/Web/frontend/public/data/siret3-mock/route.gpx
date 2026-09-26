@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Solemtrix" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="47.1286713" lon="28.7041305"><name>1. T003</name><desc>gap V02-R08</desc></wpt>
+  <wpt lat="47.1286855" lon="28.7040878"><name>2. T006</name><desc>gap V02-R09</desc></wpt>
+  <wpt lat="47.1288528" lon="28.7039904"><name>3. T007</name><desc>gap V02-R09</desc></wpt>
+  <wpt lat="47.1288813" lon="28.7040084"><name>4. T004</name><desc>gap V02-R08</desc></wpt>
+  <wpt lat="47.1289594" lon="28.7040375"><name>5. T001</name><desc>gap V02-R06</desc></wpt>
+  <wpt lat="47.128953" lon="28.7039322"><name>6. T008</name><desc>gap V02-R09</desc></wpt>
+  <wpt lat="47.1290085" lon="28.7039345"><name>7. T005</name><desc>gap V02-R08</desc></wpt>
+  <wpt lat="47.1290167" lon="28.7039664"><name>8. T002</name><desc>gap V02-R07</desc></wpt>
+  <wpt lat="47.1288247" lon="28.7037876"><name>9. T009</name><desc>gap V02-R15</desc></wpt>
+  <wpt lat="47.1286363" lon="28.7036103"><name>10. T010</name><desc>gap V02-R23</desc></wpt>
+  <trk><name>Ruta de inspecție (1461.52 m)</name><trkseg>
+    <trkpt lat="47.1230335" lon="28.7073776"/>
+    <trkpt lat="47.1286713" lon="28.7041305"/>
+    <trkpt lat="47.1286855" lon="28.7040878"/>
+    <trkpt lat="47.1288528" lon="28.7039904"/>
+    <trkpt lat="47.1288813" lon="28.7040084"/>
+    <trkpt lat="47.1289594" lon="28.7040375"/>
+    <trkpt lat="47.128953" lon="28.7039322"/>
+    <trkpt lat="47.1290085" lon="28.7039345"/>
+    <trkpt lat="47.1290167" lon="28.7039664"/>
+    <trkpt lat="47.1288247" lon="28.7037876"/>
+    <trkpt lat="47.1286363" lon="28.7036103"/>
+    <trkpt lat="47.1230335" lon="28.7073776"/>
+  </trkseg></trk>
+</gpx>

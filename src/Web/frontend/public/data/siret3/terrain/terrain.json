@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "survey_id": "siret3",
+  "source": "canopies.geojson",
+  "encoding": "terrarium",
+  "tile_size": 256,
+  "minzoom": 14,
+  "maxzoom": 19,
+  "bounds": [
+    28.7009115,
+    47.1135201,
+    28.7186178,
+    47.1294876
+  ],
+  "height_m": 1.1,
+  "blur_m": 0.45,
+  "tiles": "{z}/{x}/{y}.png",
+  "canopy_count": 13554,
+  "tile_count": 1334,
+  "relief_tile_count": 262,
+  "bytes": 4106721,
+  "generated_at": "2026-09-26T20:11:51.529Z"
+}

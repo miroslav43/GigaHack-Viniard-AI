@@ -45,7 +45,7 @@ Ce rulează acum (din `src/Web/frontend/`):
 | `pnpm e2e` | Playwright pe build-ul de producție (port 3100, sau `E2E_PORT`): KPI, deep link, rută, CSV, tabel, schimbarea limbii, straturile opționale tile-uri / mască (`e2e/overlays.spec.ts`), ferme și drumuri (`e2e/farms-roads.spec.ts`) |
 
 Abateri față de plan, deliberate, pentru viteză:
-- fișierele statice stau în `frontend/public/` (generate, ignorate de git), nu în `src/Web/data/` servite de o rută `/data`;
+- fișierele statice stau în `frontend/public/` (generate, dar versionate în git: `public/data/` și `public/ortho/`, ca harta să meargă imediat după clone), nu în `src/Web/data/` servite de o rută `/data`;
 - ortofoto nu e PMTiles, ci un mozaic de ansamblu WebP (~0,4 m/px) plus JPEG-uri de 1024 px pe tile, încărcate doar la zoom ≥ 17;
 - MapLibre 6 + Turbopack: worker-ul se servește din `public/maplibre/` prin `setWorkerUrl` (`scripts/copy-maplibre-worker.mjs`, rulat de `predev`/`prebuild`).
 
