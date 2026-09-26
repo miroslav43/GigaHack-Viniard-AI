@@ -32,6 +32,8 @@ export interface AdminUser {
   created_at: string;
   last_sign_in_at: string | null;
   banned: boolean;
+  /** invited by email and has not set a password yet */
+  invited: boolean;
 }
 
 export interface AdminSurvey {

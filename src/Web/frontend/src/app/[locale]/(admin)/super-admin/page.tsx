@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
 import type { UatRow } from "@/lib/uats";
 import { getViewer, isPlatformAdmin } from "@/lib/viewer";
+import { isPendingInvite } from "@/lib/invite";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,7 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at ?? null,
         banned: Boolean(u.banned_until && new Date(u.banned_until) > new Date()),
+        invited: isPendingInvite(u),
       }))
       .sort((a, b) => a.email.localeCompare(b.email));
     const presetRole = typeof sp.new === "string" && ["uat_admin", "inspector", "viewer"].includes(sp.new) ? (sp.new as Role) : null;

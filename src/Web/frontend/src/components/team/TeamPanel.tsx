@@ -29,10 +29,9 @@ import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import ForwardToInboxOutlined from "@mui/icons-material/ForwardToInboxOutlined";
 import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
-import { PasswordField, generatePassword } from "@/components/common/PasswordField";
 import { ConfirmDialog, useAdminAction } from "@/components/admin/common";
 import { useFormat } from "@/lib/useFormat";
-import { deleteMember, inviteMember, resendInvite, resetMemberPassword, setMemberBanned, updateMember } from "@/app/[locale]/(app)/echipa/actions";
+import { deleteMember, inviteMember, sendMemberPasswordLink, setMemberBanned, updateMember } from "@/app/[locale]/(app)/echipa/actions";
 
 export interface TeamRow {
   id: string;
@@ -54,11 +53,12 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
   const tc = useTranslations("superAdmin.common");
   const f = useFormat();
   const { run, pending, snackbar } = useAdminAction();
+  const linkSent = ({ email, kind }: { email: string; kind: "invite" | "reset" }) => t(kind === "invite" ? "inviteSent" : "resetSent", { email });
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TeamRow | null>(null);
   const [resetting, setResetting] = useState<TeamRow | null>(null);
   const [deleting, setDeleting] = useState<TeamRow | null>(null);
-  const [draft, setDraft] = useState({ email: "", fullName: "", password: "", role: "inspector" as string });
+  const [draft, setDraft] = useState({ email: "", fullName: "", role: "inspector" as string });
 
   const team = rows.filter((r) => !r.isMe);
 
@@ -78,7 +78,7 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
             variant="contained"
             startIcon={<PersonAddOutlined />}
             onClick={() => {
-              setDraft({ email: "", fullName: "", password: "", role: "inspector" });
+              setDraft({ email: "", fullName: "", role: "inspector" });
               setCreating(true);
             }}
           >
@@ -139,7 +139,7 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
                             <IconButton
                               size="small"
                               disabled={pending}
-                              onClick={() => run(() => resendInvite(r.id), undefined, (email) => t("inviteSent", { email }))}
+                              onClick={() => run(() => sendMemberPasswordLink(r.id), undefined, linkSent)}
                             >
                               <ForwardToInboxOutlined fontSize="small" />
                             </IconButton>
@@ -150,25 +150,20 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
                             size="small"
                             disabled={pending}
                             onClick={() => {
-                              setDraft({ email: r.email, fullName: r.name ?? "", password: "", role: r.role ?? "inspector" });
+                              setDraft({ email: r.email, fullName: r.name ?? "", role: r.role ?? "inspector" });
                               setEditing(r);
                             }}
                           >
                             <EditOutlined fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title={t("resetPassword")}>
-                          <IconButton
-                            size="small"
-                            disabled={pending}
-                            onClick={() => {
-                              setDraft((d) => ({ ...d, password: generatePassword() }));
-                              setResetting(r);
-                            }}
-                          >
-                            <KeyOutlined fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {!r.invited && (
+                          <Tooltip title={t("resetPassword")}>
+                            <IconButton size="small" disabled={pending} onClick={() => setResetting(r)}>
+                              <KeyOutlined fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={r.banned ? t("enable") : t("disable")}>
                           <IconButton size="small" disabled={pending} onClick={() => run(() => setMemberBanned(r.id, !r.banned))}>
                             {r.banned ? <CheckCircleOutlined fontSize="small" /> : <BlockOutlined fontSize="small" />}
@@ -249,27 +244,14 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
         </DialogActions>
       </Dialog>
 
-      {/* reset password */}
-      <Dialog open={resetting !== null} onClose={() => setResetting(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>{resetting && t("dialogReset", { email: resetting.email })}</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <PasswordField value={draft.password} onChange={(password) => setDraft({ ...draft, password })} label={t("fieldPassword")} generateLabel={t("generate")} />
-          <Typography variant="caption" color="text.secondary">
-            {t("passwordNote")}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetting(null)}>{tc("cancel")}</Button>
-          <Button
-            variant="contained"
-            disabled={pending || draft.password.length < 10}
-            onClick={() => resetting && run(() => resetMemberPassword(resetting.id, draft.password), () => setResetting(null))}
-          >
-            {tc("save")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+      {/* password reset: a link by email, the member chooses the new password */}
+      <ConfirmDialog
+        open={resetting !== null}
+        danger={false}
+        text={resetting ? t("resetConfirm", { email: resetting.email }) : ""}
+        onConfirm={() => resetting && run(() => sendMemberPasswordLink(resetting.id), undefined, linkSent)}
+        onClose={() => setResetting(null)}
+      />
       <ConfirmDialog
         open={deleting !== null}
         text={deleting ? t("deleteConfirm", { email: deleting.email }) : ""}
