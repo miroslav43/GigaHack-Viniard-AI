@@ -83,7 +83,7 @@ publish: ## validated copy of the deliverables to the repo root
 web: ## web data bundle for src/Web
 	$(RUN) vineyard web build --annset $(ANNSET)
 
-bench: ## clean timed run on all 311 tiles -> metrics/timings.json
+bench: ## timed perception only (ingest -> qa_previews, 311 tiles, no cache) -> metrics/timings.json
 	$(RUN) vineyard bench
 
 nn-smoke: ## 1-epoch MPS smoke run
@@ -92,11 +92,15 @@ nn-smoke: ## 1-epoch MPS smoke run
 nn-train: ## full NN training
 	$(RUN) vineyard nn train
 
-docker-build: ## native arm64 image
-	docker buildx build --platform linux/arm64 -t vineyard:arm64 --load .
+DOCKER_EXTRAS ?= route
+DOCKER_ARGS = --build-arg EXTRAS="$(DOCKER_EXTRAS)" --build-arg VCS_REF="$$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
-docker-push: ## multi-arch push (run once)
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE) --push .
+docker-build: ## native arm64 image (DOCKER_EXTRAS="route nn waste-ml" adds torch CPU)
+	docker buildx build --platform linux/arm64 $(DOCKER_ARGS) -t vineyard:arm64 --load .
+
+docker-push: ## multi-arch push, run once: IMAGE=<user>/vineyard:<tag>
+	@test -n "$(IMAGE)" || { echo "IMAGE is required, e.g. make docker-push IMAGE=<user>/vineyard:1.0" >&2; exit 1; }
+	docker buildx build --platform linux/amd64,linux/arm64 $(DOCKER_ARGS) -t $(IMAGE) --push .
 
 clean-work: ## remove caches and runs (irreversible)
 	rm -rf work/cache work/runs

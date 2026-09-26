@@ -92,7 +92,7 @@ def all_(opts: CommonOptions) -> None:
 @app.command("bench")
 @with_common_options
 def bench(opts: CommonOptions) -> None:
-    """Rulare curată, cronometrată, pe toate tile-urile -> metrics/timings.json."""
+    """Doar percepția (ingest ... qa_previews), curată și cronometrată, pe toate tile-urile -> metrics/timings.json."""
     dispatch(replace(opts, force_all=True), PRE_STAGES, source=Source.MODEL)
 
 
