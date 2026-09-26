@@ -4,7 +4,10 @@
 - coverage loop (<= cover_iterations): sets whose targets are within cover_radius of the route outside
   their own two legs are dropped and the rest re-solved; the result is kept only if it is shorter and
   still covers every must target (CETSP, arch §4.11.5);
-- phase B: optional sets not yet covered are added and re-solved (`optional_delta_m` reported).
+- phase B: optional sets not yet covered are added and re-solved (`optional_delta_m` reported), but only
+  those whose cheapest insertion into the must tour (between two consecutive stops, graph cost: metres +
+  outside penalty) is <= optional_max_detour_m; the others are `skipped` (optional = visited when cheap).
+  Without must sets there is no tour to insert into and every optional set is routed.
 """
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ class PhaseParams:
     cover_iterations: int
     cover_radius_m: float
     include_optional: bool
+    optional_max_detour_m: float
 
 
 @dataclass(frozen=True, eq=False)
@@ -46,6 +50,7 @@ class PhaseResult:
     iterations: int
     must_length_m: float | None
     optional_delta_m: float | None
+    skipped: tuple[CandidateSet, ...] = ()
 
 
 def points(sets: Sequence[CandidateSet], xy_of: XY) -> np.ndarray:
@@ -95,20 +100,48 @@ def _uncovered(best: Tour, optional: tuple[CandidateSet, ...], xy_of: XY, radius
     return tuple(s for s, f in zip(optional, flags, strict=True) if not f.all())
 
 
+def insertion_detours(g: WalkGraph, tour: Tour, sets: Sequence[CandidateSet], table: DistanceTable) -> np.ndarray:
+    """Per set: min over its nodes and the tour's legs of d(a, n) + d(n, b) - d(a, b) (graph cost, m)."""
+    if not sets:
+        return np.zeros(0, dtype=np.float64)
+    seq = np.array([g.start_node, *tour.stop_nodes, g.start_node], dtype=np.int64)
+    nodes = np.array([n for s in sets for n in s.nodes], dtype=np.int64)
+    owner = np.repeat(np.arange(len(sets)), [len(s.nodes) for s in sets])
+    pool = np.unique(np.concatenate([seq, nodes]))
+    d = table.matrix(pool)
+    a, b, c = (np.searchsorted(pool, x) for x in (seq[:-1], seq[1:], nodes))
+    via = d[np.ix_(a, c)] + d[np.ix_(c, b)].T - d[a, b][:, None]
+    out = np.full(len(sets), np.inf)
+    np.minimum.at(out, owner, via.min(axis=0))
+    return out
+
+
+def cheap_sets(g: WalkGraph, tour: Tour, sets: tuple[CandidateSet, ...], table: DistanceTable,
+               max_detour_m: float) -> tuple[tuple[CandidateSet, ...], tuple[CandidateSet, ...]]:
+    """(sets worth inserting into `tour`, sets whose cheapest insertion costs more than `max_detour_m`)."""
+    ok = insertion_detours(g, tour, sets, table) <= max_detour_m
+    return (tuple(s for s, keep in zip(sets, ok, strict=True) if keep),
+            tuple(s for s, keep in zip(sets, ok, strict=True) if not keep))
+
+
 def solve_phases(g: WalkGraph, must: tuple[CandidateSet, ...], optional: tuple[CandidateSet, ...], xy_of: XY,
                  eroded: BaseGeometry, p: PhaseParams, table: DistanceTable) -> PhaseResult:
-    """Phase A + coverage loop on the must sets, then phase B on the optional ones still uncovered."""
+    """Phase A + coverage loop on the must sets, then phase B on the cheap optional ones still uncovered."""
     optional = optional if p.include_optional else ()
     if not must and not optional:
         raise RouteValidationError("no reachable targets to route")
-    best, iterations, active = cover_loop(g, must, xy_of, eroded, p, table) if must else (None, 0, ())
-    todo = _uncovered(best, optional, xy_of, p.cover_radius_m) if best is not None and optional else optional
-    if best is not None and not todo:
-        return PhaseResult(best, active, iterations, best.length_m, 0.0 if optional else None)
+    if not must:
+        final = solve_tour(g, optional, eroded, p.tour, table)
+        return PhaseResult(final, optional, 0, None, final.length_m)
+    best, iterations, active = cover_loop(g, must, xy_of, eroded, p, table)
+    todo, skipped = cheap_sets(g, best, _uncovered(best, optional, xy_of, p.cover_radius_m) if optional else (),
+                               table, p.optional_max_detour_m)
+    delta = 0.0 if optional else None
+    if not todo:
+        return PhaseResult(best, active, iterations, best.length_m, delta, skipped)
     used = (*active, *todo)
     final = solve_tour(g, used, eroded, p.tour, table)
-    must_len = best.length_m if best is not None else None
-    return PhaseResult(final, used, iterations, must_len, final.length_m - (must_len or 0.0))
+    return PhaseResult(final, used, iterations, best.length_m, final.length_m - best.length_m, skipped)
 
 
 def finalize(tour: Tour, start_xy: tuple[float, float], decimals: int) -> tuple[np.ndarray, tuple[int, ...]]:
@@ -118,5 +151,5 @@ def finalize(tour: Tour, start_xy: tuple[float, float], decimals: int) -> tuple[
     return dedupe_xy(xy, tour.anchors)
 
 
-__all__ = ["MIN_GAIN_M", "PhaseParams", "PhaseResult", "cover_loop", "finalize", "free_sets", "points",
-           "solve_phases"]
+__all__ = ["MIN_GAIN_M", "PhaseParams", "PhaseResult", "cheap_sets", "cover_loop", "finalize", "free_sets",
+           "insertion_detours", "points", "solve_phases"]

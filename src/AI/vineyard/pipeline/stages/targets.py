@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 STAGE_NAME: Final = "targets"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"
 CFG_KEYS: Final = ("targets", "canopy.corridor_half_m", "route.candidate_radius_m", "row_structure")
 ROWS_LAYER: Final = "rows"
 QA_NAME: Final = "issues_targets.parquet"

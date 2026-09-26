@@ -324,12 +324,14 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
 | `row_gap` (GAP) | Interior gap ≥ `gap_min_m` on the global row. One target at the centre if length ≤ `long_gap_m`; otherwise `n = ceil(L / gap_step_m)` targets at sub-segment centres (A). A `target_extents` segment covers the whole gap (C). Extents coverage is reported only: sample every `gap_sample_step_m` and count points within 2 m of the route. |
 | `missing_plant` | Gaps in [`missing_min_m`, `gap_min_m`). Only when `include_missing` is true. |
 | `sparse` | 20 m windows (step 10 m) with occupancy < 0.10, ≥ 90% of the window known, and no gap ≥ 5 m. Only when `include_sparse` is true. |
-| `row_end_short` (END) | (a) The global row line runs ≥ `end_short_min_m` beyond its last canopy; or (b) both neighbouring rows extend ≥ `end_short_min_m` beyond this row's end, target on the linearly extrapolated axis. Both require the end **not** to lie on the `coverage` boundary; this is why the isolated example tiles give 0. |
+| `row_end_short` (END) | (a) The global row line runs ≥ `end_short_min_m` beyond its last canopy; or (b) both neighbouring rows extend ≥ `end_short_min_m` beyond this row's end, target on the linearly extrapolated axis. Both require the end **not** to lie within `edge_margin_m` of the `coverage` boundary; this is why the isolated example tiles give 0. (b) also needs a well-defined comparison: the two neighbours on opposite sides, each ≥ `end_neighbour_min_offset_m` across the row (collinear fragments of one row split at a tile seam, and a spurious row inside an interrow whose neighbours are half a spacing away, are no comparison), and the whole extension imaged (it never crosses unprocessed tiles or nodata). No END on the outermost rows of a block (`end_skip_outer_rows`). |
 | `missing_row` (MRW) | Consecutive spacing > `missing_row_spacing_factor` × block median. The virtual axis is `lines.midline(a, b)`, sampled like long gaps. |
 | `waste` (WST) | Centre of each waste box; split boxes `Wxxxxa/b` are merged first. |
 
 - `missing_plant` and `sparse` are not in the contract `TargetKind`. REQ adds `missing_plant` (T-MSP) and `sparse` (T-SPR); fallback is `kind=other`, `reason=…`.
-- **Priority:** 1 = waste and gaps > 10 m; 2 = other GAP, END, MRW; 3 = MSP, SPR. `route_role` = `must` if priority ≤ 2, else `optional`.
+- **Priority:** 1 = waste and gaps > 10 m; 2 = other GAP, END, MRW; 3 = MSP, SPR.
+- **Route role** (user decision, 26.09): `route_role` = `must` for the kinds in `targets.must_kinds` (default `row_gap`, `missing_row`, `waste`), `optional` for every other kind (`missing_plant`, `row_end_short`, `sparse`). Optional targets are routed only when cheap (§3.8 phase B).
+- **Edge artefacts:** row-derived targets (every kind but waste) within `targets.edge_margin_m` (3 m) of the coverage boundary (tile_valid union: unprocessed tiles and nodata) are dropped (`edge_dropped` in `metrics/targets.json`, next to `end_outer_row`, `end_ill_defined`, `end_on_boundary`). 3 m ≈ one row spacing (2.3–3.0 m measured) and is the largest margin that keeps every organizer-annotated row gap of the example tiles (nearest 3.25 m).
 - **Dedupe:** targets within `dedupe_m` merge and keep the best priority.
 - **Preliminary reachability:** `false` if the target is in forbidden (`in_forbidden`) or farther than `candidate_radius_m` from `domain.inner`. The final graph-based reachability is decided in `route`.
 
@@ -379,7 +381,7 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
 - **Phases.**
   - Phase A: `must` targets only.
   - Coverage loop (≤ `cover_iterations`): `dwithin(targets, line, candidate_radius_m)`. Targets covered for free drop out; re-solve; keep the result only if it is shorter **and** still covers 100% of must targets. Otherwise revert. Iteration 0 is 100% by construction, because every must target has an anchor within 1.9 m.
-  - Phase B (optional targets): add those still uncovered, re-solve, and record `optional_delta_m` (A§4.10: the length cost of `include_missing`).
+  - Phase B (optional targets): add those still uncovered **whose cheapest insertion into the must tour** (between two consecutive stops, graph cost = metres + outside penalty) is ≤ `route.solver.optional_max_detour_m` (25 m), re-solve, and record `optional_delta_m` (A§4.10: the length cost of `include_missing`). The others get `reach_note=optional_detour`. Without must targets every optional target is routed.
 - **Node-cap ladder** when TSP nodes exceed `max_tsp_nodes`:
   1. 1 candidate per side;
   2. merge targets whose projections are within `merge_node_m` on the same edge;
@@ -400,7 +402,7 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
   - (d) LineString, `is_valid`, 0 zero-length segments;
   - (e) 100% of must targets within `visit_radius_m` (blocking); optional and all-target coverage reported;
   - **no `is_simple`**.
-  - If only the outside share fails: rebuild costs with the connector penalty × 10 and re-solve once, then fail the stage.
+  - **Outside policies** (policies.py, policy_choice.py): every policy is probed in order; a probe is *acceptable* when it validates and its outside share is ≤ `route.plan_outside_frac` = `max_outside_frac_publish` − `plan_outside_margin` (0.015 − 0.001). Probing stops at the first acceptable plan that loses no must target; otherwise the plan with most must targets visited, then optional visited, then interrows reachable, then shortest wins (none acceptable: smallest outside share). The chosen policy is solved again in full; `route_validation.json` reports `policy`, `policy_accepted`, `plan_outside_limit` and one line per probed policy.
 - **Baselines.**
   - `baseline_id_order_m` = Σ D over targets in `target_id` order using the first candidate;
   - `baseline_all_interrows_m` = Σ centerline edge lengths.
@@ -412,7 +414,7 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
   - `n_blocks` counts distinct non-empty `vineyard_id` over all 4 labels.
   - Values are written with fixed formatting (`f"{x:.2f}"`, ha `:.4f`); NaN becomes an empty cell. Sort is block, then row, by ID.
 - **Publish** recomputes everything; it never trusts the file's own properties:
-  - `outside_frac` against this run's `passable_domain`, must be ≤ 0.005;
+  - `outside_frac` against this run's `passable_domain`, must be ≤ `route.max_outside_frac_publish` (0.015; the official elimination is 0.02);
   - closure ≤ 0.01; single LineString;
   - `length_m` equals the recomputed length within 0.01;
   - `crs` member is `urn:ogc:def:crs:EPSG::32635`; coordinates have ≤ 2 decimals;
@@ -461,6 +463,9 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `targets.include_waste` | true | C§9 |
 | `targets.priority_long_gap_m` | 10.0 | C§2.5.11 |
 | `targets.dedupe_m` | 1.0 | new |
+| `targets.must_kinds` | [row_gap, missing_row, waste] | user decision 26.09 |
+| `targets.edge_margin_m` | 3.0 | user decision 26.09 (replaces the 0.5 m END boundary constant) |
+| `targets.end_skip_outer_rows` / `end_neighbour_min_offset_m` | true / 1.5 | user decision 26.09 (1.5 m ≈ 0.6 × row spacing: rejects collinear fragments and spurious rows inside an interrow) |
 | `targets.corridor_half_m` | 0.30 | A§4.8 |
 | `route.start_file` | 02_route/start.geojson | C§9 |
 | `route.start_tolerance_m` | 5.0 | A§3.6 (= C `return_tol_m`) |
@@ -469,7 +474,10 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `route.max_candidates_per_side` | 3 | A§3.6 |
 | `route.max_snap_m` | 5.0 | C§9 |
 | `route.max_outside_frac_official` | 0.02 | C§9 |
-| `route.max_outside_frac_publish` | 0.005 | C§9 = A `max_outside_share` |
+| `route.max_outside_frac_publish` | 0.015 | user decision 26.09 (was 0.005): the one limit of publish, validator, passable report and (minus the margin) planner |
+| `route.plan_outside_margin` | 0.001 | new: the planner accepts ≤ 0.014 |
+| `route.solver.include_optional` / `optional_max_detour_m` | true / 25.0 | new (were module constants / optional = visited when cheap) |
+| `route.solver.probe_time_limit_s` / `budget_rounds` | 5 / 10 | were module constants |
 | `route.walking_speed_kmh` | 4.0 | C§9 |
 | `route.domain.grid_size_m` | 0.001 | A§3.6 |
 | `route.domain.inner_buffer_m` | 0.05 | A§3.6 |

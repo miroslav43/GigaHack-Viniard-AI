@@ -35,7 +35,7 @@ def _validate(line: object, params: ValidateParams, required: list[tuple[float, 
 
 
 def test_params_from_config(params: ValidateParams) -> None:
-    assert params.max_outside_frac == pytest.approx(0.005)
+    assert params.max_outside_frac == pytest.approx(0.015)  # route.max_outside_frac_publish (1.5 %)
     assert params.closure_max_m == pytest.approx(0.01)
     assert params.visit_radius_m == pytest.approx(2.0)
     assert params.grid_size_m == pytest.approx(0.001)

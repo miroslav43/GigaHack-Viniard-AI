@@ -124,6 +124,8 @@ def test_stage_writes_every_output(post_ctx) -> None:
     assert visits.set_index("target_id")["reach_note"]["T-GAP-0003"] == "too_far"
     val = json.loads((paths.metrics_dir / "route_validation.json").read_text())
     assert val["passed"] is True and val["policy"] == "penalty" and val["headland"]["n_interrow_ends"] == 10
+    assert val["policy_accepted"] is True and val["plan_outside_limit"] == pytest.approx(0.014)
+    assert val["policies"][0]["acceptable"] is True and val["policies"][0]["n_interrows_reachable"] > 0
     assert val["headland"]["share_interrow_ends_near_passage"] == pytest.approx(0.5)
     base = json.loads((paths.metrics_dir / "route_baseline.json").read_text())
     assert base["serpentine_est"]["saved_pct"] > 0

@@ -51,7 +51,7 @@ POST_RUN: Final = "20260926T0310-post-e2e000"
 CHAIN: Final = ("derive", "passable", "targets", "route", "measure", "publish", "web_bundle")
 TIME_LIMIT_S: Final = 3
 START: Final = (629504.70, 5220250.75)
-MAX_OUTSIDE_SHARE: Final = 0.005
+MAX_OUTSIDE_SHARE: Final = 0.015  # route.max_outside_frac_publish (official elimination: 0.02)
 VISIT_RADIUS_M: Final = 2.0
 LEN_TOL_M: Final = 0.01
 OUTSIDE_PIECE_MIN_M: Final = 0.01
@@ -149,11 +149,11 @@ def _route_report(ctx: RunContext) -> dict[str, Any]:
     domain = walking_domain(ctx.paths, ctx)
     assert domain is not None
     pieces = _outside_pieces(line, domain.inner)
-    keys = ("passed", "policy", "solver", "length_m", "outside_len_m", "outside_frac", "coverage_est",
-            "coverage_required", "n_targets", "n_unreachable", "unreachable_notes", "solve_time_s", "headland",
-            "fallback_reason", "optional_delta_m", "dropped_outside_budget")
+    keys = ("passed", "policy", "policy_accepted", "plan_outside_limit", "solver", "length_m", "outside_len_m",
+            "outside_frac", "coverage_est", "coverage_required", "n_targets", "n_unreachable", "unreachable_notes",
+            "solve_time_s", "headland", "fallback_reason", "optional_delta_m", "dropped_outside_budget")
     return {k: doc.get(k) for k in keys} | {
-        "policies_tried": [(p.get("policy"), p.get("passed"), p.get("outside_frac")) for p in doc["policies"]],
+        "policies_tried": [(p.get("policy"), p.get("acceptable"), p.get("outside_frac")) for p in doc["policies"]],
         "route_outside_pieces": len(pieces), "route_outside_pieces_m": [round(p, 2) for p in pieces[:10]],
         "route_outside_total_m": round(sum(pieces), 3),
         "headland_ok": bool(doc["outside_frac"] < MAX_OUTSIDE_SHARE),
@@ -210,6 +210,7 @@ def test_route_is_published_closed_at_start_and_inside_the_domain(chain: ChainRu
     assert props["duration_min"] == pytest.approx(props["length_m"] / 1000.0 / 4.0 * 60.0, abs=0.1)
     route = chain.report["route"]
     assert route["passed"] and route["outside_frac"] < MAX_OUTSIDE_SHARE
+    assert route["policy_accepted"] and route["outside_frac"] <= route["plan_outside_limit"]
 
 
 def test_every_reachable_target_is_within_two_metres(chain: ChainRun) -> None:

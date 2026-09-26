@@ -131,6 +131,22 @@ def test_three_percent_outside_is_refused(tmp_path):
     assert not (tmp_path / "root").exists()
 
 
+def _detour(dy: float) -> list[list[float]]:
+    return [list(START), _pt(50.0), _pt(50.0, dy), _pt(50.0), list(START)]
+
+
+@pytest.mark.parametrize(("dy", "ok"), [(2.45, True), (2.85, False)])
+def test_publish_limit_is_the_configured_1_5_percent(tmp_path, dy, ok):
+    """0.95 % outside is published (the old 0.5 % limit refused it); 1.70 % is refused (official: 2 %)."""
+    route_cfg = load_config(environ={}).route
+    limits = PublishLimits(route=RouteFileLimits.from_route_cfg(route_cfg), sum_tol_m=0.05, require_source=None)
+    assert limits.route.max_outside_frac == pytest.approx(0.015)
+    assert limits.route.max_outside_frac < route_cfg.max_outside_frac_official
+    report = _evaluate(tmp_path, _route_doc(_detour(dy)), limits=limits)
+    assert report.passed is ok and _failed(report) == (set() if ok else {"outside_frac"})
+    assert not _evaluate(tmp_path, _route_doc(_detour(dy))).passed  # 0.5 % test limits refuse both
+
+
 @pytest.mark.parametrize(("doc", "name"), [
     (_route_doc([[629504.72, 5220250.75], _pt(50.0), [629504.72, 5220250.75]]), "closure"),
     (_route_doc(OUT_AND_BACK, geom_type="MultiLineString"), "linestring"),

@@ -434,6 +434,19 @@ targets:
   include_waste: true
   priority_long_gap_m: 10.0
   dedupe_m: 1.0
+  # route_role: these kinds are must-visit, every other kind is optional (routed only when cheap,
+  # route.solver.optional_max_detour_m). row_gap = interior gaps >= gap_min_m (one target per gap_step_m).
+  must_kinds: [row_gap, missing_row, waste]
+  # Row-derived targets (not waste) within this distance of the coverage boundary (tile_valid union:
+  # tile edges and nodata) are dropped, and a row end this close is "on the boundary" (no row_end_short).
+  # 3 m ~ one row spacing (2.3-3.0 m measured), so the outer neighbour of such a row may be unseen; it is
+  # the largest value that keeps every organizer-annotated row gap of the example tiles (nearest: 3.25 m).
+  edge_margin_m: 3.0
+  end_skip_outer_rows: true                # no row_end_short on the first/last row of a block (one-sided)
+  # row_end_short (b) needs two lateral neighbours, one per side, each at least this far across the row
+  # (~0.6 x the 2.3-3.0 m row spacing): collinear fragments of one row (tile seams, 0-0.3 m apart) and
+  # spurious rows inside an interrow (neighbours half a spacing away, 1.1-1.5 m on viz42) are no comparison.
+  end_neighbour_min_offset_m: 1.5
 
 route:                                     # D4 §4 (A§4.11 names)
   start_file: 02_route/start.geojson       # relative to data_root
@@ -442,8 +455,11 @@ route:                                     # D4 §4 (A§4.11 names)
   candidate_radius_m: 1.9
   max_candidates_per_side: 3
   max_snap_m: 5.0
-  max_outside_frac_official: 0.02
-  max_outside_frac_publish: 0.005
+  max_outside_frac_official: 0.02         # organizers' elimination threshold (reference only)
+  # Our single outside-share limit: publish refusal, route validator pass/fail, passable report and
+  # (minus plan_outside_margin) the planner's policy acceptance and outside-budget trimming.
+  max_outside_frac_publish: 0.015
+  plan_outside_margin: 0.001               # the planner accepts a policy at <= 0.015 - 0.001
   walking_speed_kmh: 4.0
   domain:
     grid_size_m: 0.001
@@ -476,6 +492,12 @@ route:                                     # D4 §4 (A§4.11 names)
     max_tsp_nodes: 1500
     merge_node_m: 1.0
     dijkstra_chunk: 256
+    include_optional: true
+    # An optional target is routed only when its cheapest insertion into the must tour costs at most
+    # this much graph cost (metres + outside penalty); with no must target every optional one is routed.
+    optional_max_detour_m: 25.0
+    probe_time_limit_s: 5                  # per-policy probe solve (the chosen policy is re-solved in full)
+    budget_rounds: 10                      # drop_* policies: re-solves while trimming outside length
   validate:
     coord_decimals: 2
     closure_max_m: 0.01

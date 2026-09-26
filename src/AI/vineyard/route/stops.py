@@ -16,6 +16,8 @@ from vineyard.route.graph_types import Reach
 NOTE_TRUNCATED: Final = "truncated"
 # Optional target left out because route.solver.include_optional is off.
 NOTE_NOT_ROUTED: Final = "not_routed"
+# Optional target whose cheapest insertion into the must tour costs more than route.solver.optional_max_detour_m.
+NOTE_OPTIONAL_DETOUR: Final = "optional_detour"
 
 
 @dataclass(frozen=True)
@@ -82,4 +84,5 @@ def build_visits(line: LineString, targets: Sequence[TargetPoint], reach: Mappin
     return tuple(out)
 
 
-__all__ = ["NOTE_NOT_ROUTED", "NOTE_TRUNCATED", "Stop", "TargetVisit", "build_stops", "build_visits", "cumulative_lengths"]
+__all__ = ["NOTE_NOT_ROUTED", "NOTE_OPTIONAL_DETOUR", "NOTE_TRUNCATED", "Stop", "TargetVisit", "build_stops",
+           "build_visits", "cumulative_lengths"]

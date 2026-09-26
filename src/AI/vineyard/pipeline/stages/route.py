@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 STAGE_NAME: Final = "route"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"
 CFG_KEYS: Final = ("route", "logging.tz")
 INPUT_LAYERS: Final = ("walk_nodes", "walk_edges", "passable_domain", "targets")
 ROUTE_GEOJSON: Final = "route.geojson"

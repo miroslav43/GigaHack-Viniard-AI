@@ -123,7 +123,8 @@ def validation_doc(plan: RoutePlan, v: RouteValidation, file_checks: Sequence[An
                    headland: Mapping[str, Any]) -> dict[str, Any]:
     doc = v.to_json() | {
         "file_checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in file_checks],
-        "policy": plan.policy, "policies": [r.to_json() for r in plan.reports], "solver": plan.solver,
+        "policy": plan.policy, "policy_accepted": plan.accepted, "plan_outside_limit": plan.plan_outside_limit,
+        "policies": [r.to_json() for r in plan.reports], "solver": plan.solver,
         "solve_time_s": plan.solve_time_s, "fallback_reason": plan.fallback_reason,
         "cover_iterations_kept": plan.iterations, "must_length_m": plan.must_length_m,
         "optional_delta_m": plan.optional_delta_m, "ladder_level": plan.ladder_level,

@@ -1,15 +1,17 @@
 """build_targets: global rows + canopies + waste -> `targets` + `target_extents` (arch §4.10, contract §2.5.11).
 
 Pipeline: one `RowContext` per global row (gaps from the injected gap engine, unknown spans from the
-coverage), the pure rules of `target_rules` / `target_waste`, then: drop drafts over nodata, dedupe
-(waste never takes part), ids per kind sorted by (vineyard_id, row_id, position), priority/route_role,
+coverage), the pure rules of `target_rules` / `target_waste`, then: drop drafts over nodata, drop the
+edge artefacts (row-derived drafts within `targets.edge_margin_m` of the coverage boundary; no
+row_end_short on the outermost rows of a block), dedupe (waste never takes part), ids per kind sorted by
+(vineyard_id, row_id, position), priority, route_role (`must` for `targets.must_kinds`, else `optional`)
 and a preliminary reachability against the walking domain (the route stage decides the final one).
 """
 
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -32,11 +34,16 @@ from vineyard.errors import SchemaError
 from vineyard.geo.tiling import CRS_EPSG, tile_of_point
 from vineyard.route.target_gaps import GapFn, row_gaps, unknown_intervals
 from vineyard.route.target_rules import (
-    PRIORITY_NORMAL,
+    END_SKIP_BOUNDARY,
+    END_SKIP_NOT_LATERAL,
+    END_SKIP_UNOBSERVED,
     RowContext,
     TargetDraft,
-    end_extension_drafts,
+    end_boundary_skips,
+    end_extensions,
     end_gap_drafts,
+    end_samples,
+    extension_drafts,
     gap_drafts,
     missing_plant_drafts,
     missing_row_drafts,
@@ -44,10 +51,6 @@ from vineyard.route.target_rules import (
 )
 from vineyard.route.target_waste import waste_drafts
 
-# A row end closer than this to the coverage boundary (tile edge / nodata) is "on the boundary": the
-# row may continue in unseen imagery, so no row_end_short target is raised there.
-# CONFIG-REQUEST: targets.end_boundary_tol_m = 0.5
-END_BOUNDARY_TOL_M: Final = 0.5
 ROLE_MUST: Final = "must"
 ROLE_OPTIONAL: Final = "optional"
 NOTE_OK: Final = ""
@@ -59,6 +62,15 @@ TARGET_CONFIDENCE: Final = 1.0
 ROW_COLUMNS: Final = ("row_id", "vineyard_id", "row_index")
 EXTRA_COLUMNS: Final = ("reason", "route_role", "along_m")
 KIND_RANK: Final[Mapping[str, int]] = MappingProxyType({str(k): i for i, k in enumerate(TargetKind)})
+# counts keys of the dropped artefacts (targets.json)
+COUNT_EDGE: Final = "edge_dropped"
+COUNT_OUTER: Final = "end_outer_row"
+COUNT_ILL_DEFINED: Final = "end_ill_defined"
+COUNT_END_BOUNDARY: Final = "end_on_boundary"
+_SKIP_COUNT: Final[Mapping[str, str]] = MappingProxyType({
+    END_SKIP_BOUNDARY: COUNT_END_BOUNDARY, END_SKIP_NOT_LATERAL: COUNT_ILL_DEFINED,
+    END_SKIP_UNOBSERVED: COUNT_ILL_DEFINED})
+ARTEFACT_COUNTS: Final = (COUNT_EDGE, COUNT_OUTER, COUNT_ILL_DEFINED, COUNT_END_BOUNDARY)
 
 
 @dataclass(frozen=True)
@@ -73,16 +85,20 @@ class TargetSettings:
     targets: TargetsConfig
     corridor_half_m: float
     reach_radius_m: float
-    end_boundary_tol_m: float = END_BOUNDARY_TOL_M
 
     def __post_init__(self) -> None:
-        if min(self.corridor_half_m, self.reach_radius_m, self.end_boundary_tol_m) <= 0.0:
-            raise ValueError("TargetSettings: corridor_half_m, reach_radius_m and end_boundary_tol_m must be > 0")
+        if min(self.corridor_half_m, self.reach_radius_m, self.targets.edge_margin_m) <= 0.0:
+            raise ValueError("TargetSettings: corridor_half_m, reach_radius_m and edge_margin_m must be > 0")
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> TargetSettings:
         return cls(targets=cfg.targets, corridor_half_m=cfg.canopy.corridor_half_m,
                    reach_radius_m=cfg.route.candidate_radius_m)
+
+    @property
+    def edge_margin_m(self) -> float:
+        """Row ends and row-derived targets this close to the coverage boundary are edge artefacts."""
+        return self.targets.edge_margin_m
 
     @property
     def engine_min_length_m(self) -> float:
@@ -155,7 +171,7 @@ def row_contexts(inputs: TargetInputs, settings: TargetSettings, gap_fn: GapFn) 
                                                      _row_index(rows["row_index"].iloc[i]) or 0,
                                                      str(rows["row_id"].iloc[i])))
     axes = [rows.geometry.iloc[i] for i in order]
-    flags = _ends_on_boundary(axes, inputs.coverage, settings.end_boundary_tol_m)
+    flags = _ends_on_boundary(axes, inputs.coverage, settings.edge_margin_m)
     geoms = inputs.canopies.geometry.to_numpy()
     tree = shapely.STRtree(geoms)
     out = []
@@ -181,25 +197,56 @@ def _neighbours(ctx: RowContext, by_index: Mapping[int, RowContext]) -> tuple[Ro
     return tuple(by_index[k] for k in (ctx.row_index - 1, ctx.row_index + 1) if k in by_index)
 
 
-def _block_drafts(block: Sequence[RowContext], cfg: TargetsConfig) -> list[TargetDraft]:
+@dataclass(frozen=True)
+class RowDrafts:
+    """Row-based drafts and the number of END targets not emitted, per artefact count key."""
+
+    drafts: tuple[TargetDraft, ...]
+    skipped: Mapping[str, int]
+
+
+def _outer_indices(block: Sequence[RowContext]) -> frozenset[int]:
+    indices = [c.row_index for c in block if c.row_index is not None]
+    return frozenset((min(indices), max(indices))) if indices else frozenset()
+
+
+def _end_drafts(ctx: RowContext, neighbours: Sequence[RowContext], outer: bool, cfg: TargetsConfig,
+                coverage: BaseGeometry | None) -> tuple[tuple[TargetDraft, ...], Counter[str]]:
+    """END (a) + well-defined END (b) of one row, and the END targets left out per count key."""
+    exts = end_extensions(ctx, neighbours, cfg, coverage)
+    ends = (*end_gap_drafts(ctx, cfg), *(d for ext in exts if not ext.skip for d in extension_drafts(ctx, ext, cfg)))
+    skipped = Counter({COUNT_END_BOUNDARY: end_boundary_skips(ctx, cfg)})
+    skipped += Counter(k for ext in exts if ext.skip for k in [_SKIP_COUNT[ext.skip]] * end_samples(ext.length_m, cfg))
+    if outer and cfg.end_skip_outer_rows:
+        return (), skipped + Counter({COUNT_OUTER: len(ends)})
+    return ends, skipped
+
+
+def _row_level_drafts(ctx: RowContext, cfg: TargetsConfig) -> tuple[TargetDraft, ...]:
+    """GAP (+ MSP, SPR when enabled) of one row."""
+    return (*gap_drafts(ctx, cfg), *(missing_plant_drafts(ctx, cfg) if cfg.include_missing else ()),
+            *(sparse_drafts(ctx, cfg) if cfg.include_sparse else ()))
+
+
+def _block_drafts(block: Sequence[RowContext], cfg: TargetsConfig,
+                  coverage: BaseGeometry | None) -> tuple[tuple[TargetDraft, ...], Counter[str]]:
     by_index = {c.row_index: c for c in block if c.row_index is not None}
-    drafts: list[TargetDraft] = []
-    for ctx in block:
-        drafts += [*gap_drafts(ctx, cfg), *end_gap_drafts(ctx, cfg),
-                   *end_extension_drafts(ctx, _neighbours(ctx, by_index), cfg)]
-        if cfg.include_missing:
-            drafts += missing_plant_drafts(ctx, cfg)
-        if cfg.include_sparse:
-            drafts += sparse_drafts(ctx, cfg)
-    return drafts + list(missing_row_drafts(block, cfg))
+    outer = _outer_indices(block)
+    ends = [_end_drafts(ctx, _neighbours(ctx, by_index), ctx.row_index in outer, cfg, coverage) for ctx in block]
+    # draft order is irrelevant: dedupe and id assignment sort by (priority, kind, position)
+    drafts = tuple(d for ctx, (end, _) in zip(block, ends, strict=True) for d in (*_row_level_drafts(ctx, cfg), *end))
+    return (*drafts, *missing_row_drafts(block, cfg)), sum((c for _, c in ends), Counter())
 
 
-def row_drafts(contexts: Sequence[RowContext], cfg: TargetsConfig) -> tuple[TargetDraft, ...]:
-    """All row-based drafts (GAP, END, MSP, SPR per row; MRW per block)."""
+def row_drafts(contexts: Sequence[RowContext], cfg: TargetsConfig, coverage: BaseGeometry | None = None) -> RowDrafts:
+    """All row-based drafts (GAP, END, MSP, SPR per row; MRW per block) and the END drafts left out."""
     blocks: dict[str, list[RowContext]] = defaultdict(list)
     for ctx in contexts:
         blocks[ctx.vineyard_id].append(ctx)
-    return tuple(d for vid in sorted(blocks) for d in _block_drafts(blocks[vid], cfg))
+    per_block = [_block_drafts(blocks[vid], cfg, coverage) for vid in sorted(blocks)]
+    skipped = sum((c for _, c in per_block), Counter())
+    return RowDrafts(tuple(d for drafts, _ in per_block for d in drafts),
+                     MappingProxyType({k: skipped[k] for k in ARTEFACT_COUNTS if k != COUNT_EDGE}))
 
 
 def _on_coverage(drafts: Sequence[TargetDraft], coverage: BaseGeometry) -> tuple[TargetDraft, ...]:
@@ -207,6 +254,14 @@ def _on_coverage(drafts: Sequence[TargetDraft], coverage: BaseGeometry) -> tuple
         return ()
     inside = shapely.covers(coverage, shapely.points([(d.x, d.y) for d in drafts]))
     return tuple(d for d, ok in zip(drafts, inside, strict=True) if ok)
+
+
+def off_edge(drafts: Sequence[TargetDraft], coverage: BaseGeometry, margin_m: float) -> tuple[TargetDraft, ...]:
+    """Drafts farther than `margin_m` from the coverage boundary (tile edges, nodata); waste always kept."""
+    if not drafts:
+        return ()
+    near = shapely.dwithin(coverage.boundary, shapely.points([(d.x, d.y) for d in drafts]), margin_m)
+    return tuple(d for d, edge in zip(drafts, near, strict=True) if d.kind is TargetKind.WASTE or not edge)
 
 
 def _sort_key(d: TargetDraft) -> tuple[Any, ...]:
@@ -277,8 +332,13 @@ def _provenance(prov: TargetProvenance, n: int) -> dict[str, list[Any]]:
             "model_version": [prov.model_version] * n, "confidence": [TARGET_CONFIDENCE] * n, "qa_flags": [""] * n}
 
 
-def _target_frame(items: Sequence[tuple[str, TargetDraft]], reach: Reachability,
-                  prov: TargetProvenance) -> gpd.GeoDataFrame:
+def route_role(kind: TargetKind, must_kinds: Sequence[str]) -> str:
+    """`must` for the configured must-visit kinds (targets.must_kinds), `optional` for every other kind."""
+    return ROLE_MUST if kind.value in must_kinds else ROLE_OPTIONAL
+
+
+def _target_frame(items: Sequence[tuple[str, TargetDraft]], reach: Reachability, prov: TargetProvenance,
+                  must_kinds: Sequence[str]) -> gpd.GeoDataFrame:
     if not items:
         return empty_layer("targets").assign(reason=pd.Series(dtype=str), route_role=pd.Series(dtype=str),
                                              along_m=pd.Series(dtype=np.float64))
@@ -292,7 +352,7 @@ def _target_frame(items: Sequence[tuple[str, TargetDraft]], reach: Reachability,
         "priority": [d.priority for d in drafts], "reachable": list(reach.reachable), "reach_note": list(reach.note),
         "snap_dist_m": list(reach.snap_dist_m), **_provenance(prov, len(drafts)),
         "reason": [d.reason for d in drafts],
-        "route_role": [ROLE_MUST if d.priority <= PRIORITY_NORMAL else ROLE_OPTIONAL for d in drafts],
+        "route_role": [route_role(d.kind, must_kinds) for d in drafts],
         "along_m": [d.along_m for d in drafts],
     }
     geoms = gpd.GeoSeries([Point(d.x, d.y) for d in drafts], crs=CRS_EPSG)
@@ -317,31 +377,42 @@ def _issues(targets: gpd.GeoDataFrame) -> tuple[QaIssue, ...]:
                  for t in bad.itertuples())
 
 
-def _counts(targets: gpd.GeoDataFrame, n_deduped: int, n_nodata: int) -> Mapping[str, int]:
+def _counts(targets: gpd.GeoDataFrame, dropped: Mapping[str, int]) -> Mapping[str, int]:
     per_kind = {k.value: int((targets["kind"] == k.value).sum()) for k in TargetKind}
-    extra = {"deduped": n_deduped, "nodata_dropped": n_nodata,
-             "unreachable": int((~targets["reachable"].astype(bool)).sum()), "total": len(targets)}
-    return MappingProxyType(per_kind | extra)
+    roles = {f"role_{r}": int((targets["route_role"] == r).sum()) for r in (ROLE_MUST, ROLE_OPTIONAL)}
+    extra = {"unreachable": int((~targets["reachable"].astype(bool)).sum()), "total": len(targets)}
+    return MappingProxyType(per_kind | roles | dict(dropped) | extra)
+
+
+def _kept_drafts(inputs: TargetInputs, settings: TargetSettings, gap_fn: GapFn) -> tuple[list[TargetDraft], dict]:
+    """Row drafts off nodata and off the edge margin, plus waste, deduped; with the dropped counts."""
+    cfg = settings.targets
+    rows = row_drafts(row_contexts(inputs, settings, gap_fn), cfg, inputs.coverage)
+    on_data = _on_coverage(rows.drafts, inputs.coverage)
+    inner = off_edge(on_data, inputs.coverage, settings.edge_margin_m)
+    waste = waste_drafts(inputs.waste) if cfg.include_waste else ()
+    drafts, n_deduped = dedupe((*inner, *waste), cfg.dedupe_m)
+    dropped = {"deduped": n_deduped, "nodata_dropped": len(rows.drafts) - len(on_data),
+               COUNT_EDGE: len(on_data) - len(inner), **rows.skipped}
+    return list(drafts), dropped
 
 
 def build_targets(inputs: TargetInputs, settings: TargetSettings, prov: TargetProvenance,
                   gap_fn: GapFn) -> TargetsResult:
     """Targets and their extents from the global rows, canopies and waste of one AnnSet."""
-    cfg = settings.targets
     shapely.prepare(inputs.coverage)
-    candidates = row_drafts(row_contexts(inputs, settings, gap_fn), cfg)
-    on_data = _on_coverage(candidates, inputs.coverage)
-    waste = waste_drafts(inputs.waste) if cfg.include_waste else ()
-    drafts, n_deduped = dedupe((*on_data, *waste), cfg.dedupe_m)
+    drafts, dropped = _kept_drafts(inputs, settings, gap_fn)
     items = _ordered_with_ids(drafts)
     xy = np.array([(d.x, d.y) for _, d in items], dtype=np.float64).reshape(-1, 2)
     reach = reachability(xy, inputs.reach_domain, inputs.forbidden, settings.reach_radius_m)
-    targets = _target_frame(items, reach, prov)
+    targets = _target_frame(items, reach, prov, settings.targets.must_kinds)
     return TargetsResult(targets=targets, extents=_extent_frame(items, prov), issues=_issues(targets),
-                         counts=_counts(targets, n_deduped, len(candidates) - len(on_data)))
+                         counts=_counts(targets, dropped))
 
 
 __all__ = [
-    "END_BOUNDARY_TOL_M", "ROLE_MUST", "ROLE_OPTIONAL", "Reachability", "TargetInputs", "TargetProvenance",
-    "TargetSettings", "TargetsResult", "build_targets", "dedupe", "reachability", "row_contexts", "row_drafts",
+    "ARTEFACT_COUNTS", "COUNT_EDGE", "COUNT_END_BOUNDARY", "COUNT_ILL_DEFINED", "COUNT_OUTER", "ROLE_MUST",
+    "ROLE_OPTIONAL", "Reachability", "RowDrafts", "TargetInputs", "TargetProvenance", "TargetSettings",
+    "TargetsResult", "build_targets", "dedupe", "off_edge", "reachability", "route_role", "row_contexts",
+    "row_drafts",
 ]

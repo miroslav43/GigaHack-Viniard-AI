@@ -5,9 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import AfterValidator, Field, model_validator
 
 from vineyard.config.sections_core import Frac, NonNegFloat, NonNegInt, PosFloat, PosInt, Section
+
+# The values of vineyard.contracts.enums.TargetKind (config stays free of contract imports; a test pins both).
+TargetKindName = Literal["row_gap", "row_end_short", "missing_row", "missing_plant", "sparse", "waste", "other"]
+
+
+def _unique(kinds: tuple[str, ...]) -> tuple[str, ...]:
+    if len(set(kinds)) != len(kinds):
+        raise ValueError(f"duplicate target kinds in {list(kinds)}")
+    return kinds
 
 
 class DeriveConfig(Section):
@@ -37,6 +46,10 @@ class TargetsConfig(Section):
     include_waste: bool
     priority_long_gap_m: PosFloat
     dedupe_m: NonNegFloat
+    must_kinds: Annotated[tuple[TargetKindName, ...], AfterValidator(_unique)]
+    edge_margin_m: PosFloat
+    end_skip_outer_rows: bool
+    end_neighbour_min_offset_m: NonNegFloat
 
 
 class RouteDomainConfig(Section):
@@ -74,6 +87,10 @@ class RouteSolverConfig(Section):
     max_tsp_nodes: PosInt
     merge_node_m: NonNegFloat
     dijkstra_chunk: PosInt
+    include_optional: bool
+    optional_max_detour_m: NonNegFloat
+    probe_time_limit_s: PosInt
+    budget_rounds: NonNegInt
 
 
 class RouteValidateConfig(Section):
@@ -92,11 +109,27 @@ class RouteConfig(Section):
     max_snap_m: PosFloat
     max_outside_frac_official: Frac
     max_outside_frac_publish: Frac
+    plan_outside_margin: NonNegFloat
     walking_speed_kmh: PosFloat
     domain: RouteDomainConfig
     graph: RouteGraphConfig
     solver: RouteSolverConfig
     validate_: RouteValidateConfig = Field(alias="validate")
+
+    @model_validator(mode="after")
+    def _outside_limits(self) -> RouteConfig:
+        if self.max_outside_frac_publish > self.max_outside_frac_official:
+            raise ValueError(f"route.max_outside_frac_publish ({self.max_outside_frac_publish}) must not exceed "
+                             f"route.max_outside_frac_official ({self.max_outside_frac_official})")
+        if self.plan_outside_margin >= self.max_outside_frac_publish:
+            raise ValueError(f"route.plan_outside_margin ({self.plan_outside_margin}) must be below "
+                             f"route.max_outside_frac_publish ({self.max_outside_frac_publish})")
+        return self
+
+    @property
+    def plan_outside_frac(self) -> float:
+        """Outside share the planner accepts: the publish/validator limit minus the planning margin."""
+        return self.max_outside_frac_publish - self.plan_outside_margin
 
 
 class MeasureConfig(Section):

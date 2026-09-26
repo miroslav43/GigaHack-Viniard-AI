@@ -23,10 +23,7 @@ from vineyard.route.tour import DistanceTable
 from vineyard.route.unroll import edge_index
 
 NOTE_OUTSIDE_BUDGET: Final = "outside_budget"
-# The rounds stop as soon as the route fits; the reference examples need 7 (with 6, drop_optional ends at
-# 0.72 % and the ladder falls through to must_only, which visits 3 fewer missing-plant targets).
-# CONFIG-REQUEST: route.solver.budget_rounds = 10
-BUDGET_ROUNDS: Final = 10
+# The number of rounds is route.solver.budget_rounds; they stop as soon as the route fits.
 
 
 @dataclass(frozen=True)
@@ -116,6 +113,6 @@ def plan_drops(g: WalkGraph, stop_nodes: Sequence[int], legs_outside: Sequence[t
 
 
 __all__ = [
-    "BUDGET_ROUNDS", "NOTE_OUTSIDE_BUDGET", "StopRun", "bypass_outside", "leg_outside", "pick_runs", "plan_drops",
-    "run_bounds", "stop_runs",
+    "NOTE_OUTSIDE_BUDGET", "StopRun", "bypass_outside", "leg_outside", "pick_runs", "plan_drops", "run_bounds",
+    "stop_runs",
 ]

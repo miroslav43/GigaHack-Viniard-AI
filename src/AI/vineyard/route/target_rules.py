@@ -3,6 +3,12 @@
 Kinds produced here: row_gap (GAP), missing_plant (MSP), sparse (SPR), row_end_short (END: (a) the row
 line runs past its last canopy, (b) both neighbours run past its end) and missing_row (MRW). Waste
 targets come from `target_waste`. Every rule is pure: rows in, drafts out; ids are assigned later.
+
+END (b) is only emitted when the comparison is well defined (`end_extensions` says why not otherwise):
+the end is off the coverage boundary, the two neighbours lie on opposite sides of the row at least
+`end_neighbour_min_offset_m` across it (neither a collinear fragment of the same row nor a spurious row
+inside an interrow, whose neighbours are only half a spacing away, gives a comparison), and the
+extension they overrun is entirely imaged (it never crosses unprocessed tiles or nodata).
 """
 
 from __future__ import annotations
@@ -15,6 +21,7 @@ from typing import Final
 import numpy as np
 import shapely
 from shapely.geometry import LineString
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import substring
 
 from vineyard.config import TargetsConfig
@@ -29,6 +36,11 @@ PRIORITY_LOW: Final = 3
 _LOW_PRIORITY_KINDS: Final = frozenset({TargetKind.MISSING_PLANT, TargetKind.SPARSE, TargetKind.OTHER})
 _GAP_TOL_M: Final = 1e-9
 _END_KINDS: Final = frozenset({"head", "tail"})
+# Unimaged length an END (b) extension may have: float noise of the overlay, well below one 2.5 cm pixel.
+_UNSEEN_TOL_M: Final = 1e-3
+END_SKIP_BOUNDARY: Final = "end_on_boundary"
+END_SKIP_NOT_LATERAL: Final = "end_neighbour_not_lateral"
+END_SKIP_UNOBSERVED: Final = "end_extension_unobserved"
 
 
 @dataclass(frozen=True)
@@ -166,18 +178,27 @@ def sparse_drafts(ctx: RowContext, cfg: TargetsConfig) -> tuple[TargetDraft, ...
 # ------------------------------------------------------------------ END
 
 
+def _end_gaps(ctx: RowContext, cfg: TargetsConfig) -> tuple[tuple[RowGap, bool], ...]:
+    """(head/tail gap >= end_short_min_m, whether its row end is on the coverage boundary)."""
+    # interior gaps are GAP/MSP; a "full" row has no canopy to be short of
+    return tuple((g, ctx.head_on_boundary if g.kind == "head" else ctx.tail_on_boundary) for g in ctx.gaps
+                 if g.kind in _END_KINDS and g.length_m >= cfg.end_short_min_m)
+
+
 def end_gap_drafts(ctx: RowContext, cfg: TargetsConfig) -> tuple[TargetDraft, ...]:
     """END (a): the row line runs >= end_short_min_m past its first/last canopy, end inside coverage."""
     drafts: list[TargetDraft] = []
-    for gap in ctx.gaps:
-        if gap.kind not in _END_KINDS:  # interior gaps are GAP/MSP; a "full" row has no canopy to be short of
-            continue
-        on_boundary = ctx.head_on_boundary if gap.kind == "head" else ctx.tail_on_boundary
-        if on_boundary or gap.length_m < cfg.end_short_min_m:
+    for gap, on_boundary in _end_gaps(ctx, cfg):
+        if on_boundary:
             continue
         base = _row_base(ctx, gap.length_m, _gap_reason(f"row end ({gap.kind}) without vines", gap))
         drafts += _line_drafts(ctx.axis, gap.start_m, gap.end_m, TargetKind.ROW_END_SHORT, base, cfg)
     return tuple(drafts)
+
+
+def end_boundary_skips(ctx: RowContext, cfg: TargetsConfig) -> int:
+    """END (a) targets not emitted because their row end is on the coverage boundary."""
+    return sum(end_samples(gap.length_m, cfg) for gap, on_boundary in _end_gaps(ctx, cfg) if on_boundary)
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
@@ -200,21 +221,73 @@ def _extrapolated(axis: LineString, at_head: bool, length_m: float) -> LineStrin
     return LineString([end, end + _unit(end - prev) * length_m])
 
 
-def end_extension_drafts(ctx: RowContext, neighbours: Sequence[RowContext],
-                         cfg: TargetsConfig) -> tuple[TargetDraft, ...]:
-    """END (b): both neighbours (row_index ±1) run >= end_short_min_m past this row's end."""
+@dataclass(frozen=True)
+class EndExtension:
+    """An END (b) candidate: the stretch past one row end that both neighbours overrun; `skip` = why not."""
+
+    at_head: bool
+    length_m: float
+    line: LineString
+    skip: str = ""
+
+
+def end_samples(length_m: float, cfg: TargetsConfig) -> int:
+    """Number of targets a stretch of `length_m` gives (one per gap_step_m above long_gap_m)."""
+    return len(segment_samples(0.0, length_m, cfg.long_gap_m, cfg.gap_step_m))
+
+
+def _lateral_offset(axis: LineString, other: LineString, at: shapely.Point) -> float:
+    """Signed distance (left of the row direction > 0) from `at` to the nearest point of `other`."""
+    coords = np.asarray(axis.coords)
+    u = _unit(coords[-1] - coords[0])
+    near = other.interpolate(other.project(at))
+    return float(u[0] * (near.y - at.y) - u[1] * (near.x - at.x))
+
+
+def _lateral(axis: LineString, neighbours: Sequence[RowContext], line: LineString, min_offset_m: float) -> bool:
+    mid = line.interpolate(0.5, normalized=True)
+    offsets = [_lateral_offset(axis, n.axis, mid) for n in neighbours]
+    return offsets[0] * offsets[1] < 0.0 and min(abs(o) for o in offsets) >= min_offset_m
+
+
+def _end_skip(ctx: RowContext, neighbours: Sequence[RowContext], line: LineString, on_boundary: bool,
+              coverage: BaseGeometry | None, cfg: TargetsConfig) -> str:
+    if on_boundary:
+        return END_SKIP_BOUNDARY
+    if not _lateral(ctx.axis, neighbours, line, cfg.end_neighbour_min_offset_m):
+        return END_SKIP_NOT_LATERAL
+    if coverage is not None and line.difference(coverage).length > _UNSEEN_TOL_M:
+        return END_SKIP_UNOBSERVED
+    return ""
+
+
+def end_extensions(ctx: RowContext, neighbours: Sequence[RowContext], cfg: TargetsConfig,
+                   coverage: BaseGeometry | None = None) -> tuple[EndExtension, ...]:
+    """END (b) candidates: ends both neighbours (row_index ±1) overrun by >= end_short_min_m."""
     if len(neighbours) != 2:
         return ()
-    drafts: list[TargetDraft] = []
+    out = []
     for at_head, on_boundary in ((True, ctx.head_on_boundary), (False, ctx.tail_on_boundary)):
         ext = min(_neighbour_extension(ctx.axis, n.axis, at_head) for n in neighbours)
-        if on_boundary or ext < cfg.end_short_min_m:
+        if ext < cfg.end_short_min_m:
             continue
         line = _extrapolated(ctx.axis, at_head, ext)
-        base = _row_base(ctx, ext, f"row shorter than both neighbours by {ext:.2f} m")
-        offset, sign = (0.0, -1.0) if at_head else (ctx.axis.length, 1.0)
-        drafts += _line_drafts(line, 0.0, ext, TargetKind.ROW_END_SHORT, base, cfg, offset, sign)
-    return tuple(drafts)
+        out.append(EndExtension(at_head, ext, line, _end_skip(ctx, neighbours, line, on_boundary, coverage, cfg)))
+    return tuple(out)
+
+
+def extension_drafts(ctx: RowContext, ext: EndExtension, cfg: TargetsConfig) -> tuple[TargetDraft, ...]:
+    """END (b) drafts along one extension (whatever its `skip`)."""
+    base = _row_base(ctx, ext.length_m, f"row shorter than both neighbours by {ext.length_m:.2f} m")
+    offset, sign = (0.0, -1.0) if ext.at_head else (ctx.axis.length, 1.0)
+    return _line_drafts(ext.line, 0.0, ext.length_m, TargetKind.ROW_END_SHORT, base, cfg, offset, sign)
+
+
+def end_extension_drafts(ctx: RowContext, neighbours: Sequence[RowContext], cfg: TargetsConfig,
+                         coverage: BaseGeometry | None = None) -> tuple[TargetDraft, ...]:
+    """END (b): drafts of the well-defined `end_extensions` only."""
+    return tuple(d for ext in end_extensions(ctx, neighbours, cfg, coverage) if not ext.skip
+                 for d in extension_drafts(ctx, ext, cfg))
 
 
 # ------------------------------------------------------------------ MRW

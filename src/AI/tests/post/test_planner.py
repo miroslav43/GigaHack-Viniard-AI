@@ -16,9 +16,11 @@ from vineyard.route.budget import NOTE_OUTSIDE_BUDGET, StopRun, leg_outside, pic
 from vineyard.route.candidates import NOTE_OUTSIDE_ONLY, ROLE_OPTIONAL, TargetPoint
 from vineyard.route.planner import PlanParams, candidates_with_ladder, plan_route
 from vineyard.route.policies import DEFAULT_POLICIES
-from vineyard.route.stops import NOTE_NOT_ROUTED
+from vineyard.route.stops import NOTE_NOT_ROUTED, NOTE_OPTIONAL_DETOUR
 
 from .route_factories import CO, IC, PC, graph_from_lines, mini_route
+
+ANY_DETOUR_M = 1e9
 
 
 @pytest.fixture(scope="module")
@@ -32,6 +34,12 @@ def _params(cfg, start_xy, **changes) -> PlanParams:
     return dataclasses.replace(PlanParams.from_route_cfg(cfg, start_xy), **changes)
 
 
+def _strict(params: PlanParams, frac: float = 0.005) -> PlanParams:
+    """The pre-1.5 % limit (validator and planner both at `frac`), to exercise the policy ladder."""
+    return dataclasses.replace(params, validate=dataclasses.replace(params.validate, max_outside_frac=frac),
+                               plan_outside_frac=frac)
+
+
 def _tp(tid: str, x: float, y: float, role: str = "must", **kw) -> TargetPoint:
     return TargetPoint(target_id=tid, x=x, y=y, role=role, **kw)
 
@@ -42,6 +50,15 @@ def _vineyard_targets(m) -> list[TargetPoint]:
             (1008.0, rows[7])]
     out = [_tp(f"T-GAP-{k:04d}", x, y) for k, (x, y) in enumerate(gaps, start=1)]
     return out + [_tp("T-WST-0001", m.x0 + m.length_m + 2.5, m.centre_ys[4] + 0.7, priority=1)]
+
+
+def test_plan_params_come_from_config(cfg) -> None:
+    p = PlanParams.from_route_cfg(cfg, (0.0, 0.0))
+    assert p.plan_outside_frac == pytest.approx(cfg.max_outside_frac_publish - cfg.plan_outside_margin)
+    assert (p.include_optional, p.probe_time_limit_s, p.budget_rounds) == (True, 5, 10)
+    assert p.optional_max_detour_m == pytest.approx(cfg.solver.optional_max_detour_m)
+    assert p.phases(probe=True).tour.time_limit_s == min(5, p.tour.time_limit_s)
+    assert p.phases(probe=False).optional_max_detour_m == pytest.approx(p.optional_max_detour_m)
 
 
 def test_mini_vineyard_route_validates_and_beats_baselines(cfg) -> None:
@@ -77,15 +94,42 @@ def test_dead_end_out_and_back_is_accepted(cfg) -> None:
     assert plan.validation.outside_len_m == 0.0
 
 
+def _headland_case(length_m: float = 60.0):
+    m = mini_route(n_rows=5, east_gap_m=1.0, length_m=length_m)
+    targets = [_tp("T-GAP-0001", m.x0 + length_m - 10.0, m.centre_ys[0] - 1.3),
+               _tp("T-GAP-0002", m.x0 + length_m - 10.0, m.centre_ys[3] + 1.3)]
+    return m, targets
+
+
 def test_headland_gap_switches_to_a_stricter_policy(cfg) -> None:
-    m = mini_route(n_rows=5, east_gap_m=1.0)
-    targets = [_tp("T-GAP-0001", m.x0 + 50.0, m.centre_ys[0] - 1.3), _tp("T-GAP-0002", m.x0 + 50.0,
-                                                                          m.centre_ys[3] + 1.3)]
-    plan = plan_route(m.graph, targets, m.inner, m.eroded, _params(cfg, m.start_xy))
+    m, targets = _headland_case()
+    plan = plan_route(m.graph, targets, m.inner, m.eroded, _strict(_params(cfg, m.start_xy)))
     first = plan.reports[0]
     assert first.policy == "penalty" and not first.passed and first.outside_frac > 0.005
     assert plan.policy != "penalty" and plan.validation.passed
     assert plan.validation.outside_frac <= 0.005
+
+
+def test_plan_margin_rejects_a_share_the_validator_would_pass(cfg) -> None:
+    m, targets = _headland_case()
+    params = _params(cfg, m.start_xy)
+    assert (params.validate.max_outside_frac, params.plan_outside_frac) == pytest.approx((0.015, 0.014))
+    plan = plan_route(m.graph, targets, m.inner, m.eroded, params)
+    first = plan.reports[0]
+    assert first.policy == "penalty" and first.passed and not first.acceptable
+    assert 0.014 < first.outside_frac <= 0.015
+    assert plan.policy != "penalty" and plan.accepted and plan.validation.outside_frac <= 0.014
+    assert plan.plan_outside_limit == pytest.approx(0.014)
+
+
+def test_permissive_policy_is_kept_when_its_share_fits_the_limit(cfg) -> None:
+    m, targets = _headland_case(length_m=120.0)
+    plan = plan_route(m.graph, targets, m.inner, m.eroded, _params(cfg, m.start_xy))
+    assert plan.policy == "penalty" and plan.accepted and [r.policy for r in plan.reports] == ["penalty"]
+    assert 0.005 < plan.validation.outside_frac <= 0.014  # the old 0.5 % limit would have switched policy
+    assert plan.reports[0].n_must_visited == 2 and plan.reports[0].n_interrows_reachable == 4
+    strict = plan_route(m.graph, targets, m.inner, m.eroded, _strict(_params(cfg, m.start_xy)))
+    assert strict.policy != "penalty"
 
 
 def test_target_only_reachable_outside_becomes_outside_only(cfg) -> None:
@@ -100,9 +144,11 @@ def test_target_only_reachable_outside_becomes_outside_only(cfg) -> None:
     visit = {v.target_id: v for v in plan.visits}
     assert visit["T-GAP-0002"].reach_note == NOTE_OUTSIDE_BUDGET and not visit["T-GAP-0002"].reachable_final
     assert visit["T-GAP-0001"].covered and plan.dropped == ("T-GAP-0002",)
-    assert [r.policy for r in plan.reports] == ["penalty", "penalty_x10", "drop_optional", "must_only",
-                                                "drop_outside"]
-    assert plan.reports[-1].n_outside_budget == 1
+    # drop_outside loses a must target, so the stricter policies are probed too; none reaches more
+    assert [r.policy for r in plan.reports] == [p.name for p in DEFAULT_POLICIES]
+    by_name = {r.policy: r for r in plan.reports}
+    assert by_name["drop_outside"].n_outside_budget == 1 and by_name["drop_outside"].n_must_lost == 1
+    assert by_name["drop_outside"].n_interrows_reachable > by_name["inside_only"].n_interrows_reachable
     capped = _params(cfg, m.start_xy, policies=tuple(p for p in DEFAULT_POLICIES if p.name in ("penalty", "cap_outside")))
     plan = plan_route(m.graph, targets, m.inner, m.eroded, capped)
     assert plan.validation.passed and plan.policy == "cap_outside"
@@ -146,7 +192,8 @@ def test_optional_phase_adds_uncovered_optional_targets(cfg) -> None:
     m = mini_route(n_rows=6)
     must = _tp("T-GAP-0001", m.x0 + 10.0, m.row_ys[1])
     opt = _tp("T-MSP-0001", m.x0 + 40.0, m.row_ys[4], role=ROLE_OPTIONAL, priority=3)
-    with_opt = plan_route(m.graph, [must, opt], m.inner, m.eroded, _params(cfg, m.start_xy))
+    with_opt = plan_route(m.graph, [must, opt], m.inner, m.eroded,
+                          _params(cfg, m.start_xy, optional_max_detour_m=ANY_DETOUR_M))
     without = plan_route(m.graph, [must, opt], m.inner, m.eroded, _params(cfg, m.start_xy, include_optional=False))
     assert with_opt.optional_delta_m is not None and with_opt.optional_delta_m > 0.0
     assert {v.target_id: v.covered for v in with_opt.visits}["T-MSP-0001"]
@@ -154,6 +201,30 @@ def test_optional_phase_adds_uncovered_optional_targets(cfg) -> None:
     assert without.validation.length_m < with_opt.validation.length_m
     skipped = {v.target_id: v for v in without.visits}["T-MSP-0001"]
     assert not skipped.covered and not skipped.reachable_final and skipped.reach_note == NOTE_NOT_ROUTED
+
+
+def _cheap_case():
+    m = mini_route(n_rows=6)
+    must = _tp("T-GAP-0001", m.x0 + 10.0, m.row_ys[1])
+    near = _tp("T-MSP-0001", m.x0 + 2.0, m.row_ys[3], role=ROLE_OPTIONAL, priority=3)
+    far = _tp("T-MSP-0002", m.x0 + 40.0, m.row_ys[4], role=ROLE_OPTIONAL, priority=3)
+    return m, [must, near, far]
+
+
+def test_optional_targets_are_routed_only_when_cheap(cfg) -> None:
+    m, targets = _cheap_case()
+    params = _params(cfg, m.start_xy)
+    assert params.optional_max_detour_m == pytest.approx(25.0)
+    plan = plan_route(m.graph, targets, m.inner, m.eroded, params)
+    visit = {v.target_id: v for v in plan.visits}
+    assert plan.validation.passed and visit["T-GAP-0001"].covered and visit["T-MSP-0001"].covered
+    assert not visit["T-MSP-0002"].covered and not visit["T-MSP-0002"].reachable_final
+    assert visit["T-MSP-0002"].reach_note == NOTE_OPTIONAL_DETOUR
+    assert plan.reports[0].n_optional_visited == 1
+    every = plan_route(m.graph, targets, m.inner, m.eroded, _params(cfg, m.start_xy, optional_max_detour_m=ANY_DETOUR_M))
+    assert all(v.covered for v in every.visits) and every.validation.length_m > plan.validation.length_m
+    none = plan_route(m.graph, targets, m.inner, m.eroded, _params(cfg, m.start_xy, optional_max_detour_m=0.0))
+    assert [v.target_id for v in none.visits if v.covered] == ["T-GAP-0001"]
 
 
 def test_optional_targets_left_out_by_must_only_are_reported_unreachable(cfg) -> None:

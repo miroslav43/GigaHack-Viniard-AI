@@ -1,8 +1,8 @@
 """Outside-domain policies for the headland risk (critic S5) and the headland report.
 
 Interrow centerlines stop at the shorter row end and headlands are neither interrow nor passage, so a
-connector into an interrow may cross outside the domain. The planner tries these policies in order and
-keeps the first route whose outside share passes publish (<= route.max_outside_frac_publish):
+connector into an interrow may cross outside the domain. The planner probes these policies in order and
+keeps the one that reaches most within the planning limit (route.plan_outside_frac, see policy_choice.py):
 
 - `penalty`:       graph as built (cost = length + penalty * outside length);
 - `penalty_x10`:   the outside penalty times 10 (design 04 §3.9 re-solve);

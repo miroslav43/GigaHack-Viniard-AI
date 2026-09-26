@@ -12,10 +12,15 @@ from vineyard.config import load_config
 from vineyard.contracts.enums import TargetKind
 from vineyard.route.target_gaps import RowGap
 from vineyard.route.target_rules import (
+    END_SKIP_BOUNDARY,
+    END_SKIP_NOT_LATERAL,
+    END_SKIP_UNOBSERVED,
     RowContext,
     TargetDraft,
     end_extension_drafts,
+    end_extensions,
     end_gap_drafts,
+    end_samples,
     gap_drafts,
     missing_plant_drafts,
     missing_row_drafts,
@@ -194,6 +199,71 @@ def test_end_extension_rule_at_the_head(cfg):
     down = _ctx(length=48.0, y=-2.5, row_index=3, row_id="V01-R003")
     drafts = end_extension_drafts(short, (up, down), cfg)
     assert [round(_along(d), 2) for d in drafts] == [4.0]
+
+
+def _short_between(up_y: float = 2.5, down_y: float = -2.5, up_len: float = 48.0) -> tuple[RowContext, ...]:
+    short = _ctx(length=40.0, row_index=2, row_id="V01-R002")
+    up = _ctx(length=up_len, y=up_y, row_index=1, row_id="V01-R001")
+    down = _ctx(length=48.0, y=down_y, row_index=3, row_id="V01-R003")
+    return short, up, down
+
+
+def test_end_extensions_report_a_well_defined_end(cfg):
+    short, up, down = _short_between()
+    (ext,) = end_extensions(short, (up, down), cfg)
+    assert (ext.at_head, ext.skip) == (False, "")
+    assert ext.length_m == pytest.approx(8.0)
+    assert ext.line.length == pytest.approx(8.0)
+    assert end_samples(ext.length_m, cfg) == 1 and end_samples(40.0, cfg) == 3
+
+
+def test_collinear_fragment_is_not_a_neighbour(cfg):
+    short = _ctx(length=40.0, row_index=2, row_id="V01-R002")
+    fragment = _ctx(length=15.0, x0=45.0, y=0.1, row_index=1, row_id="V01-R001")  # same row, other tile
+    down = _ctx(length=60.0, y=-2.5, row_index=3, row_id="V01-R003")
+    (ext,) = end_extensions(short, (fragment, down), cfg)
+    assert ext.skip == END_SKIP_NOT_LATERAL and ext.length_m == pytest.approx(20.0)
+    assert end_extension_drafts(short, (fragment, down), cfg) == ()
+
+
+def test_neighbours_on_one_side_are_ill_defined(cfg):
+    short, up, down = _short_between(up_y=2.5, down_y=5.0)
+    (ext,) = end_extensions(short, (up, down), cfg)
+    assert ext.skip == END_SKIP_NOT_LATERAL
+    assert end_extension_drafts(short, (up, down), cfg) == ()
+
+
+def test_spurious_row_inside_an_interrow_is_ill_defined(cfg):
+    # neighbours one spacing apart (2.6 m) with the short "row" between them: it cannot be a real row
+    short, up, down = _short_between(up_y=1.2, down_y=-1.4)
+    assert end_extensions(short, (up, down), cfg)[0].skip == END_SKIP_NOT_LATERAL
+    assert end_extension_drafts(short, (up, down), cfg) == ()
+
+
+def test_min_offset_is_configurable(cfg):
+    short = _ctx(length=40.0, row_index=2, row_id="V01-R002")
+    near = _ctx(length=48.0, y=0.8, row_index=1, row_id="V01-R001")
+    down = _ctx(length=48.0, y=-2.5, row_index=3, row_id="V01-R003")
+    assert end_extensions(short, (near, down), cfg)[0].skip == END_SKIP_NOT_LATERAL
+    loose = cfg.model_copy(update={"end_neighbour_min_offset_m": 0.5})
+    assert end_extensions(short, (near, down), loose)[0].skip == ""
+
+
+def test_extension_leaving_the_coverage_is_ill_defined(cfg):
+    short, up, down = _short_between()
+    seen = box(X0 - 5.0, Y0 - 5.0, X0 + 100.0, Y0 + 5.0)
+    cut = box(X0 - 5.0, Y0 - 5.0, X0 + 44.0, Y0 + 5.0).union(box(X0 + 46.0, Y0 - 5.0, X0 + 100.0, Y0 + 5.0))
+    assert end_extensions(short, (up, down), cfg, seen)[0].skip == ""
+    assert len(end_extension_drafts(short, (up, down), cfg, seen)) == 1
+    assert end_extensions(short, (up, down), cfg, cut)[0].skip == END_SKIP_UNOBSERVED
+    assert end_extension_drafts(short, (up, down), cfg, cut) == ()
+
+
+def test_end_on_the_boundary_is_reported(cfg):
+    short = _ctx(length=40.0, row_index=2, row_id="V01-R002", tail_b=True)
+    _, up, down = _short_between()
+    (ext,) = end_extensions(short, (up, down), cfg)
+    assert ext.skip == END_SKIP_BOUNDARY
 
 
 # ------------------------------------------------------------------ MRW

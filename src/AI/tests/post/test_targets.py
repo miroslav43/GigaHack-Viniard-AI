@@ -100,15 +100,31 @@ def test_reference_layers_are_contract_valid(reference_targets):
     assert reference_targets.counts["row_gap"] == 8
 
 
+def _missing_plants(reference, *overrides: str):
+    result = build_targets(_inputs(reference), _settings("targets.include_sparse=false", *overrides), PROV,
+                           reference_gap_fn)
+    return result, result.targets[result.targets["kind"] == "missing_plant"]
+
+
 @pytest.mark.examples
 def test_reference_missing_plants(reference):
-    result = build_targets(_inputs(reference), _settings("targets.include_sparse=false"), PROV, reference_gap_fn)
-    msp = result.targets[result.targets["kind"] == "missing_plant"]
+    _, msp = _missing_plants(reference, "targets.edge_margin_m=0.000001")  # the oracle counts whole tiles
     per_tile = msp.groupby("tile_id").size().to_dict()
     assert abs(per_tile["siret3_r021_c012"] - 22) <= 2
     assert abs(per_tile["siret3_r006_c004"] - 23) <= 2
     assert set(msp["route_role"]) == {"optional"}
     assert set(msp["priority"]) == {3}
+
+
+@pytest.mark.examples
+def test_reference_missing_plants_at_the_tile_edges_are_dropped(reference):
+    _, every = _missing_plants(reference, "targets.edge_margin_m=0.000001")
+    result, kept = _missing_plants(reference)
+    edge = tile_coverage(reference).boundary
+    near = shapely.distance(shapely.points(every["x"], every["y"]), edge) <= 3.0
+    assert int(near.sum()) > 0 and len(kept) == int((~near).sum())
+    assert (shapely.distance(shapely.points(kept["x"], kept["y"]), edge) > 3.0).all()
+    assert result.counts["edge_dropped"] >= int(near.sum())
 
 
 # ------------------------------------------------------------------ synthetic blocks
