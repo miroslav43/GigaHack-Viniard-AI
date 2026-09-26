@@ -1,1 +1,4 @@
 tile_id,xtl,ytl,xbr,ybr,decision,category,reviewer,note
+siret3_r023_c016,592.3,584.4,607.7,597.6,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.75; probe 0.87; 0.6 m from V14
+siret3_r009_c005,801.2,292.9,818.8,316.1,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.46; probe 0.83; 7.2 m from V01
+siret3_r008_c000,625.8,1636.3,696.2,1651.7,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.41; probe 0.52; 9.7 m from V03
