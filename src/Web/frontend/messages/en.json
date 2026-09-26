@@ -86,7 +86,8 @@
     "blocks": "Block",
     "tiles": "Tile",
     "farms": "Farm",
-    "roads": "Road"
+    "roads": "Road",
+    "cadastre": "Cadastre"
   },
   "dashboard": {
     "subtitle": "Vineyard inventory within the commune boundary · {source}",
@@ -290,6 +291,23 @@
       "showCodes": "Cadastral numbers ({n})",
       "hideCodes": "Hide cadastral numbers ({n})",
       "more": "+{n}"
+    },
+    "cadastre": {
+      "title": "Cadastral parcel",
+      "layer": "Cadastre (AGCC, live)",
+      "hint": "official parcels, from zoom {zoom}; informative data",
+      "legend": "cadastral parcels (AGCC)",
+      "legendPicked": "picked parcel",
+      "loading": "Looking up the parcel…",
+      "none": "No cadastral parcel at this point.",
+      "timeout": "The cadastre server did not answer in time. Try again.",
+      "error": "Could not read the parcel from the cadastre server.",
+      "number": "Cadastral number",
+      "parcel": "Parcel code",
+      "landuse": "Land use",
+      "area": "Area",
+      "property": "Property type",
+      "zoomIn": "Zoom in (zoom {zoom}+) to see the parcels."
     }
   },
   "blocks": {

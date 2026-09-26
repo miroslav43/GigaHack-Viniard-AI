@@ -40,6 +40,10 @@ import { OverlayLegend, OverlayToggles } from "./overlays/OverlayControls";
 import { useFarmsRoads } from "./overlays/useFarmsRoads";
 import { FARMS_FILL, FarmLabels, FarmRoadLayers, ROADS_HIT } from "./overlays/FarmRoadLayers";
 import { FarmRoadLegend, FarmRoadToggles } from "./overlays/FarmRoadControls";
+import { useCadastre } from "./overlays/useCadastre";
+import { CadastreAnchor, CadastreHighlight, CadastreRaster } from "./overlays/CadastreLayers";
+import { CadastreLegend, CadastreToggle } from "./overlays/CadastreControls";
+import { CADASTRE_MIN_ZOOM } from "@/lib/cadastre";
 
 /** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
@@ -111,6 +115,7 @@ export function MapExplorer({
   const relief = useRelief(mapRef, terrain, dataBase, arrowReady);
   const overlays = useSurveyOverlays(dataBase, overlayFiles);
   const farmsRoads = useFarmsRoads(dataBase, overlayFiles, summary.roads);
+  const cadastre = useCadastre();
   const [zoom, setZoom] = useState(15);
   const { tiles: hasTiles } = overlays.available;
   const { farms: hasFarms, roads: hasRoads } = farmsRoads.available;
@@ -266,7 +271,16 @@ export function MapExplorer({
       return;
     }
     const f = e.features?.[0];
-    if (!f) return setSelection(null);
+    if (!f) {
+      // nothing of ours under the click: with the live cadastre on (and zoomed in), look the parcel up
+      if (cadastre.on && e.target.getZoom() >= CADASTRE_MIN_ZOOM) {
+        cadastre.pick(e.lngLat.lng, e.lngLat.lat);
+        return setSelection({ layer: "cadastre", props: {} });
+      }
+      cadastre.clear();
+      return setSelection(null);
+    }
+    cadastre.clear();
     const layer = f.layer.id.split("-")[0] as Selection["layer"];
     const props = f.properties ?? {};
     // MapLibre serialises nested objects to strings
@@ -313,6 +327,9 @@ export function MapExplorer({
             detailTiles={detailTiles}
             selectedTile={selection?.layer === "tiles" ? String(selection.props.tile) : null}
           />
+          {/* ---- live cadastre (AGCC WMS, only while switched on): above the tiles, under every vector layer ---- */}
+          <CadastreAnchor />
+          <CadastreRaster on={cadastre.on} />
           {/* ---- optional farms and roads: above the orthophoto and the tiles, under blocks, canopies and rows ---- */}
           <FarmRoadLayers
             data={farmsRoads}
@@ -436,6 +453,10 @@ export function MapExplorer({
             </Source>
           )}
 
+          {/* ---- the cadastral parcel picked by the last click (empty otherwise) ---- */}
+          <CadastreHighlight
+            parcel={selection?.layer === "cadastre" && cadastre.query.status === "found" ? cadastre.query.parcel : null}
+          />
           <Source id="measure" type="geojson" data={measureFc}>
             <Layer id="measure-fill" type="fill" filter={["==", ["geometry-type"], "Polygon"]} paint={{ "fill-color": mapPalette.selected, "fill-opacity": 0.2 }} />
             <Layer id="measure-casing" type="line" filter={["==", ["geometry-type"], "LineString"]} paint={{ "line-color": mapPalette.casing, "line-width": 5 }} />
@@ -503,12 +524,14 @@ export function MapExplorer({
           extraLayers={
             <>
               <FarmRoadToggles data={farmsRoads} />
+              <CadastreToggle cadastre={cadastre} />
               <OverlayToggles overlays={overlays} />
             </>
           }
           extraLegend={
             <>
               <FarmRoadLegend data={farmsRoads} />
+              <CadastreLegend cadastre={cadastre} />
               <OverlayLegend overlays={overlays} />
             </>
           }
@@ -531,10 +554,14 @@ export function MapExplorer({
           <AttributePanel
             selection={selection}
             summary={summary}
-            onClose={() => setSelection(null)}
+            onClose={() => {
+              cadastre.clear();
+              setSelection(null);
+            }}
             onZoomRow={(id) => selectRow(id)}
             onPickBlock={selectBlock}
             onPickFarm={selectFarm}
+            cadastreQuery={cadastre.query}
           />
         )}
         {!rowsFc && (

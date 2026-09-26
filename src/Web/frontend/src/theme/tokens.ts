@@ -51,6 +51,10 @@ export const color = {
     // farm outlines (farms.geojson): pink, away from the indigo blocks and the red waste; dark label on a white halo
     farmLine: "#EC4899",
     farmLabel: "#831843",
+    // live cadastre (AGCC WMS): the server draws parcels in red (legend swatch only); the parcel picked by a click is
+    // outlined in cyan, apart from the red WMS lines, the pink farms and the indigo blocks
+    cadastreParcel: "#E00000",
+    cadastreHighlight: "#06B6D4",
   },
 };
 

@@ -57,6 +57,11 @@ export const mapPalette = {
     label: color.map.farmLabel,
     halo: color.white,
   },
+  // live cadastre: the WMS parcel lines (drawn by the server, legend only) and the parcel picked by a click
+  cadastre: {
+    parcel: color.map.cadastreParcel,
+    highlight: color.map.cadastreHighlight,
+  },
 } as const;
 
 export type TileStatus = "vineyard" | "no_vineyard";

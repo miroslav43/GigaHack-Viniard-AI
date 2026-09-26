@@ -86,7 +86,8 @@
     "blocks": "Bloc",
     "tiles": "Tile",
     "farms": "Fermă",
-    "roads": "Drum"
+    "roads": "Drum",
+    "cadastre": "Cadastru"
   },
   "dashboard": {
     "subtitle": "Inventar viticol în limita comunei · {source}",
@@ -290,6 +291,23 @@
       "showCodes": "Numere cadastrale ({n})",
       "hideCodes": "Ascunde numerele cadastrale ({n})",
       "more": "+{n}"
+    },
+    "cadastre": {
+      "title": "Parcelă cadastrală",
+      "layer": "Cadastru (AGCC, live)",
+      "hint": "parcele oficiale, de la zoom {zoom}; date informative",
+      "legend": "parcele cadastrale (AGCC)",
+      "legendPicked": "parcela selectată",
+      "loading": "Se caută parcela…",
+      "none": "Nicio parcelă cadastrală în acest punct.",
+      "timeout": "Serverul cadastrului nu a răspuns la timp. Încearcă din nou.",
+      "error": "Nu am putut citi parcela de la serverul cadastrului.",
+      "number": "Număr cadastral",
+      "parcel": "Cod parcelă",
+      "landuse": "Destinație",
+      "area": "Suprafață",
+      "property": "Tip proprietate",
+      "zoomIn": "Apropie harta (zoom {zoom}+) ca să vezi parcelele."
     }
   },
   "blocks": {

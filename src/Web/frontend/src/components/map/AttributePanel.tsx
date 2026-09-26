@@ -15,9 +15,11 @@ import type { SurveySummary } from "@/lib/types";
 import { TileAttributes, tileTitle } from "./overlays/TileAttributes";
 import { FarmAttributes, farmTitle, RoadAttributes, roadTitle } from "./overlays/FarmRoadAttributes";
 import { CadastreSnapshot } from "./overlays/CadastreSnapshot";
+import { CadastreAttributes } from "./overlays/CadastreControls";
+import type { CadastreQuery } from "./overlays/useCadastre";
 
 export type Selection = {
-  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks" | "tiles" | "farms" | "roads";
+  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks" | "tiles" | "farms" | "roads" | "cadastre";
   props: Record<string, unknown>;
 };
 
@@ -45,6 +47,7 @@ export function AttributePanel({
   onZoomRow,
   onPickBlock,
   onPickFarm,
+  cadastreQuery,
 }: {
   selection: Selection;
   summary: SurveySummary;
@@ -52,6 +55,8 @@ export function AttributePanel({
   onZoomRow: (rowId: string) => void;
   onPickBlock?: (vineyardId: string) => void;
   onPickFarm?: (farmId: string) => void;
+  /** the live cadastre lookup of the last empty-map click (selection layer "cadastre") */
+  cadastreQuery?: CadastreQuery;
 }) {
   const t = useTranslations("map.fields");
   const tc = useTranslations();
@@ -188,6 +193,10 @@ export function AttributePanel({
     case "roads":
       title = roadTitle(p);
       body = <RoadAttributes props={p} onPickFarm={onPickFarm} />;
+      break;
+    case "cadastre":
+      title = tc("map.cadastre.title");
+      body = <CadastreAttributes query={cadastreQuery ?? { status: "idle" }} />;
       break;
   }
 
