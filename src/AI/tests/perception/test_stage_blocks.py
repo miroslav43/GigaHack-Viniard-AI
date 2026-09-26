@@ -23,6 +23,7 @@ from vineyard.pipeline.stages import rows_link as link_stage
 
 TILES = ["siret3_r011_c005", "siret3_r011_c006"]
 MISSING = "siret3_r011_c007"
+NO_SEEDS = "rows_seeded.enabled=false"  # the committed seeds name tiles this synthetic run does not have
 T0 = tile_ref(TILES[0])
 Y_ROWS = [T0.y0 - 10.0 - 2.5 * k for k in range(5)]
 
@@ -70,7 +71,7 @@ def _passages(ctx: RunContext, geom: object) -> None:
 
 @pytest.fixture
 def ctx(tmp_work: Path) -> RunContext:
-    context = new_run_context(load_config(), source=Source.MODEL, run_id="test-run", workers=1)
+    context = new_run_context(load_config(overrides=[NO_SEEDS]), source=Source.MODEL, run_id="test-run", workers=1)
     ensure_run_dirs(context.paths)
     tiles = [*TILES, MISSING]
     write_layer(_tile_index(tiles), "tile_index", context.paths.tile_index)
@@ -136,7 +137,7 @@ def test_overrides_are_applied(ctx: RunContext, tmp_path: Path) -> None:
             f"{T0.x0 + 40} {Y_ROWS[-1] - 2.5})'}}]\n")
     path = tmp_path / "ov.yaml"
     path.write_text(text, encoding="utf-8")
-    cfg = load_config(overrides=[f"paths.overrides={path}"])
+    cfg = load_config(overrides=[f"paths.overrides={path}", NO_SEEDS])
     context = new_run_context(cfg, source=Source.MODEL, run_id="test-run", workers=1)
     link_stage.run(context)
     rows_raw = read_layer(context.paths.layers_dir / "rows_raw.parquet", "rows_raw")
@@ -150,7 +151,7 @@ def test_overrides_are_applied(ctx: RunContext, tmp_path: Path) -> None:
 
 
 def test_missing_inputs_raise(tmp_work: Path) -> None:
-    context = new_run_context(load_config(), source=Source.MODEL, run_id="bare", workers=1)
+    context = new_run_context(load_config(overrides=[NO_SEEDS]), source=Source.MODEL, run_id="bare", workers=1)
     ensure_run_dirs(context.paths)
     with pytest.raises(StageError):
         blocks_stage.run(context)
@@ -159,7 +160,7 @@ def test_missing_inputs_raise(tmp_work: Path) -> None:
 
 
 def test_missing_overrides_file_is_empty(ctx: RunContext, tmp_path: Path) -> None:
-    cfg = load_config(overrides=[f"paths.overrides={tmp_path / 'absent.yaml'}"])
+    cfg = load_config(overrides=[f"paths.overrides={tmp_path / 'absent.yaml'}", NO_SEEDS])
     context = new_run_context(cfg, source=Source.MODEL, run_id="test-run", workers=1)
     assert link_stage.load_overrides_cfg(context) == EMPTY_OVERRIDES
     assert link_stage.load_passages(context) is None
