@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -29,7 +30,9 @@ def synth_root(tmp_path: Path, data_root: Path, make_geotiff: Callable[..., Path
 def test_stage_spec() -> None:
     spec = load_stage("ingest")
     assert (spec.name, spec.scope) == ("ingest", "global")
-    assert "torch" not in sys.modules
+    code = "import sys; from vineyard.pipeline.registry import load_stage; load_stage('ingest'); print('torch' in sys.modules)"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "False"
 
 
 def test_ingest_stage_writes_index_and_route_layers(synth_root: Path, tmp_path: Path) -> None:

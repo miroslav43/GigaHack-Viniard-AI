@@ -2,8 +2,10 @@
 
 1. Per tile (spawn pool, no torch): candidates + hard filters -> cache/waste/<t>.parquet (+ .key), every
    candidate with its reject reason. Axes = rows clipped to the tile grown by waste.axis_margin_m.
-2. Main process: rule-only verification (level L3), decision (auto-accept disabled by config), NMS by rank,
-   vineyard_id, layers/waste_candidates.parquet, qa/waste_candidates.csv + crops + waste_review.html.
+2. Main process (pool closed): verification with whatever is enabled and available (probe + CLIP + SAM 3,
+   verify_setup; degradation L0..L3, rule-only when both are disabled), decision (auto-accept disabled by
+   config), NMS by rank, vineyard_id, layers/waste_candidates.parquet, qa/waste_candidates.csv + crops +
+   waste_review.html.
 3. The FINAL layers/waste.parquet (AnnSet waste schema) holds only the rows confirmed in
    paths.waste_confirmed (plus auto candidates: none while auto-accept is disabled).
 """
@@ -56,11 +58,12 @@ from vineyard.perception.waste.types import (
 )
 from vineyard.perception.waste.verify import (
     RankedSet,
+    Verifier,
     VerifyStatus,
-    load_verifier,
     rank_and_select,
     waste_version_string,
 )
+from vineyard.perception.waste.verify_setup import setup_verifier
 from vineyard.pipeline.atomic import atomic_path, atomic_write_json
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
@@ -296,10 +299,9 @@ def _write_status(
 
 
 def _finalize(
-    ctx: RunContext, tile_ids: Sequence[str], status: VerifyStatus
+    ctx: RunContext, tile_ids: Sequence[str], verifier: Verifier, status: VerifyStatus
 ) -> tuple[dict[str, float], tuple[Path, ...]]:
     cfg = ctx.cfg
-    verifier, _ = load_verifier(cfg.waste, cfg.grid.gsd_m)
     decide_p = DecideParams.from_config(cfg.waste.decide)
     ranked = rank_and_select(_load_cached(ctx, tile_ids), verifier, status, decide_p, cfg.waste.nms_iou)
     blocks = _read_blocks(ctx)
@@ -346,8 +348,9 @@ def run(ctx: RunContext) -> StageResult:
     )
     ids = ctx.selected_tiles(indexed_tile_ids(ctx))
     ok = [t for t in ids if t not in set(tiles_result.failed)]
-    _, status = load_verifier(ctx.cfg.waste, ctx.cfg.grid.gsd_m)
-    metrics, outputs = _finalize(ctx, ok, status)
+    verifier, status = setup_verifier(ctx.cfg, lambda t: read_tile(tile_path(ctx, t)))
+    log_event(_log, "waste.verifier", stage=NAME, verify_level=status.level, reason=status.reason)
+    metrics, outputs = _finalize(ctx, ok, verifier, status)
     log_event(_log, "waste.summary", stage=NAME, verify_level=status.level, **metrics)
     return replace(tiles_result, outputs=outputs, metrics={**tiles_result.metrics, **metrics})
 

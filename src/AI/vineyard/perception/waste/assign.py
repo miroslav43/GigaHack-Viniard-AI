@@ -145,10 +145,27 @@ def _capped(cands: Sequence[Candidate], max_per_tile: int) -> tuple[list[Candida
     return out, dropped
 
 
+def _nan_if_none(value: float | None) -> float:
+    return np.nan if value is None else float(value)
+
+
+def _score_columns(d: Decision | None) -> dict[str, object]:
+    """probe / CLIP / SAM 3 scores and the SAM 3 category of a decision (NaN / unknown without scores)."""
+    s = None if d is None else d.scores
+    return {
+        "category": (Category.UNKNOWN if s is None else s.category).value,
+        "probe_p": _nan_if_none(None if s is None else s.probe_p),
+        "clip_pos_p": _nan_if_none(None if s is None else s.clip_pos_p),
+        "clip_margin": _nan_if_none(None if s is None else s.clip_margin),
+        "sam_score": _nan_if_none(None if s is None else s.sam_score),
+    }
+
+
 def _row(
     c: Candidate, k: int, d: Decision | None, review: bool, a: BlockAssignment, prov: Provenance, gsd_m: float
 ) -> dict[str, object]:
     rank = d.rank_score if d is not None else 0.0
+    scores = _score_columns(d)
     return {
         "waste_id": format_waste_candidate_id(c.tile_id, k),
         "tile_id": c.tile_id,
@@ -159,7 +176,7 @@ def _row(
         "px_xbr": c.box.xbr,
         "px_ybr": c.box.ybr,
         "area_m2": c.box.area * gsd_m * gsd_m,
-        "category": Category.UNKNOWN.value,
+        "category": scores["category"],
         "detector": (d.detector if d is not None else Detector.RULE).value,
         "exported": bool(d and d.auto),
         "reject_reason": None if c.reject_reason is None else c.reject_reason.value,
@@ -170,10 +187,10 @@ def _row(
         "qa_flags": "",
         "cand_key": c.cand_key,
         "colour_class": c.colour_class.value,
-        "probe_p": np.nan,
-        "clip_pos_p": np.nan,
-        "clip_margin": np.nan,
-        "sam_score": np.nan,
+        "probe_p": scores["probe_p"],
+        "clip_pos_p": scores["clip_pos_p"],
+        "clip_margin": scores["clip_margin"],
+        "sam_score": scores["sam_score"],
         "rank_score": rank,
         "auto": bool(d and d.auto),
         "review": review,

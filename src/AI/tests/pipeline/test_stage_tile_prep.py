@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -54,7 +55,9 @@ def test_stage_spec_and_no_torch() -> None:
     spec = load_stage("tile_prep")
     assert (spec.name, spec.scope) == ("tile_prep", "tile")
     assert "veg" in spec.cfg_keys and "nodata" in spec.cfg_keys
-    assert "torch" not in sys.modules
+    code = "import sys; from vineyard.pipeline.registry import load_stage; load_stage('tile_prep'); print('torch' in sys.modules)"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "False"
 
 
 def test_tile_prep_masks_stats_and_tile_valid(synth_root: Path, tmp_path: Path) -> None:

@@ -14,6 +14,7 @@ from vineyard.config.sections_core import (
     NonNegInt,
     PosFloat,
     PosInt,
+    Range,
     Section,
 )
 
@@ -45,6 +46,7 @@ class WasteDecideConfig(Section):
     auto_sam3_min: Frac
     auto_clip_margin_min: float
     rule_only_max_review: PosInt
+    sam_rank_boost: Frac  # a SAM 3 hit raises the review rank towards 1 (noisy-OR); never lowers it
 
 
 class ProbePositivesConfig(Section):
@@ -57,10 +59,20 @@ class ProbePositivesConfig(Section):
     repo_url: str
     licence: str
     max_download_gb: PosFloat
+    assumed_object_m: PosFloat  # median object long side per UAVVaste image -> its GSD estimate
+    min_objects_for_scale: PosInt  # fewer objects: use the flight batch (then dataset) scale
+    max_per_image: PosInt
+    target_blur_sigma_px: NonNegFloat  # blur at 2.5 cm/px to match Sireț3 sharpness
+    background_tiles: PosInt  # Sireț3 tiles supplying paste backgrounds
 
 
 class ProbeNegativesConfig(Section):
-    random_per_tile: NonNegInt
+    random_per_tile: NonNegInt  # example tiles
+    other_reasons: tuple[str, ...]  # reject reasons (white only) used as negatives on the other tiles
+    max_per_other_tile: NonNegInt
+    random_per_other_tile: NonNegInt
+    random_box_px: Range  # side range of random negative boxes (5-95 % of candidate box sides)
+    max_random_attempts: PosInt
 
 
 class ProbeConfig(Section):
@@ -77,6 +89,9 @@ class ProbeConfig(Section):
     lr_c: PosFloat
     calibration_margin: NonNegFloat
     min_recall: Frac
+    cv_folds: PosInt
+    max_iter: PosInt
+    calibrate_on: Literal["all", "survivors"]  # example negatives that fix tau*: all (conservative) | survivors
     positives: ProbePositivesConfig
     negatives: ProbeNegativesConfig
     clip_pos_prompts: tuple[str, ...]
@@ -97,6 +112,9 @@ class Sam3Config(Section):
     min_overlap_frac: Frac
     time_budget_s: NonNegFloat
     min_probe_to_verify: Frac
+    max_mask_crop_frac: Frac  # SAM masks covering more of the crop are ignored
+    allow_download: bool  # false: only the local mirror / HF cache, never a hub download at run time
+    torch_threads: NonNegInt  # 0 = all cores (the pipeline sets OMP_NUM_THREADS=1)
 
 
 class WasteReviewConfig(Section):

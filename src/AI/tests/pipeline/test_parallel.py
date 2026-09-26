@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import operator
+import subprocess
 import sys
 
 import pytest
@@ -84,4 +85,6 @@ def test_init_worker_sets_single_cv2_thread_and_never_imports_torch() -> None:
         assert not cv2.ocl.useOpenCL()
     finally:
         cv2.setNumThreads(before)
-    assert "torch" not in sys.modules
+    code = "import sys; from vineyard.pipeline.parallel import init_worker; init_worker(); print('torch' in sys.modules)"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "False"

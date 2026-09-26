@@ -4,6 +4,8 @@ filters on a few tiles (default: the 2 example tiles, axes from the reference An
 
 from __future__ import annotations
 
+import shlex
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Annotated, Final
@@ -20,6 +22,7 @@ from vineyard.errors import StageError, VineyardError
 from vineyard.geo.raster import read_tile
 from vineyard.geo.tiling import tile_ref
 from vineyard.geo.vector_io import read_layer
+from vineyard.perception.waste import probe_workflow as pw
 from vineyard.perception.waste.filters import reject_counts
 from vineyard.perception.waste.types import Candidate
 from vineyard.pipeline.atomic import atomic_write_text
@@ -47,6 +50,7 @@ TilesArg = Annotated[
 ]
 AxesOpt = Annotated[str, typer.Option("--axes", help="LATEST_REFERENCE (row_pieces) sau o rulare (rows).")]
 OutOpt = Annotated[Path | None, typer.Option("--out", help="Scrie raportul Markdown aici.")]
+ModelRunOpt = Annotated[str, typer.Option("--run", help="Rularea model (run id | LATEST_MODEL | cale).")]
 
 
 @app.command("review-html")
@@ -132,3 +136,70 @@ def calibrate_report(
     if out is not None:
         atomic_write_text(out, text)
     typer.echo(text)
+
+
+@app.command("probe-data")
+@with_config_options
+def probe_data(
+    opts: CommonOptions,
+    run: ModelRunOpt = "LATEST_MODEL",
+    zip_path: Annotated[Path | None, typer.Option("--zip", help="Extrage întâi UAVVasteDataset.zip (md5).")] = None,
+) -> None:
+    """Crop-uri pozitive (UAVVaste) și negative (Sireț3) pentru probe -> work/probe/{pos,neg}."""
+    try:
+        cfg = load_cli_config(opts)
+        if zip_path is not None:
+            typer.echo(f"UAVVaste: {pw.extract_uavvaste(cfg, zip_path)}")
+        stores = pw.build_probe_stores(cfg, resolve_run_dir(cfg.paths.work_dir, run).name)
+    except VineyardError as exc:
+        raise fail(exc) from exc
+    typer.echo(f"pozitive: {stores.n_pos} în {stores.pos}")
+    typer.echo(f"negative: {stores.n_neg} în {stores.neg} ({stores.n_tiles} tile-uri)")
+
+
+@app.command("probe-train")
+@with_config_options
+def probe_train(
+    opts: CommonOptions,
+    version: Annotated[str | None, typer.Option("--version", help="Versiunea (implicit waste.probe.version).")] = None,
+    store: Annotated[list[Path] | None, typer.Option("--store", help="Crop store (repetabil; implicit pos + neg).")] = None,
+) -> None:
+    """Embedding-uri OpenCLIP + regresie logistică calibrată -> models/<waste.probe.name>/<versiune>."""
+    try:
+        cfg = load_cli_config(opts)
+        root = pw.probe_root(cfg)
+        stores = tuple(store or (root / pw.POS_STORE, root / pw.NEG_STORE))
+        model, cv = pw.train_probe_from_stores(cfg, stores, version or cfg.waste.probe.version,
+                                               train_cmd=shlex.join(["vineyard", *sys.argv[1:]]))
+    except VineyardError as exc:
+        raise fail(exc) from exc
+    typer.echo(f"probe: {model.name}@{model.version}+{model.sha256[:8]}  ({cv.n_pos} poz / {cv.n_neg} neg)")
+    typer.echo(f"AUC {cv.auc:.3f}  AP {cv.average_precision:.3f}  tau* {cv.tau_star:.3f}  prag auto "
+               f"{cv.auto_threshold:.3f}  recall {cv.recall_at_threshold:.3f}")
+    typer.echo(f"FP la prag: exemple {cv.fp_example_at_threshold}, toate {cv.fp_all_at_threshold}; "
+               f"auto: {'da' if cv.auto_enabled else 'nu'} ({cv.auto_reason})")
+
+
+@app.command("sam3-check")
+@with_config_options
+def sam3_check(
+    opts: CommonOptions,
+    tile: TilesArg = None,
+    n: Annotated[int, typer.Option("--n", min=1, help="Câte crop-uri 512 px.")] = 3,
+) -> None:
+    """Încarcă SAM 3 (CPU) și măsoară secunde / crop pe câțiva candidați (implicit exemplele)."""
+    try:
+        cfg = load_cli_config(opts)
+        check = pw.sam3_check(cfg, tuple(tile or EXAMPLE_TILES), n)
+    except VineyardError as exc:
+        raise fail(exc) from exc
+    st = check.status
+    typer.echo(f"SAM 3: {st.model_id or '-'} ({st.reason}), încărcare {st.load_s:.1f} s, device {st.device}")
+    for key, res in check.results:
+        typer.echo(f"  {key}: " + ("fără timp (buget)" if res is None else
+                                   f"{res.seconds:.1f} s, scor {res.score:.3f} ({res.prompt or '-'}), "
+                                   f"{res.n_negatives} negative"))
+    if check.seconds:
+        per = check.steady_s_per_crop
+        typer.echo(f"s/crop (fără primul): {per:.2f}; buget {cfg.waste.sam3.time_budget_s:.0f} s "
+                   f"≈ {cfg.waste.sam3.time_budget_s / per:.0f} crop-uri")

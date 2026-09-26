@@ -32,6 +32,7 @@ SOIL = (120, 100, 80)
 BLUE = (20, 60, 230)
 WHITE = (250, 250, 250)
 CONFIRM_HEADER = "tile_id,xtl,ytl,xbr,ybr,decision,category,reviewer,note\n"
+RULE_ONLY = ("waste.probe.enabled=false", "waste.sam3.enabled=false")  # no CLIP / SAM 3 weights in unit tests
 
 
 def _image() -> np.ndarray:
@@ -82,7 +83,7 @@ def _blocks() -> gpd.GeoDataFrame:
 
 def _context(tmp_work: Path, *sets: str) -> RunContext:
     confirmed = tmp_work / "waste_confirmed.csv"
-    cfg = load_config(overrides=(f"paths.waste_confirmed={json.dumps(str(confirmed))}", *sets))
+    cfg = load_config(overrides=(f"paths.waste_confirmed={json.dumps(str(confirmed))}", *RULE_ONLY, *sets))
     return new_run_context(cfg, source=Source.MODEL, run_id="test-run", workers=1)
 
 
@@ -206,3 +207,23 @@ def test_forbidden_zone_rejects_candidates(ctx: RunContext) -> None:
     write_layer(zone, "in_forbidden", ctx.paths.static_layers_dir / "in_forbidden.parquet")
     waste_stage.run(ctx)
     assert _reasons(ctx)[f"{TILE_ID}@1420_1415"] == "forbidden"
+
+
+def test_stage_ranks_with_clip_when_the_probe_is_missing(
+    tmp_work: Path, ctx: RunContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from functools import partial
+
+    from tests.waste.test_verify import FakeEmbedder
+    from vineyard.perception.waste import verify_setup
+
+    ml = _context(tmp_work, "waste.probe.enabled=true", f"paths.models_dir={json.dumps(str(tmp_work / 'models'))}")
+    loader = partial(verify_setup.setup_verifier, clip_loader=lambda _cfg: FakeEmbedder())
+    monkeypatch.setattr(waste_stage, "setup_verifier", loader)
+    res = waste_stage.run(ml)
+    assert res.metrics["degradation_level"] == 2 and res.metrics["n_auto"] == 0
+    status = json.loads((ml.paths.metrics_dir / "waste.json").read_text())
+    assert status["level"] == "L2" and "probe waste-probe@v1 missing" in status["reason"]
+    layer = read_layer(ml.paths.layers_dir / "waste_candidates.parquet", "waste_candidates")
+    live = layer[layer["reject_reason"].isna()]
+    assert live["clip_pos_p"].notna().all() and live["probe_p"].isna().all()

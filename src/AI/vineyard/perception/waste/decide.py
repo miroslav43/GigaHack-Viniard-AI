@@ -2,7 +2,8 @@
 
 auto   = auto_accept_enabled and probe >= max(auto_probe_min, tau*) and (sam >= auto_sam3_min or
          clip margin > auto_clip_margin_min)   -- disabled before Publish (waste.decide.auto_accept_enabled);
-rank   = probe_p, else clip_pos_p, else the rule saliency score;
+rank   = base + sam_rank_boost * sam * (1 - base), base = probe_p, else clip_pos_p, else the rule saliency
+         score (SAM evidence only ever raises the rank, so it can never push a candidate out of review);
 review = not auto and rank >= candidate_min (capped in rule-only mode).
 """
 
@@ -34,6 +35,11 @@ class DecideParams:
     auto_sam3_min: float
     auto_clip_margin_min: float
     rule_only_max_review: int
+    sam_rank_boost: float = 0.0  # 0 = SAM 3 does not change the review rank
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.sam_rank_boost <= 1.0:
+            raise ValueError(f"sam_rank_boost must be in [0, 1], got {self.sam_rank_boost}")
 
     @classmethod
     def from_config(cls, cfg: WasteDecideConfig) -> DecideParams:
@@ -44,14 +50,23 @@ class DecideParams:
             auto_sam3_min=cfg.auto_sam3_min,
             auto_clip_margin_min=cfg.auto_clip_margin_min,
             rule_only_max_review=cfg.rule_only_max_review,
+            sam_rank_boost=cfg.sam_rank_boost,
         )
 
 
-def rank_score(s: CandidateScores) -> float:
+def _base_rank(s: CandidateScores) -> float:
     for value in (s.probe_p, s.clip_pos_p, s.rule_score):
         if value is not None:
             return float(value)
     return 0.0
+
+
+def rank_score(s: CandidateScores, sam_boost: float = 0.0) -> float:
+    """Review-list rank in [0, 1]: the base score, raised towards 1 by a SAM 3 hit (noisy-OR style)."""
+    base = _base_rank(s)
+    if s.sam_score is None or sam_boost <= 0.0:
+        return base
+    return base + sam_boost * float(s.sam_score) * (1.0 - base)
 
 
 def decide(s: CandidateScores, probe_auto_min: float | None, p: DecideParams) -> Decision:
@@ -60,7 +75,7 @@ def decide(s: CandidateScores, probe_auto_min: float | None, p: DecideParams) ->
     sam_ok = s.sam_score is not None and s.sam_score >= p.auto_sam3_min
     clip_ok = s.clip_margin is not None and s.clip_margin > p.auto_clip_margin_min
     auto = p.auto_accept_enabled and probe_ok and (sam_ok or clip_ok)
-    rank = rank_score(s)
+    rank = rank_score(s, p.sam_rank_boost)
     detector = (Detector.SAM3 if sam_ok else Detector.NN) if auto else Detector.RULE
     return Decision(
         cand_key=s.cand_key,
@@ -68,6 +83,7 @@ def decide(s: CandidateScores, probe_auto_min: float | None, p: DecideParams) ->
         review=not auto and rank >= p.candidate_min,
         rank_score=rank,
         detector=detector,
+        scores=s,
     )
 
 

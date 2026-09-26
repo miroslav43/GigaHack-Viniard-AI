@@ -21,9 +21,15 @@ Device = Literal["mps", "cpu", "cuda"]
 
 
 class PseudoLabelConfig(Section):
-    ignore_band_px: NonNegInt
+    ignore_band_px: NonNegInt  # label px: vegetation this close OUTSIDE a corridor is ignored (canopy overhang)
+    edge_band_px: NonNegInt  # label px ignored on each side of the positive-label edges
     ignore_small_in_corridor: bool
     ignore_clumps: bool
+    tree_filter: bool  # trees inside a corridor become ignore
+    min_row_pieces: PosInt  # a vineyard tile needs at least this many row pieces to be selected
+    blocking_codes: tuple[str, ...]  # qa issue codes that exclude a tile from training
+    fill_from_urgent: bool  # add review-priority-1 tiles when the clean ones are fewer than min_train_tiles
+    min_labeled_frac: Frac  # patches with less labelled (not ignore) area are skipped
     train_tiles_file: Path | None
     include_empty_tiles: bool
     max_empty_tile_frac: Frac
@@ -50,6 +56,7 @@ class TrainConfig(Section):
     colour_jitter: Frac
     encoder_weights: Literal["imagenet"] | None
     smoke_max_batches: PosInt
+    val_variant: FusionName  # fusion variant scored on the reference tiles for early stopping
     drop_noisy: DropNoisyConfig
 
 

@@ -139,6 +139,7 @@ class Decision:
     review: bool
     rank_score: float
     detector: Detector
+    scores: CandidateScores | None = None  # the model scores behind the decision (review columns)
 
 
 @dataclass(frozen=True)

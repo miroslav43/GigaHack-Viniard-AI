@@ -91,9 +91,15 @@ nn:                                        # D3 §4; disabled until after Publis
   holdout_tiles: [siret3_r006_c004, siret3_r021_c012]
   mps_high_watermark_ratio: 0.8
   pseudolabels:
-    ignore_band_px: 3
+    ignore_band_px: 3                      # label px: veg this close OUTSIDE a corridor = ignore (overhang)
+    edge_band_px: 1                        # label px ignored each side of the positive edges (3 left 60 % of vine as ignore)
     ignore_small_in_corridor: true
     ignore_clumps: true
+    tree_filter: true                      # trees inside a corridor = ignore
+    min_row_pieces: 3
+    blocking_codes: [tile_failed, low_snr, orchard_rejected]
+    fill_from_urgent: true                 # priority-1 tiles fill up to min_train_tiles
+    min_labeled_frac: 0.05                 # skip patches with less labelled area
     train_tiles_file: null
     include_empty_tiles: true
     max_empty_tile_frac: 0.2
@@ -112,6 +118,7 @@ nn:                                        # D3 §4; disabled until after Publis
     colour_jitter: 0.10
     encoder_weights: imagenet
     smoke_max_batches: 50
+    val_variant: B                         # early stopping on the official score of this fusion variant
     drop_noisy:
       enabled: false
       after_epoch: 5
@@ -315,6 +322,7 @@ waste:                                     # D3 §4
     auto_sam3_min: 0.5
     auto_clip_margin_min: 0.2
     rule_only_max_review: 300
+    sam_rank_boost: 0.5                    # review rank only; auto-accept unaffected
   probe:
     enabled: true
     name: waste-probe
@@ -329,6 +337,9 @@ waste:                                     # D3 §4
     lr_c: 1.0
     calibration_margin: 0.02
     min_recall: 0.2
+    cv_folds: 5                            # grouped: tile ids (negatives), UAVVaste flight batches (positives)
+    max_iter: 5000
+    calibrate_on: all                      # tau* from all example negatives (conservative) | survivors
     positives:
       mode: both
       long_side_px: [8, 40]
@@ -337,10 +348,20 @@ waste:                                     # D3 §4
       paste_blur_sigma_px: 0.5
       zenodo_record: 8214061
       repo_url: https://github.com/PUTvision/UAVVaste
-      licence: Apache-2.0
+      licence: CC-BY-4.0                   # Zenodo record (the GitHub code is Apache-2.0)
       max_download_gb: 8.0
+      assumed_object_m: 0.25
+      min_objects_for_scale: 3
+      max_per_image: 4
+      target_blur_sigma_px: 0.8            # UAVVaste 4x sharper than Sireț3 at 2.5 cm/px
+      background_tiles: 8
     negatives:
-      random_per_tile: 200
+      random_per_tile: 200                 # example tiles
+      other_reasons: [near_axis, periodic_tube, too_small_white, bright_soil, tube_shape, hose]
+      max_per_other_tile: 20
+      random_per_other_tile: 5
+      random_box_px: [5, 40]
+      max_random_attempts: 2000
     clip_pos_prompts: ["trash", "a plastic bag", "a plastic bottle", "a tire", "a heap of rubbish", "litter on the ground"]
     clip_neg_prompts: ["a white plastic vine tube", "a wooden stake", "a stone", "bare soil", "grass", "a grapevine",
                        "an irrigation hose", "a car"]
@@ -363,6 +384,9 @@ waste:                                     # D3 §4
     min_overlap_frac: 0.2
     time_budget_s: 1800.0
     min_probe_to_verify: 0.3
+    max_mask_crop_frac: 0.25
+    allow_download: false
+    torch_threads: 0                       # 0 = all cores
   review:
     crop_px: 256
     confirm_match_iou: 0.5
