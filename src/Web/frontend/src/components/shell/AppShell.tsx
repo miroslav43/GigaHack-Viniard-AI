@@ -25,6 +25,7 @@ import Menu from "@mui/icons-material/Menu";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
+import AccountTreeOutlined from "@mui/icons-material/AccountTreeOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
@@ -35,6 +36,7 @@ const BASE_NAV = [
   { href: "/harta", label: "nav.map", short: "nav.mapShort", icon: <MapOutlined /> },
   { href: "/blocuri", label: "nav.blocks", short: "nav.blocksShort", icon: <TableRowsOutlined /> },
   { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
+  { href: "/arhitectura", label: "nav.architecture", short: "nav.architectureShort", icon: <AccountTreeOutlined /> },
 ];
 
 

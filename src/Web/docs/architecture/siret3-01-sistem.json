@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Sireț3 · sistemul complet, de la plăci la aplicația web",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "83afe0bb2d4821beb78a2b13ef80685a23fb7818"
+    }
+  },
+  "components": [
+    {
+      "id": "tiles",
+      "type": "external",
+      "label": "Plăci Sireț3",
+      "sublabel": "311 GeoTIFF · EPSG:32635",
+      "tag": "2048 px × 0.025 m = 51.2 m",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        176,
+        80
+      ]
+    },
+    {
+      "id": "route_inputs",
+      "type": "external",
+      "label": "Intrări rută",
+      "sublabel": "START · passages · forbidden",
+      "tag": "02_route/*.geojson",
+      "pos": [
+        40,
+        400
+      ],
+      "size": [
+        176,
+        80
+      ]
+    },
+    {
+      "id": "unet",
+      "type": "backend",
+      "label": "vine-unet v1",
+      "sublabel": "U-Net ResNet-18 · opțional",
+      "tag": "nn.enabled=false",
+      "pos": [
+        312,
+        40
+      ],
+      "size": [
+        176,
+        72
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/fusion.py",
+          "label": "fuziune A–E"
+        }
+      ]
+    },
+    {
+      "id": "waste_ml",
+      "type": "backend",
+      "label": "Probe CLIP + SAM 3",
+      "sublabel": "probă activă · SAM 3 opțional",
+      "tag": "probe=true · sam3=false",
+      "pos": [
+        584,
+        40
+      ],
+      "size": [
+        176,
+        72
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/waste/verify_ml.py",
+          "label": "verificare ML"
+        }
+      ]
+    },
+    {
+      "id": "perception",
+      "type": "backend",
+      "label": "vineyard run",
+      "sublabel": "ingest → … → qa_previews",
+      "tag": "157.4 s · cache parțial",
+      "pos": [
+        312,
+        220
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/registry.py",
+          "line": 24,
+          "end_line": 25,
+          "label": "etape percepție"
+        },
+        {
+          "path": "src/AI/vineyard/pipeline/stages/ingest.py",
+          "label": "ingest → in_*"
+        }
+      ]
+    },
+    {
+      "id": "export_cvat",
+      "type": "backend",
+      "label": "export-cvat",
+      "sublabel": "5 ZIP CVAT 1.1 · ≤ 85 MB",
+      "tag": "≤ 85 000 000 B / ZIP",
+      "pos": [
+        584,
+        220
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/cvat/export.py",
+          "label": "export CVAT"
+        }
+      ]
+    },
+    {
+      "id": "marcaj",
+      "type": "cloud",
+      "label": "Marcaj",
+      "sublabel": "corecție umană · Publish",
+      "tag": "311 fișiere încărcate",
+      "pos": [
+        856,
+        220
+      ],
+      "size": [
+        176,
+        80
+      ]
+    },
+    {
+      "id": "post",
+      "type": "backend",
+      "label": "vineyard post",
+      "sublabel": "derive → … → web_bundle",
+      "tag": "655.4 s · AnnSet model",
+      "pos": [
+        584,
+        400
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/registry.py",
+          "line": 27,
+          "end_line": 28,
+          "label": "etape post"
+        },
+        {
+          "path": "src/AI/vineyard/pipeline/stages/_post_io.py",
+          "label": "intrări post"
+        }
+      ]
+    },
+    {
+      "id": "deliverables",
+      "type": "database",
+      "label": "route.geojson",
+      "sublabel": "+ measurements.csv",
+      "tag": "rădăcina repo",
+      "pos": [
+        856,
+        400
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/publish.py",
+          "label": "vineyard publish"
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "type": "database",
+      "label": "Bundle web",
+      "sublabel": "surveys/siret3/pipeline",
+      "tag": "EPSG:32635",
+      "pos": [
+        1128,
+        400
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/web/bundle.py",
+          "label": "web_bundle"
+        }
+      ]
+    },
+    {
+      "id": "converter",
+      "type": "backend",
+      "label": "build-survey.mjs",
+      "sublabel": "EPSG:32635 → EPSG:4326",
+      "tag": "→ public/data/siret3",
+      "pos": [
+        1128,
+        220
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/Web/frontend/scripts/build-survey.mjs",
+          "label": "convertor"
+        }
+      ]
+    },
+    {
+      "id": "webapp",
+      "type": "frontend",
+      "label": "Aplicația Next.js",
+      "sublabel": "hartă · blocuri · rută",
+      "tag": "/sarcini + Supabase auth",
+      "pos": [
+        1128,
+        40
+      ],
+      "size": [
+        176,
+        76
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Date organizatori · data & info/",
+      "wraps": [
+        "tiles",
+        "route_inputs"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Pipeline AI · src/AI (laptop local)",
+      "wraps": [
+        "unet",
+        "waste_ml",
+        "perception",
+        "export_cvat",
+        "post"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Platforma Marcaj (externă)",
+      "wraps": [
+        "marcaj"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Aplicația web · src/Web",
+      "wraps": [
+        "bundle",
+        "converter",
+        "webapp"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "tiles-to-run",
+      "from": "tiles",
+      "to": "perception",
+      "label": "ingest + CRC",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route-inputs-to-run",
+      "from": "route_inputs",
+      "to": "perception",
+      "label": "ingest → in_*",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "labelSegment": 0
+    },
+    {
+      "id": "unet-fusion",
+      "from": "unet",
+      "to": "perception",
+      "label": "fuziune canopy",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 30
+    },
+    {
+      "id": "waste-rank",
+      "from": "waste_ml",
+      "to": "perception",
+      "label": "rang deșeuri",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "run-to-export",
+      "from": "perception",
+      "to": "export_cvat",
+      "label": "AnnSet(model)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "export-to-marcaj",
+      "from": "export_cvat",
+      "to": "marcaj",
+      "label": "încărcare ZIP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "run-to-post",
+      "from": "perception",
+      "to": "post",
+      "label": "AnnSet(model) · in_*",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "marcaj-to-post",
+      "from": "marcaj",
+      "to": "post",
+      "label": "export CVAT 1.1 → from-marcaj",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "post-to-deliverables",
+      "from": "post",
+      "to": "deliverables",
+      "label": "publish",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "post-to-bundle",
+      "from": "post",
+      "to": "bundle",
+      "label": "web_bundle",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "bundle-to-converter",
+      "from": "bundle",
+      "to": "converter",
+      "label": "pnpm data:survey",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "converter-to-webapp",
+      "from": "converter",
+      "to": "webapp",
+      "label": "fișiere statice",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Pipeline AI (laptop local)",
+      "items": [
+        "Vegetație: −a* > 4.0 (a* < −4); rânduri cu pas 1.8–3.8 m, SNR ≥ 3, fit Huber",
+        "Rută GTSP cu OR-Tools; publish refuză dacă în afară > 1.5%",
+        "Timp: run 157.4 s (cache parțial, fără probă; ≈ 288 s cu probă); post 655.4 s pe AnnSet(model)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Marcaj (extern)",
+      "items": [
+        "Echipa încarcă 5 ZIP-uri, publică, corectează și exportă CVAT 1.1",
+        "Deșeuri exportate doar din waste_confirmed.csv (3 cutii)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Aplicația web",
+      "items": [
+        "build-survey.mjs reproiectează bundle-ul pentru hartă",
+        "/harta, /blocuri, /ruta, /sarcini; fără Supabase rulează demo"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "ML: probă activă, SAM 3 oprit",
+      "items": [
+        "U-Net: 0.773 (D) sub 0.816 clasic (A), deci rămâne A",
+        "Probă CLIP ViT-B-32 activă implicit: percepția ≈288 s, nu 157.4 s",
+        "Doar SAM 3 e oprit: 13.1 s pe CPU per decupaj de 512 px"
+      ]
+    }
+  ]
+}

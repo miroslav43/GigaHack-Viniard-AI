@@ -15,7 +15,9 @@
     "tasks": "Tasks",
     "tasksShort": "Tasks",
     "team": "Team",
-    "teamShort": "Team"
+    "teamShort": "Team",
+    "architecture": "AI architecture",
+    "architectureShort": "Architecture"
   },
   "shell": {
     "uat": "Municipality",
@@ -616,5 +618,33 @@
     "empty": "No team members yet. Add the first inspector.",
     "noKey": "Team management needs the Supabase secret key on the server (SUPABASE_SECRET_KEY). Contact the platform administrator.",
     "passwordNote": "Send the password to the member over a private channel."
+  },
+  "architecture": {
+    "title": "AI pipeline architecture",
+    "subtitle": "How the 311 GeoTIFF tiles become Marcaj annotations, the route, measurements and this map — interactive diagrams built from the code in src/AI.",
+    "openNew": "Open in new tab",
+    "note": "Diagrams made with archify; diagram text is in Romanian. Drag to pan, scroll to zoom, click a node for details.",
+    "d": {
+      "sistem": {
+        "title": "System, end to end",
+        "caption": "Organiser data flows through the vineyard pipeline on the laptop into CVAT ZIPs for Marcaj; the corrected export returns to the post chain that produces the route, measurements and this app's data."
+      },
+      "perceptie": {
+        "title": "Per-tile perception",
+        "caption": "The stages run on every tile: vegetation mask, row detection, cross-tile linking and blocks, canopies, inter-rows, attributes, waste and AnnSet assembly."
+      },
+      "randuri": {
+        "title": "How rows are found",
+        "caption": "Dominant angle, row spacing, the filters that tell vines from orchards, and the neighbour-guided pass that recovers missed young vineyards."
+      },
+      "deseuri": {
+        "title": "Waste chain",
+        "caption": "Colour candidates, tube and stake filters, a CLIP probe trained on UAVVaste and SAM 3 verification; only team-approved boxes reach the annotations."
+      },
+      "traseu": {
+        "title": "Route and measurements",
+        "caption": "After Marcaj: walkable domain, must and optional targets, GTSP with OR-Tools, validation (≤ 1.5 % outside, closure at START) and measurements."
+      }
+    }
   }
 }

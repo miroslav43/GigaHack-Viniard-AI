@@ -15,7 +15,9 @@
     "tasks": "Sarcini",
     "tasksShort": "Sarcini",
     "team": "Echipă",
-    "teamShort": "Echipă"
+    "teamShort": "Echipă",
+    "architecture": "Arhitectura AI",
+    "architectureShort": "Arhitectură"
   },
   "shell": {
     "uat": "UAT",
@@ -616,5 +618,33 @@
     "empty": "Nu aveți încă membri în echipă. Adăugați primul inspector.",
     "noKey": "Gestionarea echipei are nevoie de cheia secretă Supabase pe server (SUPABASE_SECRET_KEY). Contactați administratorul platformei.",
     "passwordNote": "Transmiteți parola membrului printr-un canal privat."
+  },
+  "architecture": {
+    "title": "Arhitectura pipeline-ului AI",
+    "subtitle": "Cum devin cele 311 tile-uri GeoTIFF adnotări Marcaj, traseu, măsurători și hartă — diagrame interactive construite pe codul din src/AI.",
+    "openNew": "Deschide în tab nou",
+    "note": "Diagrame generate cu archify; butoanele fixe ale diagramei (Light, Present, Export) sunt în engleză. Trage pentru a muta, rotița pentru zoom, click pe un nod pentru detalii.",
+    "d": {
+      "sistem": {
+        "title": "Sistemul, cap-coadă",
+        "caption": "Datele organizatorilor trec prin pipeline-ul vineyard pe laptop, devin ZIP-uri CVAT pentru Marcaj, iar exportul corectat revine în lanțul post care produce traseul, măsurătorile și datele acestei aplicații."
+      },
+      "perceptie": {
+        "title": "Percepția pe tile",
+        "caption": "Etapele rulate pe fiecare tile: masca de vegetație, detecția rândurilor, legarea între tile-uri și blocuri, coroane, inter-rânduri, atribute, deșeuri și asamblarea setului de adnotări."
+      },
+      "randuri": {
+        "title": "Cum găsim rândurile",
+        "caption": "Unghiul dominant, distanța dintre rânduri, filtrele care separă via de livezi și trecerea ghidată de vecini care recuperează viile tinere ratate."
+      },
+      "deseuri": {
+        "title": "Lanțul de deșeuri",
+        "caption": "Candidați după culoare, filtre pentru tuburi și țăruși, clasificator CLIP antrenat pe UAVVaste și verificare SAM 3; doar casetele acceptate de echipă ajung în adnotări."
+      },
+      "traseu": {
+        "title": "Traseul și măsurătorile",
+        "caption": "După Marcaj: domeniul de mers, țintele obligatorii și opționale, rezolvarea GTSP cu OR-Tools, validarea (≤ 1,5 % în afara zonei, închidere la START) și măsurătorile."
+      }
+    }
   }
 }

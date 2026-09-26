@@ -1,0 +1,343 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Sireț3 — percepția pe tile",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      520
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "flux principal"
+        },
+        "default": {
+          "label": "flux de date"
+        },
+        "dashed": {
+          "label": "opțional (NN oprit)"
+        },
+        "database": {
+          "label": "strat GeoParquet"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Intrare și rânduri"
+    },
+    {
+      "label": "NN și blocuri"
+    },
+    {
+      "label": "Atribute pe tile"
+    },
+    {
+      "label": "Atribute + AnnSet"
+    },
+    {
+      "label": "Livrare"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "prep",
+      "type": "external",
+      "label": "ingest + tile_prep",
+      "sublabel": "311 GeoTIFF → măști",
+      "stage": 0,
+      "row": 0,
+      "width": 150,
+      "tag": "Lab −a* > 4"
+    },
+    {
+      "id": "rowsdetect",
+      "type": "backend",
+      "label": "rows_detect",
+      "sublabel": "unghi · pas · Huber",
+      "stage": 0,
+      "row": 1,
+      "width": 140,
+      "tag": "SNR ≥ 3"
+    },
+    {
+      "id": "rowslink",
+      "type": "backend",
+      "label": "rows_link",
+      "sublabel": "UTM + rows_guided",
+      "stage": 0,
+      "row": 2,
+      "width": 140,
+      "tag": "+127 rânduri"
+    },
+    {
+      "id": "nninfer",
+      "type": "cloud",
+      "label": "nn_infer",
+      "sublabel": "U-Net opțional · oprit",
+      "stage": 1,
+      "row": 0,
+      "tag": "fuziune A"
+    },
+    {
+      "id": "blocks",
+      "type": "backend",
+      "label": "blocks",
+      "sublabel": "graf + skip-one",
+      "stage": 1,
+      "row": 2,
+      "tag": "54 blocuri"
+    },
+    {
+      "id": "canopy",
+      "type": "backend",
+      "label": "canopy",
+      "sublabel": "ExG în coridor ±0.30 m",
+      "stage": 2,
+      "row": 0,
+      "tag": "≥ 0.19 m²"
+    },
+    {
+      "id": "interrow",
+      "type": "backend",
+      "label": "interrow",
+      "sublabel": "benzi · clasă acoperire",
+      "stage": 2,
+      "row": 2,
+      "tag": "offset 0.30 m"
+    },
+    {
+      "id": "rowattrs",
+      "type": "backend",
+      "label": "row_attrs",
+      "sublabel": "motorul de goluri",
+      "stage": 3,
+      "row": 0,
+      "tag": "gol ≥ 5 m"
+    },
+    {
+      "id": "assemble",
+      "type": "database",
+      "label": "assemble",
+      "sublabel": "AnnSet GeoParquet",
+      "stage": 3,
+      "row": 1,
+      "tag": "topologie"
+    },
+    {
+      "id": "waste",
+      "type": "backend",
+      "label": "waste",
+      "sublabel": "reguli HSV + revizie",
+      "stage": 3,
+      "row": 2,
+      "tag": "3 confirmate"
+    },
+    {
+      "id": "export",
+      "type": "frontend",
+      "label": "export_cvat",
+      "sublabel": "qa_previews · 5 ZIP CVAT",
+      "stage": 4,
+      "row": 1,
+      "width": 172,
+      "tag": "≤ 85 MB"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-masks",
+      "from": "prep",
+      "to": "rowsdetect",
+      "label": "valid · veg · vis",
+      "classification": "cache PNG pe tile",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        100,
+        200
+      ]
+    },
+    {
+      "id": "f-cands",
+      "from": "rowsdetect",
+      "to": "rowslink",
+      "label": "row_candidates",
+      "classification": "cache/<t>.parquet",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        100,
+        314
+      ]
+    },
+    {
+      "id": "f-rows-raw",
+      "from": "rowslink",
+      "to": "blocks",
+      "label": "rows_raw",
+      "classification": "layer global",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-rgb",
+      "from": "prep",
+      "to": "nninfer",
+      "label": "RGB 5 cm/px",
+      "classification": "opțional",
+      "variant": "dashed"
+    },
+    {
+      "id": "f-prob",
+      "from": "nninfer",
+      "to": "canopy",
+      "label": "canopy_prob",
+      "classification": "oprit implicit",
+      "variant": "dashed"
+    },
+    {
+      "id": "f-rows",
+      "from": "blocks",
+      "to": "canopy",
+      "label": "rows · row_id",
+      "classification": "layers/rows",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [
+        [
+          315,
+          328
+        ],
+        [
+          530,
+          328
+        ]
+      ],
+      "labelAt": [
+        422,
+        328
+      ]
+    },
+    {
+      "id": "f-pairs",
+      "from": "blocks",
+      "to": "interrow",
+      "label": "row_pairs",
+      "classification": "vecini",
+      "variant": "default"
+    },
+    {
+      "id": "f-waste-axes",
+      "from": "blocks",
+      "to": "waste",
+      "label": "axe de rând",
+      "classification": "excludere 0.6 m",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "route": "bottom-channel"
+    },
+    {
+      "id": "f-canopy-rowattrs",
+      "from": "canopy",
+      "to": "rowattrs",
+      "label": "canopies",
+      "classification": "+ evidence",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "top",
+      "route": "top-channel"
+    },
+    {
+      "id": "f-canopy-annset",
+      "from": "canopy",
+      "to": "assemble",
+      "label": "canopies",
+      "classification": "cache pe tile",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-interrow-annset",
+      "from": "interrow",
+      "to": "assemble",
+      "label": "interrow_pieces",
+      "classification": "cache pe tile",
+      "variant": "default"
+    },
+    {
+      "id": "f-pieces-annset",
+      "from": "rowattrs",
+      "to": "assemble",
+      "label": "row_pieces",
+      "classification": "cache pe tile",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        745,
+        208
+      ]
+    },
+    {
+      "id": "f-waste-annset",
+      "from": "waste",
+      "to": "assemble",
+      "label": "waste",
+      "classification": "3 confirmate",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight",
+      "labelAt": [
+        745,
+        322
+      ]
+    },
+    {
+      "id": "f-annset",
+      "from": "assemble",
+      "to": "export",
+      "label": "AnnSet",
+      "classification": "GeoParquet",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Rânduri: de la tile la bloc",
+      "items": [
+        "tile_prep salvează în cache masca de pixeli validi și vegetația Lab −a* > 4; rows_detect găsește unghiul, pasul (1.8–3.8 m) și câte o dreaptă Huber pe rând.",
+        "rows_link reia tile-urile cu ≤ 4 rânduri pe rețeaua vecinilor (+127 rânduri în full-v3) și leagă segmentele în UTM (Δθ ≤ 3°, ≤ 0.3 m).",
+        "blocks leagă vecinii paraleli la 1.8–4.0 m, plus muchii skip-one, ca un rând lipsă să nu rupă blocul: 54 de blocuri, 717 rânduri."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Atribute calculate pe tile",
+      "items": [
+        "canopy: ExG = 2G − R − B > 25 în coridorul ±0.30 m, contururi brute ≥ 0.19 m²; plantele care se ating fuzionează — 11 889 poligoane canopy.",
+        "interrow: banda dintre coridoare, clasă după fracția de vegetație; row_attrs: un gol ≥ 5 m face rândul disrupted (51/51 etichete).",
+        "waste: candidați HSV pe tile; se exportă doar cele 3 cutii aprobate în waste_confirmed.csv."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Cache, rulare și AnnSet",
+      "items": [
+        "Etapele pe tile rulează în pool spawn cu 8 procese; cheia sha1 se scrie ultima, deci o re-rulare refolosește tile-urile neschimbate.",
+        "nn_infer e oprit: varianta clasică A are scor canopy 0.816, peste 0.773 al celei mai bune variante NN.",
+        "assemble unește cache-urile în AnnSet (0 erori de topologie); export_cvat scrie 5 ZIP-uri CVAT ≤ 85 MB."
+      ]
+    }
+  ]
+}

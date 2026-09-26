@@ -1,0 +1,314 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Sireț3 · de la AnnSet la traseul de inspecție",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "external": {
+          "label": "Intrare adnotări"
+        },
+        "backend": {
+          "label": "Procesare"
+        },
+        "security": {
+          "label": "Constrângere / poartă"
+        },
+        "messagebus": {
+          "label": "Scară de politici"
+        },
+        "database": {
+          "label": "Măsurători"
+        },
+        "frontend": {
+          "label": "Livrare"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "straturi",
+        "label": "Din adnotări în straturi",
+        "focus": [
+          "annset",
+          "derive",
+          "passable"
+        ],
+        "note": "Unește bucățile după row_id (abatere > 0,4 m → avertisment QA), leagă interrândurile (≤ 3,8 m), face blocuri, scade zonele interzise."
+      },
+      {
+        "id": "tinte",
+        "label": "Ce trebuie vizitat",
+        "focus": [
+          "targets",
+          "candidates"
+        ],
+        "note": "row_gap ≥ 5 m, missing_row și waste sunt obligatorii; ținte de rând la < 3 m de marginea acoperirii sunt artefacte (89 eliminate)."
+      },
+      {
+        "id": "gtsp",
+        "label": "Scara de politici și GTSP",
+        "focus": [
+          "policies",
+          "gtsp",
+          "validator"
+        ],
+        "note": "Per politică: graf penalizat → tabel D → sondă GTSP 5 s → validator. penalty: 1,72 % în afară, respinsă; penalty_x10 trece → final 30 s."
+      },
+      {
+        "id": "livrare",
+        "label": "Validare și livrare",
+        "focus": [
+          "validator",
+          "measure",
+          "publish",
+          "refused"
+        ],
+        "note": "web_bundle scrie în src/Web; publish recalculează totul din fișiere, iar orice verificare picată ridică PublishRefused."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "l_sus",
+      "label": "Straturi, ținte și politici →"
+    },
+    {
+      "id": "l_jos",
+      "label": "← GTSP, validare și livrare"
+    }
+  ],
+  "mainPath": [
+    "annset",
+    "derive",
+    "passable",
+    "targets",
+    "candidates",
+    "policies",
+    "gtsp"
+  ],
+  "nodes": [
+    {
+      "id": "annset",
+      "lane": "l_sus",
+      "col": 0,
+      "type": "external",
+      "label": "AnnSet model",
+      "sublabel": "rularea full-v3",
+      "tag": "import_marcaj: neimplementat",
+      "width": 150
+    },
+    {
+      "id": "derive",
+      "lane": "l_sus",
+      "col": 1,
+      "type": "backend",
+      "label": "Derivare",
+      "sublabel": "717 rânduri, 54 blocuri",
+      "tag": "unește și leagă interrânduri",
+      "width": 140
+    },
+    {
+      "id": "passable",
+      "lane": "l_sus",
+      "col": 2,
+      "type": "security",
+      "label": "Domeniu pietonal",
+      "sublabel": "interrânduri ∪ pasaje − interzis",
+      "tag": "126.598 m² după scădere",
+      "width": 176
+    },
+    {
+      "id": "targets",
+      "lane": "l_sus",
+      "col": 3,
+      "type": "backend",
+      "label": "Ținte de inspecție",
+      "sublabel": "390 must din 1.367 ținte",
+      "tag": "row_gap, missing_row, waste",
+      "width": 140
+    },
+    {
+      "id": "candidates",
+      "lane": "l_sus",
+      "col": 4,
+      "type": "backend",
+      "label": "Seturi de candidați",
+      "sublabel": "≤ 3 candidați pe latură",
+      "tag": "318 seturi · o vizită / țintă",
+      "width": 140
+    },
+    {
+      "id": "policies",
+      "lane": "l_sus",
+      "col": 5,
+      "type": "messagebus",
+      "label": "Scara de politici",
+      "sublabel": "graf penalizat per politică",
+      "tag": "penalty → penalty_x10 → …",
+      "width": 140
+    },
+    {
+      "id": "gtsp",
+      "lane": "l_jos",
+      "col": 5,
+      "type": "backend",
+      "label": "Distanțe + GTSP",
+      "sublabel": "Dijkstra → OR-Tools",
+      "tag": "sondă 5 s · final 30 s",
+      "width": 140
+    },
+    {
+      "id": "validator",
+      "lane": "l_jos",
+      "col": 4,
+      "type": "security",
+      "label": "Validator traseu",
+      "sublabel": "1,14 % în afară (≤ 1,5 %)",
+      "tag": "închidere la START 0,00 m",
+      "width": 140
+    },
+    {
+      "id": "publish",
+      "lane": "l_jos",
+      "col": 3,
+      "type": "frontend",
+      "label": "Web bundle + publish",
+      "sublabel": "traseu 16.719,80 m",
+      "tag": "route.geojson + CSV",
+      "width": 140
+    },
+    {
+      "id": "measure",
+      "lane": "l_jos",
+      "col": 2,
+      "type": "database",
+      "label": "Măsurători",
+      "sublabel": "uniune de arii, UTM plan",
+      "tag": "interrânduri 9,06 ha",
+      "width": 176
+    },
+    {
+      "id": "refused",
+      "lane": "l_jos",
+      "col": 1,
+      "type": "security",
+      "label": "PublishRefused",
+      "sublabel": "rădăcina rămâne neatinsă",
+      "tag": "exit ≠ 0",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-annset-derive",
+      "from": "annset",
+      "to": "derive",
+      "label": "bucăți",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-derive-passable",
+      "from": "derive",
+      "to": "passable",
+      "label": "straturi"
+    },
+    {
+      "id": "e-passable-targets",
+      "from": "passable",
+      "to": "targets",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-targets-candidates",
+      "from": "targets",
+      "to": "candidates"
+    },
+    {
+      "id": "e-candidates-policies",
+      "from": "candidates",
+      "to": "policies",
+      "label": "seturi"
+    },
+    {
+      "id": "e-policies-gtsp",
+      "from": "policies",
+      "to": "gtsp",
+      "label": "D în cm",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-gtsp-validator",
+      "from": "gtsp",
+      "to": "validator",
+      "label": "traseu"
+    },
+    {
+      "id": "e-validator-policies",
+      "from": "validator",
+      "to": "policies",
+      "label": "respinsă",
+      "variant": "dashed",
+      "role": "return",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e-validator-publish",
+      "from": "validator",
+      "to": "publish",
+      "label": "≤ 1,5 %",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-targets-measure",
+      "from": "targets",
+      "to": "measure",
+      "role": "branch"
+    },
+    {
+      "id": "e-measure-publish",
+      "from": "measure",
+      "to": "publish",
+      "label": "CSV",
+      "role": "branch"
+    },
+    {
+      "id": "e-publish-refused",
+      "from": "publish",
+      "to": "refused",
+      "variant": "security",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Cifrele: rularea post-full-v3 (bundle-ul web actual)",
+      "items": [
+        "Traseu 16.719,80 m (≈ 251 min la 4 km/h), închis la START",
+        "În afara domeniului 1,14 % (190,3 m); limita proprie 1,5 %",
+        "256 ținte must vizitate; 375 ținte în componente deconectate"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "De ce așa",
+      "items": [
+        "Must = defecte reale; opționalele intră doar la ocol ≤ 25 m",
+        "1,5 % lasă rezervă față de eliminarea oficială la 2 %",
+        "Ariile sunt uniuni în EPSG:32635, nu sume de poligoane"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Câștig și stadiu",
+      "items": [
+        "−55,6 % față de toate interrândurile (37.685,62 m)",
+        "−67,4 % față de ținte în ordinea ID (51.243,84 m)",
+        "import_marcaj și final: încă neimplementate (exit 3)"
+      ]
+    }
+  ]
+}

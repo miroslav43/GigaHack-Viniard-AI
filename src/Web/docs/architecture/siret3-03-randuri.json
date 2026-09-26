@@ -1,0 +1,356 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Sireț3 · Cum găsim rândurile",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "Pas de calcul"
+        },
+        "security": {
+          "label": "Poartă: acceptat / respins"
+        },
+        "external": {
+          "label": "Candidat respins"
+        },
+        "messagebus": {
+          "label": "Legare între tile-uri"
+        },
+        "database": {
+          "label": "Ieșire: blocuri și rânduri"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "trecerea-1",
+        "label": "Trecerea 1",
+        "focus": [
+          "angle",
+          "spacing",
+          "bandfit",
+          "multi",
+          "hard_gate",
+          "soft_gate"
+        ],
+        "note": "Fiecare vârf primește o linie Huber, apoi filtrele dure și, la final, eticheta soft; pe cel mult 3 orientări."
+      },
+      {
+        "id": "respinsi",
+        "label": "Respinși",
+        "focus": [
+          "hard_gate",
+          "hard_rej",
+          "soft_gate",
+          "soft_rej",
+          "link"
+        ],
+        "note": "Respinșii duri dispar la legare; cei soft (561 no_periodicity, 4 low_snr) rămân doar lângă un acceptat."
+      },
+      {
+        "id": "vita-tanara",
+        "label": "Viță tânără",
+        "focus": [
+          "soft_gate",
+          "prior",
+          "guided_gate",
+          "link"
+        ],
+        "note": "Rândurile acceptate dau grila vecinilor; tile-urile cu ≤ 4 rânduri primesc +127 candidați pe 18 tile-uri."
+      },
+      {
+        "id": "legare-blocuri",
+        "label": "Legare și blocuri",
+        "focus": [
+          "soft_gate",
+          "guided_gate",
+          "link",
+          "blocks"
+        ],
+        "note": "Bucățile se leagă peste marginile tile-urilor, apoi graful de vecinătate dă blocurile V01… și rândurile R001…."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "rejected",
+      "label": "Respinși · rejected_reason",
+      "variant": "exception"
+    },
+    {
+      "id": "profile",
+      "label": "Trecerea 1 · profil (profile.py)"
+    },
+    {
+      "id": "lines",
+      "label": "Linii, filtre și legare · UTM"
+    },
+    {
+      "id": "guided",
+      "label": "Trecerea 2 · rows_guided.py"
+    }
+  ],
+  "mainPath": [
+    "angle",
+    "spacing",
+    "bandfit",
+    "hard_gate",
+    "soft_gate",
+    "link",
+    "blocks"
+  ],
+  "nodes": [
+    {
+      "id": "hard_rej",
+      "lane": "rejected",
+      "col": 2,
+      "type": "external",
+      "label": "Respingere dură",
+      "sublabel": "too_wide: 4412 din 6860",
+      "tag": "eliminată la legare",
+      "width": 160
+    },
+    {
+      "id": "soft_rej",
+      "lane": "rejected",
+      "col": 3,
+      "type": "external",
+      "label": "Respingere soft",
+      "sublabel": "no_periodicity 561 · low_snr 4",
+      "tag": "rămâne candidat la legare",
+      "width": 172
+    },
+    {
+      "id": "angle",
+      "lane": "profile",
+      "col": 0,
+      "type": "backend",
+      "label": "Unghi dominant",
+      "sublabel": "cel mai clar profil · 0,5°",
+      "tag": "pas 2°, apoi 0,5°",
+      "width": 150
+    },
+    {
+      "id": "spacing",
+      "lane": "profile",
+      "col": 1,
+      "type": "backend",
+      "label": "Spațiere rânduri",
+      "sublabel": "autocorelație · 1,8–3,8 m",
+      "tag": "+ SNR spectral la 1/s",
+      "width": 150
+    },
+    {
+      "id": "multi",
+      "lane": "lines",
+      "col": 0,
+      "type": "backend",
+      "label": "Multi-orientare",
+      "sublabel": "pixelii rămași · max 3",
+      "tag": "secundară: doar cu SNR ≥ 3",
+      "width": 150
+    },
+    {
+      "id": "bandfit",
+      "lane": "lines",
+      "col": 1,
+      "type": "backend",
+      "label": "Vârfuri + Huber",
+      "sublabel": "fiecare vârf · bandă 0,35 m",
+      "tag": "poartă de unghi ±3°",
+      "width": 150
+    },
+    {
+      "id": "hard_gate",
+      "lane": "lines",
+      "col": 2,
+      "type": "security",
+      "label": "Filtre dure",
+      "sublabel": "short · low_occupancy · too_wide",
+      "tag": "too_wide: p80 ≥ 1,2 m + închis",
+      "width": 172
+    },
+    {
+      "id": "soft_gate",
+      "lane": "lines",
+      "col": 3,
+      "type": "security",
+      "label": "Etichetă soft",
+      "sublabel": "după filtrele dure",
+      "tag": "periodicitate · SNR ≥ 3",
+      "width": 160
+    },
+    {
+      "id": "link",
+      "lane": "lines",
+      "col": 4,
+      "type": "messagebus",
+      "label": "Legare globală",
+      "sublabel": "union-find în EPSG:32635",
+      "tag": "Δθ ≤ 3° · offset ≤ 0,3 m",
+      "width": 140
+    },
+    {
+      "id": "blocks",
+      "lane": "lines",
+      "col": 5,
+      "type": "database",
+      "label": "Blocuri, row_id",
+      "sublabel": "V01-R001… · 717 rânduri",
+      "tag": "54 blocuri, ≥ 3 rânduri/bloc",
+      "width": 140
+    },
+    {
+      "id": "prior",
+      "lane": "guided",
+      "col": 3,
+      "type": "backend",
+      "label": "Grila vecinilor",
+      "sublabel": "unghi · spațiere · fază UTM",
+      "tag": "tile ≤ 4 rânduri, vecin ≥ 5",
+      "width": 150
+    },
+    {
+      "id": "guided_gate",
+      "lane": "guided",
+      "col": 4,
+      "type": "security",
+      "label": "Porți ghidate",
+      "sublabel": "continuă un vecin ≤ 1,5 m",
+      "tag": "18 tile-uri recuperate",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-angle-spacing",
+      "from": "angle",
+      "to": "spacing",
+      "variant": "default"
+    },
+    {
+      "id": "e-spacing-fit",
+      "from": "spacing",
+      "to": "bandfit",
+      "variant": "default"
+    },
+    {
+      "id": "e-fit-filters",
+      "from": "bandfit",
+      "to": "hard_gate",
+      "variant": "default"
+    },
+    {
+      "id": "e-hard-soft",
+      "from": "hard_gate",
+      "to": "soft_gate",
+      "variant": "default"
+    },
+    {
+      "id": "e-hard-fail",
+      "from": "hard_gate",
+      "to": "hard_rej",
+      "label": "respins",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-soft-fail",
+      "from": "soft_gate",
+      "to": "soft_rej",
+      "label": "fără periodicitate / SNR < 3",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-accept-link",
+      "from": "soft_gate",
+      "to": "link",
+      "label": "1302 acceptați",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e-soft-rescue",
+      "from": "soft_rej",
+      "to": "link",
+      "label": "doar lângă un acceptat",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-fit-loop",
+      "from": "bandfit",
+      "to": "multi",
+      "label": "pixeli rămași",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "e-multi-angle",
+      "from": "multi",
+      "to": "angle",
+      "label": "orientarea următoare",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "e-accept-prior",
+      "from": "soft_gate",
+      "to": "prior",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-prior-gate",
+      "from": "prior",
+      "to": "guided_gate",
+      "variant": "default"
+    },
+    {
+      "id": "e-guided-link",
+      "from": "guided_gate",
+      "to": "link",
+      "label": "+127 candidați",
+      "variant": "emphasis",
+      "role": "branch",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e-link-blocks",
+      "from": "link",
+      "to": "blocks",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Unde contează SNR",
+      "items": [
+        "Pe orientarea principală SNR doar etichetează: fiecare vârf e potrivit Huber și trece prin filtrele dure",
+        "Pe o orientare secundară, lipsa periodicității sau SNR < 3 oprește toată orientarea"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "De ce se pierdeau viile tinere",
+      "items": [
+        "Perioada plantelor tinere (3,0–3,1 m) cade în fereastra de livadă [3,0; 6,0] m, deci rândul lat devine too_wide",
+        "Pe sol gol, tile-ul nu pare periodic (no_periodicity): pe cele 18 tile-uri, doar 6 rânduri acceptate"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Ce repară trecerea ghidată",
+      "items": [
+        "Grila vecinilor: doar ±2° și ±15%; livadă abia de la 3,3 m; too_wide doar la p80 > 1,4 m și contrast < 0,5",
+        "full-v2 → full-v3: 695 → 717 rânduri, 53 → 54 blocuri; rows F1 = 1,0 pe r006 și r021"
+      ]
+    }
+  ]
+}

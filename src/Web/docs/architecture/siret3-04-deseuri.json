@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Sireț3 · lanțul de detecție a deșeurilor",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      520
+    ],
+    "legend": {
+      "entries": {
+        "default": {
+          "label": "flux de date"
+        },
+        "emphasis": {
+          "label": "flux principal"
+        },
+        "security": {
+          "label": "aprobare umană"
+        },
+        "dashed": {
+          "label": "intrare auxiliară"
+        },
+        "database": {
+          "label": "strat stocat"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Candidați pe tile"
+    },
+    {
+      "label": "Filtre dure"
+    },
+    {
+      "label": "Scor ML"
+    },
+    {
+      "label": "Decizie umană"
+    },
+    {
+      "label": "Export"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ortho",
+      "type": "external",
+      "label": "Ortofoto Sireț3",
+      "sublabel": "311 tile-uri · 2,5 cm/px",
+      "stage": 0,
+      "row": 0,
+      "width": 120,
+      "tag": "EPSG:32635"
+    },
+    {
+      "id": "cand",
+      "type": "backend",
+      "label": "Candidați culoare",
+      "sublabel": "vivid/bright · 143.723",
+      "stage": 0,
+      "row": 1,
+      "width": 120,
+      "tag": "per tile"
+    },
+    {
+      "id": "axes",
+      "type": "database",
+      "label": "Axe de rând",
+      "sublabel": "etapa blocks · tile + 1 m",
+      "stage": 1,
+      "row": 0,
+      "width": 120,
+      "tag": "rows.parquet"
+    },
+    {
+      "id": "filters",
+      "type": "security",
+      "label": "Filtre dure",
+      "sublabel": "7 reguli · rămân 18.947",
+      "stage": 1,
+      "row": 1,
+      "width": 120,
+      "tag": "filters.py"
+    },
+    {
+      "id": "uav",
+      "type": "external",
+      "label": "UAVVaste + Sireț3",
+      "sublabel": "3.000 poz. · 8.292 neg.",
+      "stage": 2,
+      "row": 0,
+      "width": 120,
+      "tag": "CC-BY-4.0"
+    },
+    {
+      "id": "probe",
+      "type": "backend",
+      "label": "CLIP + probe",
+      "sublabel": "ViT-B-32 · AUC 0,991",
+      "stage": 2,
+      "row": 1,
+      "width": 120,
+      "tag": "probe.py"
+    },
+    {
+      "id": "sam",
+      "type": "backend",
+      "label": "Verificator SAM 3",
+      "sublabel": "CPU · 13,1 s/crop",
+      "stage": 2,
+      "row": 2,
+      "width": 120,
+      "tag": "Sam3Model"
+    },
+    {
+      "id": "confirmed",
+      "type": "security",
+      "label": "Aprobare echipă",
+      "sublabel": "waste_confirmed.csv · 3 accept",
+      "stage": 3,
+      "row": 0,
+      "width": 144,
+      "tag": "configs/"
+    },
+    {
+      "id": "review",
+      "type": "frontend",
+      "label": "Listă review",
+      "sublabel": "NMS · rank ≥ 0,3 · 1.335",
+      "stage": 3,
+      "row": 1,
+      "width": 120,
+      "tag": "waste_review.html"
+    },
+    {
+      "id": "cvat",
+      "type": "frontend",
+      "label": "Export CVAT",
+      "sublabel": "adnotări pentru Marcaj",
+      "stage": 4,
+      "row": 0,
+      "width": 120,
+      "tag": "cutii"
+    },
+    {
+      "id": "layer",
+      "type": "database",
+      "label": "Strat final waste",
+      "sublabel": "waste.parquet · 3 cutii",
+      "stage": 4,
+      "row": 1,
+      "width": 120,
+      "tag": "W0001–W0003"
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "Ținte de traseu",
+      "sublabel": "prioritate 1 (maximă)",
+      "stage": 4,
+      "row": 2,
+      "width": 120,
+      "tag": "target_waste.py"
+    }
+  ],
+  "flows": [
+    {
+      "id": "rgb",
+      "from": "ortho",
+      "to": "cand",
+      "label": "RGB + mască validă",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        100,
+        200
+      ]
+    },
+    {
+      "id": "boxes",
+      "from": "cand",
+      "to": "filters",
+      "label": "cutii HSV",
+      "variant": "emphasis"
+    },
+    {
+      "id": "axis-in",
+      "from": "axes",
+      "to": "filters",
+      "label": "< 0,6 m de axă",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        315,
+        200
+      ]
+    },
+    {
+      "id": "survivors",
+      "from": "filters",
+      "to": "probe",
+      "label": "crop 224 px",
+      "variant": "emphasis"
+    },
+    {
+      "id": "train",
+      "from": "uav",
+      "to": "probe",
+      "label": "antrenare offline",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        530,
+        200
+      ]
+    },
+    {
+      "id": "gate",
+      "from": "probe",
+      "to": "sam",
+      "label": "probe ≥ 0,3",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        530,
+        314
+      ]
+    },
+    {
+      "id": "ranked",
+      "from": "probe",
+      "to": "review",
+      "label": "scor probe",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sam-boost",
+      "from": "sam",
+      "to": "review",
+      "label": "scor SAM 3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          745,
+          385
+        ]
+      ]
+    },
+    {
+      "id": "approve",
+      "from": "review",
+      "to": "confirmed",
+      "label": "linie CSV",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "accepted",
+      "from": "confirmed",
+      "to": "layer",
+      "label": "IoU ≥ 0,5",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "to-cvat",
+      "from": "layer",
+      "to": "cvat",
+      "label": "cutii tile px",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "to-route",
+      "from": "layer",
+      "to": "route",
+      "label": "centrul cutiei",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        960,
+        314
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Reguli întâi: ieftine, clare",
+      "items": [
+        "Candidat = pată vivid (S ≥ 150, V ≥ 70, nuanță în afara verdelui 25–95) sau bright (V > 200, S < 45), arie ≥ 0,015 m²; > 6 m² → filtrul vehicle",
+        "Filtrele resping ce seamănă cu un deșeu, dar nu e: tuburi albe, sol deschis, furtunuri, vehicule — „când ai dubii, lasă-l afară”",
+        "Rulare full-v2: too_small_white 63.337 · bright_soil 43.330 · tube_shape 9.943 · near_axis 6.084 · forbidden 1.697 · vehicle 385 · nms 57"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Modelele doar ordonează lista",
+      "items": [
+        "Probe pe embedding CLIP: 3.000 pozitive UAVVaste și 8.292 negative Sireț3, validare încrucișată pe 5 grupuri",
+        "SAM 3 rulează pe CPU 5 prompturi text pe crop de 512 px, cu până la 3 cutii negative pe tuburile albe din jur",
+        "Buget de 1.800 s: 137 din 1.335 crop-uri verificate; un al doilea pas lângă blocuri: 162 crop-uri, 14,4 s/crop"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Omul decide exportul",
+      "items": [
+        "auto_accept_enabled: false — înainte de Publish nimic nu se exportă automat",
+        "9 pozitive SAM 3 (6 + 3); doar cele 3 aflate la ≤ 10 m de un bloc au fost aprobate de echipă",
+        "W0001–W0003 lângă V03, V01 și V14 (9,7 m · 7,2 m · 0,6 m), categoria debris"
+      ]
+    }
+  ]
+}
