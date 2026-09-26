@@ -35,7 +35,7 @@ def test_enum_values_exact_lowercase() -> None:
     ]
     assert _values(TileStatus) == ["ok", "empty_nodata", "no_vineyard", "failed"]
     assert _values(Severity) == ["error", "warning", "info"]
-    assert _values(EdgeKind) == ["interrow_centerline", "passage_centerline", "connector", "target_spur"]
+    assert _values(EdgeKind) == ["interrow_centerline", "passage_centerline", "connector", "target_spur", "cross_path"]
     assert _values(GeomKind) == ["polygon", "polyline", "box"]
 
 

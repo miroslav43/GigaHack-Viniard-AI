@@ -493,6 +493,28 @@ targets:
   # spurious rows inside an interrow (neighbours half a spacing away, 1.1-1.5 m on viz42) are no comparison.
   end_neighbour_min_offset_m: 1.5
 
+# Tracks / tractor lanes across the rows of a block (vineyard.route.cross_paths; detected in `passable`).
+# A track leaves a gap in every row it crosses at nearly the same place: those gaps are one walkable strip,
+# not missing vines. Row spacing is 2.3-3.0 m; fragmented rows put neighbours up to ~1.6 spacings apart.
+cross_paths:
+  enabled: true
+  min_gap_m: 1.5                           # a crossing gap, measured on canopy pixels along the row
+  max_gap_m: 15.0                          # longer gaps are missing vines, not a crossing
+  max_width_m: 8.0                         # median crossing gap; wider "tracks" were patches of missing vines
+  min_rows: 6                              # a track crosses at least this many rows
+  min_segment_rows: 4                      # every straight piece of a (bent) track crosses this many rows
+  link_min_m: 1.2                          # gaps closer than this across the rows are the same row
+  link_max_m: 4.5                          # ... and farther than this are not neighbouring rows
+  overlap_tol_m: 0.3                       # neighbouring crossings must overlap along the rows (grown by this)
+  max_residual_m: 1.5                      # gap centres within this of the track's polyline (Douglas-Peucker)
+  end_extend_spacing: 0.75                 # the track reaches this many row spacings past its outer crossings
+  drop_targets: true                       # crossed stretches are no row_gap / missing_plant / sparse gap
+  route: true                              # track centrelines join the walk graph (crossing every centreline)
+  # Count the strips as walking domain in our validator. The brief's allowed area is "passable inter-row
+  # areas and authorised passages" only, so the default is false: the stretch of a track outside our
+  # interrow domain (the row line itself) is outside metres, costed by the outside penalty and budget.
+  passable: false
+
 route:                                     # D4 §4 (A§4.11 names)
   start_file: 02_route/start.geojson       # relative to data_root
   start_tolerance_m: 5.0

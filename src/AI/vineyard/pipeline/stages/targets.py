@@ -1,4 +1,4 @@
-"""Stage `targets`: AnnSet + derive `rows` (+ `passable_domain`, tile_valid, in_forbidden) -> targets layers.
+"""Stage `targets`: AnnSet + derive `rows` (+ `passable_domain`, `cross_paths`, tile_valid, in_forbidden) -> targets.
 
 Writes layers/targets.parquet, layers/target_extents.parquet, qa/issues_targets.parquet and
 metrics/targets.json in the current post run. Gaps come from the single row-gap engine
@@ -14,6 +14,7 @@ from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.logging_setup import get_logger, log_event
 from vineyard.pipeline.atomic import atomic_write_json
 from vineyard.pipeline.registry import StageSpec
+from vineyard.pipeline.stages._cross_paths_io import strips_union
 from vineyard.pipeline.stages._post_io import (
     coverage,
     find_post_run,
@@ -38,8 +39,9 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 STAGE_NAME: Final = "targets"
-STAGE_VERSION: Final = "2"
-CFG_KEYS: Final = ("targets", "canopy.corridor_half_m", "route.candidate_radius_m", "row_structure")
+# 3: the stretches of row gaps inside a cross-path strip (passable's cross_paths layer) are no targets
+STAGE_VERSION: Final = "3"
+CFG_KEYS: Final = ("targets", "canopy.corridor_half_m", "route.candidate_radius_m", "row_structure", "cross_paths")
 ROWS_LAYER: Final = "rows"
 QA_NAME: Final = "issues_targets.parquet"
 METRICS_NAME: Final = "targets.json"
@@ -55,10 +57,12 @@ def make_gap_fn(ctx: RunContext) -> GapFn:
 def _inputs(ctx: RunContext, annset: AnnSet, paths: RunPaths) -> tuple[TargetInputs, bool]:
     covered, from_tile_valid = coverage(ctx, sorted(annset.tile_ids()))
     domain = walking_domain(paths, ctx)
+    cross = ctx.cfg.cross_paths
     inputs = TargetInputs(rows=read_layer(layer_path(paths, ROWS_LAYER), ROWS_LAYER), canopies=annset.canopies,
                           waste=annset.waste, coverage=covered,
                           reach_domain=None if domain is None else domain.inner,
-                          forbidden=static_geometry(ctx, "in_forbidden"))
+                          forbidden=static_geometry(ctx, "in_forbidden"),
+                          cross_paths=strips_union(paths) if cross.enabled and cross.drop_targets else None)
     return inputs, from_tile_valid
 
 

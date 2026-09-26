@@ -1,8 +1,11 @@
 """Stage `passable` (post run): walking domain + walk graph (arch §4.11.1-2, contract §2.5.12).
 
 Reads the AnnSet (`--annset` run), derive's `rows` (+ `interrow_pieces_linked` when present) and the
-static route inputs; writes layers passable_domain / passable_parts / walk_nodes / walk_edges,
-qa/issues_passable.parquet and metrics/passable_report.json (headland metrics of all strategies).
+static route inputs; detects the tracks across the rows (`vineyard.route.cross_paths`, cfg `cross_paths`);
+writes layers passable_domain / passable_parts / walk_nodes / walk_edges / cross_paths / cross_path_lines,
+qa/issues_passable.parquet, metrics/passable_report.json (headland metrics of all strategies) and
+metrics/cross_paths.json. With `cross_paths.route` the track centrelines join the walk graph, crossing every
+interrow centerline they meet; with `cross_paths.passable` their strips also join the walking domain.
 """
 
 from __future__ import annotations
@@ -11,10 +14,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
 import geopandas as gpd
+import numpy as np
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from vineyard.contracts.enums import Severity
+from vineyard.contracts.enums import EdgeKind, Severity
 from vineyard.contracts.qa import QaIssue, issues_to_gdf
 from vineyard.errors import SchemaError, StageError
 from vineyard.geo.tiling import tile_of_point
@@ -22,9 +26,11 @@ from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.logging_setup import get_logger, log_event
 from vineyard.pipeline.atomic import atomic_write_json
 from vineyard.pipeline.registry import StageSpec
+from vineyard.pipeline.stages._cross_paths_io import detect_for_run, route_lines, write_cross_paths
 from vineyard.pipeline.stages._post_io import load_annset, static_frame
 from vineyard.route import graph_io
 from vineyard.route.connectors import HeadlandStrategy
+from vineyard.route.cross_paths import CrossPath
 from vineyard.route.walk_build import (
     PassableInputs,
     PassableParams,
@@ -40,8 +46,12 @@ if TYPE_CHECKING:
     from vineyard.pipeline.runner import StageResult
 
 NAME: Final = "passable"
-VERSION: Final = "1"
-CFG_KEYS: Final = ("route.domain", "route.graph", "route.start_file", "route.max_outside_frac_publish")
+# 2: tracks across the rows (cross_paths layers; their centrelines in the walk graph)
+VERSION: Final = "2"
+CFG_KEYS: Final = ("route.domain", "route.graph", "route.start_file", "route.max_outside_frac_publish", "cross_paths",
+                   "row_structure", "canopy.corridor_half_m", "targets.edge_margin_m", "targets.gap_min_m",
+                   "targets.end_short_min_m", "targets.missing_min_m", "targets.include_missing",
+                   "targets.include_sparse")
 REQUIRES: Final = ("derive",)
 ROWS_FILE: Final = "rows.parquet"
 LINKED_FILE: Final = "interrow_pieces_linked.parquet"
@@ -68,7 +78,8 @@ def _start_xy(frame: gpd.GeoDataFrame) -> tuple[float, float]:
     return float(point.x), float(point.y)
 
 
-def load_inputs(ctx: RunContext) -> PassableInputs:
+def load_inputs(ctx: RunContext, cross: tuple[CrossPath, ...] | None = None) -> PassableInputs:
+    """Stage inputs; `cross` = the detected cross-paths (detected here when None)."""
     rows_path = ctx.paths.layers_dir / ROWS_FILE
     if not rows_path.is_file():
         raise StageError("rows layer missing (run derive first)", stage=NAME, path=str(rows_path))
@@ -78,9 +89,16 @@ def load_inputs(ctx: RunContext) -> PassableInputs:
     passages = _union(_static(ctx, "in_passages"))
     if passages is None:
         raise StageError("in_passages is empty", stage=NAME)
-    return PassableInputs(rows=read_layer(rows_path, "rows"), pieces=pieces,
+    rows = read_layer(rows_path, "rows")
+    paths = detect_for_run(ctx, annset, rows) if cross is None else cross
+    cfg = ctx.cfg.cross_paths
+    return PassableInputs(rows=rows, pieces=pieces,
                           canopies=tuple(annset.layer("canopies").geometry), passages=passages,
-                          forbidden=_union(_static(ctx, "in_forbidden")), start_xy=_start_xy(_static(ctx, "in_start")))
+                          forbidden=_union(_static(ctx, "in_forbidden")), start_xy=_start_xy(_static(ctx, "in_start")),
+                          cross_lines=route_lines(paths) if cfg.route else (),
+                          cross_domain=shapely.union_all([p.polygon for p in paths]) if cfg.passable and paths
+                          else None,
+                          cross_paths=paths)
 
 
 def _tile_id(x: float, y: float) -> str:
@@ -125,10 +143,20 @@ def _write(ctx: RunContext, result: PassableResult, report: dict[str, Any]) -> t
     return tuple(out)
 
 
+def _cross_report(result: PassableResult) -> dict[str, Any]:
+    """Cross-path edges of the chosen graph: count, length, outside length (against domain.inner)."""
+    g = result.graph
+    mask = np.asarray([k == EdgeKind.CROSS_PATH for k in g.edge_kind], dtype=bool)
+    outside = g.outside_len_m()
+    return {"n_edges": int(mask.sum()), "length_m": round(float(g.edge_len_m[mask].sum()), 2),
+            "outside_m": round(float(outside[mask].sum()), 2), "n_crossings": len(result.lines.crossings) // 2}
+
+
 def run(ctx: RunContext) -> StageResult:
     from vineyard.pipeline.runner import StageResult
 
     inputs = load_inputs(ctx)
+    cross_out = write_cross_paths(ctx, inputs.cross_paths)
     params = PassableParams.from_config(ctx.cfg.route)
     try:
         base = graph_for(prepare_lines(inputs, params), params.with_strategy(HeadlandStrategy.PENALTY).connector,
@@ -136,14 +164,15 @@ def run(ctx: RunContext) -> StageResult:
     except ValueError as exc:
         raise StageError("walk graph could not be built", stage=NAME, reason=str(exc)) from exc
     chosen = base if params.connector.strategy == HeadlandStrategy.PENALTY else restrict_result(base, params.connector)
-    report = _report(ctx, params, base, chosen, inputs.passages)
-    outputs = _write(ctx, chosen, report)
+    report = {**_report(ctx, params, base, chosen, inputs.passages), "cross_paths": _cross_report(chosen)}
+    outputs = (*cross_out, *_write(ctx, chosen, report))
     log_event(_log, EVENT_DONE, stage=NAME, nodes=chosen.graph.n_nodes, edges=chosen.graph.n_edges,
               components=len(chosen.components), strategy=str(chosen.strategy))
     return StageResult(stage=NAME, n_items=chosen.graph.n_edges, n_cached=0, n_failed=0, outputs=outputs,
                        metrics={"n_nodes": float(chosen.graph.n_nodes), "n_edges": float(chosen.graph.n_edges),
                                 "n_components": float(len(chosen.components)),
-                                "domain_area_m2": float(chosen.lines.domain.raw.area)})
+                                "domain_area_m2": float(chosen.lines.domain.raw.area),
+                                "n_cross_paths": float(len(inputs.cross_paths))})
 
 
 STAGE: Final = StageSpec(name=NAME, version=VERSION, scope="global", cfg_keys=CFG_KEYS, requires=REQUIRES, run=run,

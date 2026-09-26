@@ -247,6 +247,15 @@ _POST: Final = (
         allow_empty_geom=True,
     ),
     LayerSchema(
+        "cross_paths", POLY, ("path_id",),
+        (C("path_id", "str"), _block(), C("n_rows", "int32"), *_f64("width_m", "length_m", "residual_m"),
+         C("row_ids", "str")),
+    ),
+    LayerSchema(
+        "cross_path_lines", LINE, ("path_id",),
+        (C("path_id", "str"), _block(), C("length_m", "float64")),
+    ),
+    LayerSchema(
         "passable_parts", POLY_MULTI, ("part_id",),
         (C("part_id", "str"), C("kind", "str"), C("ref_id", "str", blank_ok=True), C("area_m2", "float64"),
          C("erosion_m", "float32")),

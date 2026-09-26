@@ -61,6 +61,36 @@ class TargetsConfig(Section):
     end_neighbour_min_offset_m: NonNegFloat
 
 
+class CrossPathsConfig(Section):
+    """Tracks across the rows of a block (vineyard.route.cross_paths): detection, targets, walking."""
+
+    enabled: bool
+    min_gap_m: PosFloat
+    max_gap_m: PosFloat
+    max_width_m: PosFloat
+    min_rows: Annotated[int, Field(ge=2)]
+    min_segment_rows: Annotated[int, Field(ge=2)]
+    link_min_m: PosFloat
+    link_max_m: PosFloat
+    overlap_tol_m: NonNegFloat
+    max_residual_m: NonNegFloat
+    end_extend_spacing: PosFloat
+    drop_targets: bool
+    route: bool
+    passable: bool
+
+    @model_validator(mode="after")
+    def _ordered(self) -> CrossPathsConfig:
+        if self.min_gap_m > self.max_gap_m:
+            raise ValueError(f"cross_paths.min_gap_m ({self.min_gap_m}) must not exceed max_gap_m ({self.max_gap_m})")
+        if self.link_min_m >= self.link_max_m:
+            raise ValueError(f"cross_paths.link_min_m ({self.link_min_m}) must be below link_max_m ({self.link_max_m})")
+        if self.min_segment_rows > self.min_rows:
+            raise ValueError(f"cross_paths.min_segment_rows ({self.min_segment_rows}) must not exceed min_rows "
+                             f"({self.min_rows})")
+        return self
+
+
 class RouteDomainConfig(Section):
     grid_size_m: PosFloat
     inner_buffer_m: NonNegFloat

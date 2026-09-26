@@ -9,12 +9,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import shapely
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 from shapely.geometry.base import BaseGeometry
 
 from vineyard.contracts.enums import EdgeKind
@@ -34,6 +35,7 @@ from vineyard.route.domain import (
     passable_parts,
 )
 from vineyard.route.graph import (
+    Attachment,
     ComponentInfo,
     GraphParams,
     assemble_graph,
@@ -49,6 +51,7 @@ if TYPE_CHECKING:
 PASSAGE_REF_FMT: Final = "P{k:04d}"
 PIECE_ID_COLUMN: Final = "piece_id"
 INTERROW_ID_COLUMN: Final = "interrow_id"
+_CROSSABLE: Final = frozenset({EdgeKind.INTERROW_CENTERLINE, EdgeKind.PASSAGE_CENTERLINE})
 
 
 @dataclass(frozen=True)
@@ -80,6 +83,11 @@ class PassableInputs:
     passages: BaseGeometry
     forbidden: BaseGeometry | None
     start_xy: tuple[float, float]
+    # (path_id, centreline) of the tracks across the rows walked through (route.cross_paths.route)
+    cross_lines: tuple[tuple[str, LineString], ...] = ()
+    # their strips, added to the walking domain only when cross_paths.passable is set
+    cross_domain: BaseGeometry | None = None
+    cross_paths: tuple[Any, ...] = ()   # the detected CrossPath objects (reported and written by the stage)
 
 
 @dataclass(frozen=True, eq=False)
@@ -94,6 +102,7 @@ class LineSet:
     drafts: tuple[PolylineDraft, ...]
     joins: tuple[tuple[int, int], ...]
     start_xy: tuple[float, float]
+    crossings: tuple[Attachment, ...] = ()   # cross-path x centreline intersections (both drafts cut there)
 
 
 @dataclass(frozen=True, eq=False)
@@ -125,6 +134,34 @@ def _drafts(skeleton: Sequence[LineString], lines: Sequence[Centerline]) -> tupl
     return drafts, joins
 
 
+def cross_path_drafts(drafts: Sequence[PolylineDraft],
+                      cross_lines: Sequence[tuple[str, LineString]]) -> tuple[list[PolylineDraft], list[Attachment]]:
+    """Cross-path drafts (appended after `drafts`) and an attachment on both lines at every point where a
+    cross-path meets an interrow centerline or a passage skeleton branch (so the graph gets a shared node)."""
+    lines = [(i, d) for i, d in enumerate(drafts) if d.kind in _CROSSABLE]
+    if not lines or not cross_lines:
+        return [PolylineDraft(g, EdgeKind.CROSS_PATH, ref) for ref, g in cross_lines], []
+    geoms = np.asarray([d.geom for _, d in lines], dtype=object)
+    tree = shapely.STRtree(geoms)
+    out: list[PolylineDraft] = []
+    attach: list[Attachment] = []
+    for k, (ref, line) in enumerate(cross_lines):
+        idx = len(drafts) + k
+        out.append(PolylineDraft(line, EdgeKind.CROSS_PATH, ref))
+        for j in sorted(tree.query(line, predicate="intersects").tolist()):
+            di, d = lines[j]
+            for pt in _points(shapely.intersection(line, d.geom)):
+                attach.append(Attachment(di, float(d.geom.project(pt)), ref))
+                attach.append(Attachment(idx, float(line.project(pt)), ref))
+    return out, attach
+
+
+def _points(geom: BaseGeometry) -> list[Point]:
+    """Intersection points; a collinear overlap contributes its first vertex."""
+    parts = getattr(geom, "geoms", [geom])
+    return [p if isinstance(p, Point) else Point(p.coords[0]) for p in parts if not p.is_empty]
+
+
 def _check_pieces(pieces: gpd.GeoDataFrame) -> None:
     if PIECE_ID_COLUMN not in pieces.columns:
         raise ValueError(f"interrow pieces lack the {PIECE_ID_COLUMN!r} column (got {list(pieces.columns)})")
@@ -135,7 +172,9 @@ def prepare_lines(inputs: PassableInputs, params: PassableParams) -> LineSet:
     _check_pieces(inputs.pieces)
     geoms = tuple(inputs.pieces.geometry)
     ids = tuple(str(v) for v in inputs.pieces[PIECE_ID_COLUMN])
-    dom = build_domain(geoms, inputs.passages, inputs.forbidden, inputs.canopies, params.domain)
+    passable = inputs.passages if inputs.cross_domain is None or inputs.cross_domain.is_empty \
+        else shapely.union(inputs.passages, inputs.cross_domain)
+    dom = build_domain(geoms, passable, inputs.forbidden, inputs.canopies, params.domain)
     eroded_index = CellIndex.build(dom.eroded)
     passage_region = shapely.intersection(inputs.passages, dom.raw, grid_size=params.domain.grid_size_m)
     skeleton = skeleton_lines(passage_region, params.skeleton, guard=dom.eroded)
@@ -144,17 +183,19 @@ def prepare_lines(inputs: PassableInputs, params: PassableParams) -> LineSet:
                                  params.centerline)
     lines = (*mids, *extra)
     drafts, joins = _drafts(skeleton, lines)
+    cross, crossings = cross_path_drafts(drafts, inputs.cross_lines)
     return LineSet(domain=dom, inner_index=CellIndex.build(dom.inner),
                    parts=passable_parts(dom, geoms, ids, inputs.passages), skeleton=skeleton, centerlines=lines,
-                   drafts=tuple(drafts), joins=tuple(joins), start_xy=inputs.start_xy)
+                   drafts=(*drafts, *cross), joins=tuple(joins), start_xy=inputs.start_xy,
+                   crossings=tuple(crossings))
 
 
 def graph_for(lines: LineSet, connector: ConnectorParams, graph: GraphParams) -> PassableResult:
     """Connectors of `connector.strategy` + graph assembly; raises ValueError if START cannot be linked."""
     dom = lines.domain
     plan = plan_connectors(lines.drafts, lines.joins, lines.start_xy, dom.inner, lines.inner_index, connector)
-    walk = assemble_graph((*lines.drafts, *plan.drafts()), plan.attachments(), lines.start_xy, dom.inner, graph,
-                          lines.inner_index)
+    walk = assemble_graph((*lines.drafts, *plan.drafts()), (*plan.attachments(), *lines.crossings), lines.start_xy,
+                          dom.inner, graph, lines.inner_index)
     return PassableResult(lines, plan, walk, component_report(walk), connector.strategy)
 
 
@@ -173,6 +214,6 @@ def build_passable(inputs: PassableInputs, params: PassableParams) -> PassableRe
 
 
 __all__ = [
-    "LineSet", "PassableInputs", "PassableParams", "PassableResult", "build_passable", "graph_for", "prepare_lines",
+    "LineSet", "PassableInputs", "cross_path_drafts", "PassableParams", "PassableResult", "build_passable", "graph_for", "prepare_lines",
     "restrict_result",
 ]

@@ -43,6 +43,8 @@ _PRIORITY: Final = {NodeKind.START: 0, NodeKind.ROW_END: 1, NodeKind.ATTACH: 2, 
                     NodeKind.PASSAGE: 4, NodeKind.INTERROW: 5, NodeKind.TARGET: 6}
 _JUNCTION_FROM: Final = frozenset({NodeKind.PASSAGE, NodeKind.INTERROW})
 _JUNCTION_DEGREE: Final = 3
+# Edge kinds a headland strategy may drop for their outside length (centerlines and passages stay).
+_RESTRICTED: Final = frozenset({EdgeKind.CONNECTOR, EdgeKind.CROSS_PATH})
 
 
 @dataclass(frozen=True)
@@ -263,11 +265,11 @@ def assemble_graph(
 
 
 def restrict_outside(g: WalkGraph, max_outside_m: float) -> WalkGraph:
-    """Same graph without the connector edges that run more than `max_outside_m` outside `inner`.
+    """Same graph without the connector / cross-path edges that run more than `max_outside_m` outside `inner`.
 
     Nodes are kept (ids stay stable); components are recomputed.
     """
-    keep = np.asarray([k != EdgeKind.CONNECTOR for k in g.edge_kind], dtype=bool) | (g.outside_len_m() <= max_outside_m)
+    keep = np.asarray([k not in _RESTRICTED for k in g.edge_kind], dtype=bool) | (g.outside_len_m() <= max_outside_m)
     idx = np.flatnonzero(keep)
     return make_walk_graph(
         g.node_xy, g.node_kind, g.node_ref, g.edge_uv[idx], [g.edge_geom[i] for i in idx],

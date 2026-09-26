@@ -27,7 +27,7 @@ EXPECTED_LAYERS = {
     "tile_index", "tile_valid", "tile_status", "in_passages", "in_forbidden", "in_study_area", "in_start",
     "row_candidates", "rows_raw", "rows", "row_pairs", "rows_rejected", "blocks", "canopies", "row_pieces",
     "interrows", "interrow_pieces", "interrow_pieces_linked", "waste_candidates", "waste", "targets",
-    "target_extents", "target_visits", "passable_parts", "passable_domain", "walk_nodes", "walk_edges",
+    "target_extents", "target_visits", "cross_paths", "cross_path_lines", "passable_parts", "passable_domain", "walk_nodes", "walk_edges",
     "route", "route_stops", "qa_issues",
 }
 

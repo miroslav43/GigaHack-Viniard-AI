@@ -29,6 +29,7 @@ from vineyard.config.sections_perception import (
     RowStructureConfig,
 )
 from vineyard.config.sections_post import (
+    CrossPathsConfig,
     DeriveConfig,
     MeasureConfig,
     PublishConfig,
@@ -59,6 +60,7 @@ class AppConfig(Section):
     qa: QaConfig
     derive: DeriveConfig
     targets: TargetsConfig
+    cross_paths: CrossPathsConfig
     route: RouteConfig
     export: ExportConfig
     import_: ImportConfig = Field(alias="import")

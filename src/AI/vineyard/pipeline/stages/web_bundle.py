@@ -35,7 +35,8 @@ if TYPE_CHECKING:
 STAGE_NAME: Final = "web_bundle"
 # 2: computed measurements use derive's overlap-free interrows; 3: block interrow_area_m2 sum check, computed
 # measurements without derive's pieces remove the cross-block overlap here
-STAGE_VERSION: Final = "3"
+# 4: cross_paths.geojson (passable's tracks across the rows) + its manifest count
+STAGE_VERSION: Final = "4"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
                    "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
@@ -47,6 +48,7 @@ OPTIONAL_LAYERS: Final = {
     "interrows": ("interrow_pieces_linked.parquet", "interrow_pieces_linked"),
     "targets": ("targets.parquet", "targets"), "stops": ("route_stops.parquet", "route_stops"),
     "visits": ("target_visits.parquet", "target_visits"),
+    "cross_paths": ("cross_paths.parquet", "cross_paths"),
 }
 ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"

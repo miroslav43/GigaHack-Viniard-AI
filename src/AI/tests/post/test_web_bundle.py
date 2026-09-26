@@ -373,7 +373,7 @@ def test_reference_bundle_passes_the_web_contract(tmp_path: Path, examples_xml: 
     result = build_web_bundle(inputs, tmp_path / "a", params, generated_at=GEN, pipeline_version="abc", run_id="r")
     found = check_bundle(tmp_path / "a")
     assert result.counts == {"blocks": 2, "rows": 51, "canopies": 650, "interrows": 49, "waste": 2, "targets": 4,
-                             "route": 1}
+                             "route": 1, "cross_paths": 0}
     assert [(f["type"], f["route_order"]) for f in found["targets.geojson"]] == \
         [("gap", 1), ("waste", 2), ("missing", 3), ("gap", None)]
     assert sum(f["row_structure"] == "disrupted" for f in found["rows.geojson"]) == 5

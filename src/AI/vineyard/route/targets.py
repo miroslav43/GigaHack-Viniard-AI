@@ -32,6 +32,7 @@ from vineyard.contracts.schema_defs import MIN_LINE_LENGTH_M
 from vineyard.contracts.schemas import coerce_layer, empty_layer
 from vineyard.errors import SchemaError
 from vineyard.geo.tiling import CRS_EPSG, tile_of_point
+from vineyard.route.cross_paths import subtract_paths
 from vineyard.route.target_gaps import GapFn, row_gaps, unknown_intervals
 from vineyard.route.target_rules import (
     END_SKIP_BOUNDARY,
@@ -67,6 +68,8 @@ COUNT_EDGE: Final = "edge_dropped"
 COUNT_OUTER: Final = "end_outer_row"
 COUNT_ILL_DEFINED: Final = "end_ill_defined"
 COUNT_END_BOUNDARY: Final = "end_on_boundary"
+# prefix of the counts of what the cross-paths removed (targets.json): drafts per kind, rows, gap centimetres
+COUNT_CROSS_PATH: Final = "cross_path"
 _SKIP_COUNT: Final[Mapping[str, str]] = MappingProxyType({
     END_SKIP_BOUNDARY: COUNT_END_BOUNDARY, END_SKIP_NOT_LATERAL: COUNT_ILL_DEFINED,
     END_SKIP_UNOBSERVED: COUNT_ILL_DEFINED})
@@ -120,6 +123,8 @@ class TargetInputs:
     coverage: BaseGeometry
     reach_domain: BaseGeometry | None = None
     forbidden: BaseGeometry | None = None
+    # strips of the tracks across the rows (cross_paths): their stretch of every gap is no missing vine
+    cross_paths: BaseGeometry | None = None
 
 
 @dataclass(frozen=True)
@@ -384,16 +389,34 @@ def _counts(targets: gpd.GeoDataFrame, dropped: Mapping[str, int]) -> Mapping[st
     return MappingProxyType(per_kind | roles | dict(dropped) | extra)
 
 
+def _without_cross_paths(contexts: Sequence[RowContext], cfg: TargetsConfig, cross: BaseGeometry | None,
+                         coverage: BaseGeometry) -> tuple[tuple[RowContext, ...], dict[str, int]]:
+    """Contexts with the cross-path stretches cut out of their gaps, and what that removed (draft counts
+    per kind before dedupe / edge filtering, rows touched, gap metres)."""
+    if cross is None or cross.is_empty:
+        return tuple(contexts), {}
+    shapely.prepare(cross)
+    cut = [subtract_paths(c, cross) for c in contexts]
+    trimmed = tuple(c for c, _ in cut)
+    before = Counter(d.kind.value for d in row_drafts(contexts, cfg, coverage).drafts)
+    after = Counter(d.kind.value for d in row_drafts(trimmed, cfg, coverage).drafts)
+    dropped = {f"{COUNT_CROSS_PATH}_{k}": before[k] - after[k] for k in sorted(before) if before[k] != after[k]}
+    return trimmed, {**dropped, f"{COUNT_CROSS_PATH}_rows": sum(1 for _, m in cut if m > 0.0),
+                     f"{COUNT_CROSS_PATH}_gap_cm": round(100 * sum(m for _, m in cut))}
+
+
 def _kept_drafts(inputs: TargetInputs, settings: TargetSettings, gap_fn: GapFn) -> tuple[list[TargetDraft], dict]:
     """Row drafts off nodata and off the edge margin, plus waste, deduped; with the dropped counts."""
     cfg = settings.targets
-    rows = row_drafts(row_contexts(inputs, settings, gap_fn), cfg, inputs.coverage)
+    contexts, crossed = _without_cross_paths(row_contexts(inputs, settings, gap_fn), cfg, inputs.cross_paths,
+                                             inputs.coverage)
+    rows = row_drafts(contexts, cfg, inputs.coverage)
     on_data = _on_coverage(rows.drafts, inputs.coverage)
     inner = off_edge(on_data, inputs.coverage, settings.edge_margin_m)
     waste = waste_drafts(inputs.waste) if cfg.include_waste else ()
     drafts, n_deduped = dedupe((*inner, *waste), cfg.dedupe_m)
     dropped = {"deduped": n_deduped, "nodata_dropped": len(rows.drafts) - len(on_data),
-               COUNT_EDGE: len(on_data) - len(inner), **rows.skipped}
+               COUNT_EDGE: len(on_data) - len(inner), **rows.skipped, **crossed}
     return list(drafts), dropped
 
 
