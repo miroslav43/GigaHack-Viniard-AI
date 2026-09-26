@@ -27,6 +27,7 @@ import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import AccountTreeOutlined from "@mui/icons-material/AccountTreeOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
+import { AssistantChat } from "@/components/assistant/AssistantChat";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { Logo } from "./Logo";
@@ -95,6 +96,8 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
   // /super-admin is intentionally not in the menu: reachable only by URL (and only for platform admins)
   // "a task was assigned to you" and future in-app notifications (signed-in users only)
   const bell = viewer.kind === "user" && viewer.userId && AUTH_ENABLED ? <NotificationBell userId={viewer.userId} /> : null;
+  // how-to assistant (Gemini, server-side key): for everyone who can see the app, demo included
+  const assistant = <AssistantChat role={viewer.role} demo={viewer.kind === "demo"} />;
   const NAV = [
     ...BASE_NAV,
     ...(viewer.kind === "user" && viewer.uat ? [TASKS_NAV] : []),
@@ -118,6 +121,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         >
           <Logo />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {assistant}
             {bell}
             <LanguageSwitch dense />
             <UserCard viewer={viewer} collapsed />
@@ -171,6 +175,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         >
           <Logo collapsed={collapsed} />
           <Box sx={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: 1 }}>
+            {assistant}
             {bell}
             <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? t("shell.collapse") : t("shell.expand")}>
               {open ? <MenuOpen /> : <Menu />}

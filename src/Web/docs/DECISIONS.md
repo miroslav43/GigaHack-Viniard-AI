@@ -288,3 +288,17 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - notificări scrise din server actions: o atribuire făcută altfel (API, SQL, alt ecran) n-ar notifica pe nimeni;
   - Realtime Broadcast cu canale private: mai multă configurare (politici pe `realtime.messages`) pentru același rezultat.
 - **Consecințe:** tipuri noi (ex. „sarcină rezolvată” către administrator) = o valoare nouă în `kind` + un trigger; email / push pot citi același tabel mai târziu. Migrația: `supabase/migrations/20260926000400_notifications.sql`.
+
+### ADR-027 — Asistent în aplicație (Gemini), cu prompt construit din etichetele interfeței
+- **Context:** utilizatorii primăriei trebuie să afle repede cum se face ceva („cum dau o sarcină unui inspector?”) și să ajungă direct pe pagina potrivită, fără documentație separată.
+- **Decizie:**
+  - un buton „Asistent” în meniu (lângă clopoțel, și în consola super-admin) deschide un panou non-modal; pagina rămâne utilizabilă, iar linkurile din răspuns navighează în aplicație fără să închidă panoul (layout-ul persistă; conversația stă într-un store extern + `sessionStorage`, doar pentru tab-ul curent);
+  - `POST /api/assistant` (Route Handler, `GEMINI_API_KEY` doar pe server, model din `GEMINI_MODEL`, implicit `gemini-3.8-flash`) trimite la Gemini istoricul scurt (≤ 12 mesaje) și un prompt de sistem construit de `src/lib/assistant/prompt.ts`: paginile, pașii pe rol și etichetele **exacte** ale butoanelor, citite din `messages/<limbă>.json` («tasks.createTasks» → „Creează N sarcini”). Răspunsul vine ca text în flux;
+  - promptul știe rolul și primăria din sesiune (nu din client): consola de administrare apare doar pentru `platform_admin`; cifrele zborului se adaugă doar dacă primăria are survey-ul servit;
+  - în client, doar căile interne devin linkuri; linkurile externe, HTML-ul și imaginile din răspuns sunt ignorate;
+  - acces: cont sau vizitator demo (aceeași regulă ca paginile; proxy-ul nu rulează pe `/api`), limită de 30 de întrebări / 10 min per cont sau adresă, întrebare ≤ 1000 de caractere.
+- **Respins:**
+  - cheia în browser (`NEXT_PUBLIC_`): ar fi publică;
+  - text de ajutor scris de mână, separat de interfață: s-ar desincroniza de butoane (testul `scripts/assistant/labels.test.mjs` verifică fiecare etichetă în RO / EN / RU);
+  - unelte (function calling) care execută acțiuni: asistentul doar explică și trimite la pagină; acțiunile rămân în UI, sub RLS.
+- **Consecințe:** fără `GEMINI_API_KEY` panoul spune că nu e configurat. Întrebările, rolul, numele primăriei și cifrele agregate ale zborului ajung la Google (Gemini API); nu se trimit emailuri, parole sau date personale ale altor utilizatori. O funcție nouă în aplicație trebuie descrisă și în `prompt.ts`.

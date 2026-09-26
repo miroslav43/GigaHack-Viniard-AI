@@ -808,5 +808,45 @@
     "allTasks": "All tasks",
     "view": "Open",
     "toast": "A task was assigned to you: {title}"
+  },
+  "assistant": {
+    "title": "Solemtrix assistant",
+    "subtitle": "Ask how to do something in the app",
+    "open": "Assistant",
+    "close": "Close the assistant",
+    "reset": "New conversation",
+    "intro": "I explain the exact steps in the app and give you a direct link to the page where you do them. This window stays open when you follow a link.",
+    "placeholder": "Ask about the app…",
+    "send": "Send",
+    "thinking": "Looking for the answer…",
+    "disclaimer": "AI-generated answers (Gemini). Double-check before important actions.",
+    "suggestions": {
+      "admin": [
+        "How do I give a task to an inspector?",
+        "How do I add an inspector to the team?",
+        "How do I see a row with gaps on the map?"
+      ],
+      "member": [
+        "How do I mark a task as done?",
+        "How do I find my task's location on the map?",
+        "Where do I see the tasks assigned to me?"
+      ],
+      "platform": [
+        "How do I enroll a new municipality?",
+        "How do I add a municipality's admin?",
+        "How do I give a task to an inspector?"
+      ],
+      "demo": [
+        "What does the map show?",
+        "How do I export the measurements as CSV?",
+        "How do I get a municipality account?"
+      ]
+    },
+    "errors": {
+      "not_configured": "The assistant is not configured on this server (GEMINI_API_KEY is missing).",
+      "rate_limit": "Too many questions in a short time. Try again in a few minutes.",
+      "sign_in": "Sign in or enter the demo to use the assistant.",
+      "generic": "Could not get an answer. Try again."
+    }
   }
 }

@@ -808,5 +808,45 @@
     "allTasks": "Toate sarcinile",
     "view": "Deschide",
     "toast": "V-a fost alocată o sarcină: {title}"
+  },
+  "assistant": {
+    "title": "Asistent Solemtrix",
+    "subtitle": "Întrebați cum se face ceva în aplicație",
+    "open": "Asistent",
+    "close": "Închide asistentul",
+    "reset": "Conversație nouă",
+    "intro": "Vă explic pașii exacți din aplicație și vă dau linkul direct spre pagina unde îi faceți. Fereastra rămâne deschisă când urmați un link.",
+    "placeholder": "Întrebați despre aplicație…",
+    "send": "Trimite",
+    "thinking": "Caut răspunsul…",
+    "disclaimer": "Răspunsuri generate de AI (Gemini). Verificați înainte de acțiuni importante.",
+    "suggestions": {
+      "admin": [
+        "Cum dau o sarcină unui inspector?",
+        "Cum adaug un inspector în echipă?",
+        "Cum văd pe hartă un rând cu goluri?"
+      ],
+      "member": [
+        "Cum marchez o sarcină ca rezolvată?",
+        "Cum găsesc pe hartă locul sarcinii mele?",
+        "Unde văd sarcinile atribuite mie?"
+      ],
+      "platform": [
+        "Cum înrolez o primărie nouă?",
+        "Cum adaug administratorul unei primării?",
+        "Cum dau o sarcină unui inspector?"
+      ],
+      "demo": [
+        "Ce arată harta?",
+        "Cum export măsurătorile în CSV?",
+        "Cum obțin un cont de primărie?"
+      ]
+    },
+    "errors": {
+      "not_configured": "Asistentul nu este configurat pe acest server (lipsește GEMINI_API_KEY).",
+      "rate_limit": "Prea multe întrebări într-un timp scurt. Încercați din nou peste câteva minute.",
+      "sign_in": "Autentificați-vă sau intrați în demo ca să folosiți asistentul.",
+      "generic": "Nu am putut obține un răspuns. Încercați din nou."
+    }
   }
 }

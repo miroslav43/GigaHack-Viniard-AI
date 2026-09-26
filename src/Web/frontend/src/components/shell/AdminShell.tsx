@@ -25,6 +25,7 @@ import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import { Link } from "@/i18n/routing";
 import { ADMIN_TABS, type AdminTab } from "@/components/admin/types";
+import { AssistantChat } from "@/components/assistant/AssistantChat";
 import { LanguageSwitch } from "./AppShell";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
@@ -106,6 +107,7 @@ export function AdminShell({ children, viewer }: { children: ReactNode; viewer: 
         <Box sx={{ px: 4, py: 3, bgcolor: "background.paper", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
           <Logo />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <AssistantChat role={viewer.role} demo={false} />
             <LanguageSwitch dense />
             <UserCard viewer={viewer} collapsed />
           </Box>
@@ -149,9 +151,12 @@ export function AdminShell({ children, viewer }: { children: ReactNode; viewer: 
           }}
         >
           <Logo collapsed={collapsed} />
-          <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? ts("collapse") : ts("expand")}>
-            {open ? <MenuOpen /> : <Menu />}
-          </IconButton>
+          <Box sx={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: 1 }}>
+            <AssistantChat role={viewer.role} demo={false} />
+            <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? ts("collapse") : ts("expand")}>
+              {open ? <MenuOpen /> : <Menu />}
+            </IconButton>
+          </Box>
         </Box>
         <Divider sx={{ mx: 5 }} />
         <Box sx={{ px: collapsed ? 0 : 5, pt: 4, display: "flex", justifyContent: collapsed ? "center" : "flex-start" }}>
