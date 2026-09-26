@@ -1,8 +1,16 @@
-work/
-.venv/
-models/
-*.tif
-.pytest_cache/
-.ruff_cache/
-htmlcov/
-**/__pycache__/
+# Allowlist: the image needs only the lock inputs, the package and its configs. Everything else stays out
+# of the build context (work/, .venv/, models/, tiles, tests, reports, coverage and tool caches, secrets).
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!.python-version
+!vineyard
+!configs
+
+# Re-excluded inside the allowlisted folders.
+**/__pycache__
+**/*.pyc
+**/.DS_Store
+configs/local.yaml
+configs/*.local.yaml
