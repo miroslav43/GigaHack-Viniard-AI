@@ -10,7 +10,8 @@ from vineyard.config import AppConfig, load_config
 
 @pytest.fixture(scope="session")
 def cfg() -> AppConfig:
-    return load_config()
+    # These tests exercise the ML verification path; the default pipeline run keeps SAM 3 off.
+    return load_config(overrides=("waste.sam3.enabled=true",))
 
 
 @pytest.fixture
