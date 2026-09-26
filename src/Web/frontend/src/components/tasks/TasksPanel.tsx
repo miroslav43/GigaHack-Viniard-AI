@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -34,7 +34,8 @@ import { ConfirmDialog, useAdminAction } from "@/components/admin/common";
 import { Link } from "@/i18n/routing";
 import { useFormat } from "@/lib/useFormat";
 import { assignTasks, createTasksFromTargets, deleteTasks, setTaskStatus } from "@/app/[locale]/(app)/sarcini/actions";
-import type { Target, TaskKind, TaskRow, TaskStatus } from "@/lib/tasks";
+import type { Target, TaskRow, TaskStatus } from "@/lib/tasks";
+import { useTaskTitle } from "./useTaskTitle";
 
 export type TaskRole = "uat_admin" | "inspector" | "viewer";
 export interface Assignable {
@@ -50,19 +51,6 @@ const STATUS_COLOR: Record<TaskStatus, "default" | "info" | "success" | "warning
   done: "success",
   cancelled: "default",
 };
-
-type Titled = { kind: TaskKind; row_id: string | null; vineyard_id: string | null; gap_length_m: number | null };
-
-function useTaskTitle() {
-  const t = useTranslations("tasks");
-  const f = useFormat();
-  return (x: Titled) => {
-    if (x.kind === "gap") return x.gap_length_m ? t("titleGap", { m: f.m(x.gap_length_m, 1), row: x.row_id ?? "?" }) : t("titleGapNoLen", { row: x.row_id ?? "?" });
-    if (x.kind === "missing") return t("titleMissing", { row: x.row_id ?? "?" });
-    if (x.kind === "waste") return t("titleWaste", { block: x.vineyard_id ?? "?" });
-    return t("titleOther");
-  };
-}
 
 function AssignFields({
   members,
@@ -106,6 +94,7 @@ function AssignFields({
 }
 
 export function TasksPanel({
+  focusId = null,
   role,
   meId,
   tasks,
@@ -113,6 +102,8 @@ export function TasksPanel({
   members,
   adminApi,
 }: {
+  /** task to highlight and scroll to (opened from a notification) */
+  focusId?: number | null;
   role: TaskRole;
   meId: string;
   tasks: TaskRow[];
@@ -127,8 +118,12 @@ export function TasksPanel({
   const { run, pending, snackbar } = useAdminAction();
   const isAdmin = role === "uat_admin";
 
-  const [scope, setScope] = useState<"all" | "mine">(role === "inspector" ? "mine" : "all");
-  const [status, setStatus] = useState<"active" | TaskStatus | "any">("active");
+  const focused = focusId === null ? undefined : tasks.find((x) => x.id === focusId);
+  // the filters start where the focused task is visible
+  const [scope, setScope] = useState<"all" | "mine">(role === "inspector" && (!focused || focused.assignee === meId) ? "mine" : "all");
+  const [status, setStatus] = useState<"active" | TaskStatus | "any">(
+    !focused || focused.status === "open" || focused.status === "in_progress" ? "active" : "any",
+  );
   const [selTasks, setSelTasks] = useState<Set<number>>(new Set());
   const [selTargets, setSelTargets] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
@@ -157,6 +152,10 @@ export function TasksPanel({
       ),
     [tasks, scope, status, meId],
   );
+  useEffect(() => {
+    if (focused) document.getElementById(`task-${focused.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focused]);
+
   const canUpdate = (x: TaskRow) => isAdmin || (role === "inspector" && x.assignee === meId);
   const toggle = <T,>(set: Set<T>, v: T) => {
     const n = new Set(set);
@@ -318,7 +317,13 @@ export function TasksPanel({
                 </TableRow>
               )}
               {visible.map((x) => (
-                <TableRow key={x.id} hover selected={selTasks.has(x.id)}>
+                <TableRow
+                  key={x.id}
+                  id={`task-${x.id}`}
+                  hover
+                  selected={selTasks.has(x.id) || x.id === focusId}
+                  sx={x.id === focusId ? { outline: 2, outlineColor: "primary.main", outlineOffset: -2 } : undefined}
+                >
                   {isAdmin && (
                     <TableCell padding="checkbox">
                       <Checkbox checked={selTasks.has(x.id)} onChange={() => setSelTasks((s) => toggle(s, x.id))} />

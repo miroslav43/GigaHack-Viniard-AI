@@ -51,7 +51,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 | `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc; `?tinta=T003` — ținta unei sarcini |
 | `/blocuri` | Blocuri și rânduri (tabel, filtre, export CSV) | cont logat sau demo | — |
 | `/ruta` | Rută de inspecție (lungime, durată, ordine ținte, GPX / GeoJSON) | cont logat sau demo | — |
-| `/sarcini` | Sarcini de teren (din țintele AI): creare, atribuire, stare, notă | conturi de primărie (`uat_admin` gestionează, `inspector` își actualizează sarcinile, `viewer` citește); demo: mesaj, fără date | — |
+| `/sarcini` | Sarcini de teren (din țintele AI): creare, atribuire, stare, notă; responsabilul primește o notificare în aplicație (clopoțelul din meniu) | conturi de primărie (`uat_admin` gestionează, `inspector` își actualizează sarcinile, `viewer` citește); demo: mesaj, fără date | `?sarcina=<id>` — evidențiază sarcina (link-ul din notificare) |
 | `/echipa` | Echipa primăriei: membri, roluri, încărcare pe sarcini | **doar `uat_admin`**; oricine altcineva logat / demo: **HTTP 403** | — |
 | `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |

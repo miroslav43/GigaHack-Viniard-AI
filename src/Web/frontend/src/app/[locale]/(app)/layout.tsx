@@ -6,6 +6,7 @@ export default async function AppLayout({ children }: LayoutProps<"/[locale]">) 
   const v = await getViewer();
   const viewer: ShellViewer = {
     kind: v.kind,
+    userId: v.userId,
     email: v.email,
     name: v.name,
     role: v.role,

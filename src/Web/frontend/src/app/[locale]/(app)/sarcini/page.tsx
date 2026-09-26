@@ -18,8 +18,11 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/sarcini"
   return { title: `${t("tasks.title")} · Solemtrix` };
 }
 
-export default async function TasksPage({ params }: PageProps<"/[locale]/sarcini">) {
+export default async function TasksPage({ params, searchParams }: PageProps<"/[locale]/sarcini">) {
   const { locale } = await params;
+  // ?sarcina=<id>: opened from a notification, the task is highlighted
+  const focus = Number((await searchParams).sarcina);
+  const focusId = Number.isInteger(focus) && focus > 0 ? focus : null;
   setRequestLocale(locale);
   const t = await getTranslations("tasks");
   const viewer = await getViewer();
@@ -59,7 +62,7 @@ export default async function TasksPage({ params }: PageProps<"/[locale]/sarcini
   return (
     <Page>
       <PageHeader title={t("title")} subtitle={role === "uat_admin" ? t("subtitleAdmin") : t("subtitleMember")} />
-      <TasksPanel role={role} meId={viewer.userId!} tasks={tasks} targets={targets} members={members} adminApi={ADMIN_API_ENABLED} />
+      <TasksPanel key={focusId ?? "all"} focusId={focusId} role={role} meId={viewer.userId!} tasks={tasks} targets={targets} members={members} adminApi={ADMIN_API_ENABLED} />
     </Page>
   );
 }
