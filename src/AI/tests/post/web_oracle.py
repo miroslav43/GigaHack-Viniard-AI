@@ -98,4 +98,42 @@ def check_bundle(out: Path) -> dict[str, list[dict[str, Any]]]:
     (route,) = found["route.geojson"]
     assert route["length_m"] == pytest.approx(route["_geom"].length, abs=0.01)
     _check_refs(found)
+    assert len(check_tiles(out)) == manifest["counts"]["tiles"] == manifest["tiles"]
     return found
+
+
+TILE_M: Final = 51.2
+GRID_X0: Final = 628992.0
+GRID_Y0: Final = 5221222.4
+TILE_ID_RE: Final = re.compile(r"siret3_r(\d{3})_c(\d{3})")
+TILE_PROPS: Final = ("tile", "status", "n_rows", "n_canopies", "n_interrows", "n_waste", "veg_frac", "nodata_frac",
+                     "review_priority", "review_note", "review_status", "has_mask")
+COUNT_PROPS: Final = ("n_rows", "n_canopies", "n_interrows", "n_waste")
+REVIEW_STATUS: Final = {None, "missed", "partial", "verify"}
+
+
+def _check_tile(p: Mapping[str, Any], geom: Any) -> None:
+    match = TILE_ID_RE.fullmatch(p["tile"])
+    assert match is not None, p
+    assert all(type(p[k]) is int and p[k] >= 0 for k in COUNT_PROPS), p
+    assert p["status"] == ("vineyard" if p["n_rows"] or p["n_canopies"] else "no_vineyard"), p
+    assert all(p[k] is None or 0.0 <= p[k] <= 1.0 for k in ("veg_frac", "nodata_frac")), p
+    assert p["review_priority"] is None or type(p["review_priority"]) is int, p
+    assert p["review_status"] in REVIEW_STATUS and (p["review_note"] is None) == (p["review_status"] is None), p
+    assert isinstance(p["has_mask"], bool), p
+    x0, y0 = GRID_X0 + TILE_M * int(match.group(2)), GRID_Y0 - TILE_M * int(match.group(1))
+    assert geom.geom_type == "Polygon" and geom.exterior.is_ccw, p["tile"]
+    assert geom.bounds == pytest.approx((x0, y0 - TILE_M, x0 + TILE_M, y0), abs=1e-3), p["tile"]
+
+
+def check_tiles(out: Path) -> list[dict[str, Any]]:
+    """tiles.geojson: one CCW grid footprint per tile with the tile properties; masks/<tile>.png iff has_mask."""
+    feats = features_of(out / "tiles.geojson")
+    props = [f["properties"] for f in feats]
+    assert all(set(p) == set(TILE_PROPS) for p in props)
+    assert len({p["tile"] for p in props}) == len(props)
+    for f in feats:
+        _check_tile(f["properties"], shape(f["geometry"]))
+    masks = out / "masks"
+    assert all((masks / f"{p['tile']}.png").is_file() == p["has_mask"] for p in props)
+    return props

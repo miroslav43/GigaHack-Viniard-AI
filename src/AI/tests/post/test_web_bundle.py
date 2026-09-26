@@ -30,7 +30,7 @@ from tests.post.factories import (
     row_piece_record,
     waste_record,
 )
-from tests.post.web_oracle import CRS_MEMBER, CSV_HEADER, check_bundle
+from tests.post.web_oracle import CRS_MEMBER, CSV_HEADER, check_bundle, check_tiles
 from vineyard.annset.io import write_annset
 from vineyard.config import load_config
 from vineyard.contracts.enums import Source
@@ -373,7 +373,8 @@ def test_reference_bundle_passes_the_web_contract(tmp_path: Path, examples_xml: 
     result = build_web_bundle(inputs, tmp_path / "a", params, generated_at=GEN, pipeline_version="abc", run_id="r")
     found = check_bundle(tmp_path / "a")
     assert result.counts == {"blocks": 2, "rows": 51, "canopies": 650, "interrows": 49, "waste": 2, "targets": 4,
-                             "route": 1}
+                             "route": 1, "tiles": 311}
+    assert sum(t["status"] == "vineyard" for t in check_tiles(tmp_path / "a")) == 2
     assert [(f["type"], f["route_order"]) for f in found["targets.geojson"]] == \
         [("gap", 1), ("waste", 2), ("missing", 3), ("gap", None)]
     assert sum(f["row_structure"] == "disrupted" for f in found["rows.geojson"]) == 5
@@ -456,7 +457,7 @@ def test_stage_builds_the_bundle_from_the_post_run(post_run: Any) -> None:
     result = spec.run(post_run)
     out = bundle_dir(post_run.cfg.web.out_dir, "siret3")
     assert (spec.name, spec.scope, result.stage, result.n_failed) == ("web_bundle", "global", "web_bundle", 0)
-    assert (out / "measurements.csv").read_bytes() == csv_bytes and result.n_items == len(result.outputs) == 9
+    assert (out / "measurements.csv").read_bytes() == csv_bytes and result.n_items == len(result.outputs) == 10
     found = check_bundle(out)
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert (manifest["stage"], manifest["generated_at"], manifest["pipeline_version"]) == \

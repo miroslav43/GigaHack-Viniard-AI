@@ -610,6 +610,8 @@ web:
     processes: 8
   canopy_mvt: auto
   utm_copies: true
+  mask_px: 1024                            # masks/<tile>.png side; must divide grid.tile_px (any-vegetation max-pool)
+  tile_review: configs/tile_review.csv     # tiles needing completion in Marcaj (tile_id,status,note); null = none
 
 eval:
   example_tiles: [siret3_r006_c004, siret3_r021_c012]

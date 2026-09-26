@@ -131,6 +131,7 @@ def test_set_beats_env_and_env_beats_yaml(tmp_path: Path) -> None:
         "veg.otsu_fallback_veg_frac=[0.9, 0.1]",  # unordered range
         "grid.tile_px=1024",             # tile_m != gsd_m * tile_px
         "runtime.n_workers=0",
+        "web.mask_px=1000",              # does not divide grid.tile_px
     ],
 )
 def test_bad_overrides_fail(override: str) -> None:

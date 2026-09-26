@@ -176,3 +176,7 @@ class WebConfig(Section):
     gdal2tiles: Gdal2TilesConfig
     canopy_mvt: Literal["auto", "off"]
     utm_copies: bool
+    # tiles.geojson / masks/ (web contract §6.3): mask side in px (divides grid.tile_px) and the optional
+    # human review list (tile_id,status,note; status missed | partial | verify), null = none.
+    mask_px: PosInt
+    tile_review: Path | None = None

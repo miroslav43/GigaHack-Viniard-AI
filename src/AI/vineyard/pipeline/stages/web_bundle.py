@@ -2,8 +2,9 @@
 
 Reads the AnnSet named by `--annset` and the optional derive / targets / route / measure outputs of the post
 run: this run when it already holds layers, else the newest earlier post run of the same AnnSet (so
-`vineyard post --from web_bundle` rebuilds the bundle without recomputing the route). Never writes into
-model-run directories.
+`vineyard post --from web_bundle` rebuilds the bundle without recomputing the route). tiles.geojson also reads
+the AnnSet run's layers/tile_status.parquet (model runs only), the tile_prep cache (stats, veg masks) and
+`web.tile_review`. Never writes into model-run directories.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Final
 from zoneinfo import ZoneInfo
 
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import shape
 
 from vineyard.annset.io import ANNSET_DIRNAME, read_annset, resolve_run_dir
@@ -27,6 +29,7 @@ from vineyard.pipeline.stages._post_io import other_post_runs, run_annset_ref, s
 from vineyard.web.bundle import WebInputs, build_web_bundle, bundle_dir, web_params
 from vineyard.web.manifest import generated_at_from_run_id
 from vineyard.web.objects_export import RouteInfo
+from vineyard.web.tile_review import read_tile_review
 
 if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
@@ -34,8 +37,9 @@ if TYPE_CHECKING:
 
 STAGE_NAME: Final = "web_bundle"
 # 2: computed measurements use derive's overlap-free interrows; 3: block interrow_area_m2 sum check, computed
-# measurements without derive's pieces remove the cross-block overlap here
-STAGE_VERSION: Final = "3"
+# measurements without derive's pieces remove the cross-block overlap here; 4: tiles.geojson + masks/ + manifest
+# counts.tiles / masks
+STAGE_VERSION: Final = "4"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
                    "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
@@ -51,6 +55,8 @@ OPTIONAL_LAYERS: Final = {
 ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"
 EXPORT_FILES: Final = (ROUTE_EXPORT, MEASUREMENTS_EXPORT)
+TILE_STATUS_FILE: Final = "tile_status.parquet"
+TILE_STATUS_COLUMNS: Final = ("tile_id", "veg_frac", "review_priority")
 LAYERS_DIRNAME: Final = "layers"
 EXPORTS_DIRNAME: Final = "exports"
 METRICS_FILE: Final = "web_bundle.json"
@@ -124,16 +130,35 @@ def _optional_layer(layers_dir: Path, file_name: str, name: str) -> gpd.GeoDataF
     return read_layer(path, name) if path.is_file() else None
 
 
+def read_tile_status(run_dir: Path) -> pd.DataFrame | None:
+    """The AnnSet run's layers/tile_status (model runs; None for Marcaj / reference sets without one)."""
+    path = run_dir / LAYERS_DIRNAME / TILE_STATUS_FILE
+    if not path.is_file():
+        return None
+    try:
+        frame = pd.read_parquet(path)
+    except (OSError, ValueError) as exc:
+        raise StageError("tile_status layer is unreadable", stage=STAGE_NAME, path=str(path),
+                         error=f"{type(exc).__name__}: {exc}") from exc
+    missing = [c for c in TILE_STATUS_COLUMNS if c not in frame.columns]
+    if missing:
+        raise StageError("tile_status layer lacks columns", stage=STAGE_NAME, path=str(path), missing=missing)
+    return frame[list(TILE_STATUS_COLUMNS)]
+
+
 def load_web_inputs(ctx: RunContext, layers_run: Path) -> WebInputs:
     if not ctx.annset_ref:
         raise StageError("web_bundle needs --annset (the AnnSet the post run was built from)", stage=STAGE_NAME)
-    annset = read_annset(resolve_run_dir(ctx.paths.work_dir, ctx.annset_ref) / ANNSET_DIRNAME)
+    annset_run = resolve_run_dir(ctx.paths.work_dir, ctx.annset_ref)
+    annset = read_annset(annset_run / ANNSET_DIRNAME)
     layers = {field: _optional_layer(layers_run / LAYERS_DIRNAME, file_name, name)
               for field, (file_name, name) in OPTIONAL_LAYERS.items()}
     exports = layers_run / EXPORTS_DIRNAME
     csv_path = exports / MEASUREMENTS_EXPORT
     return WebInputs(annset=annset, route=read_route_export(exports / ROUTE_EXPORT),
-                     measurements_csv=csv_path.read_bytes() if csv_path.is_file() else None, **layers)
+                     measurements_csv=csv_path.read_bytes() if csv_path.is_file() else None,
+                     tile_status=read_tile_status(annset_run), cache_dir=ctx.paths.cache_dir,
+                     tile_review=read_tile_review(ctx.cfg.web.tile_review), **layers)
 
 
 # ------------------------------------------------------------------ run
@@ -156,7 +181,8 @@ def run(ctx: RunContext) -> StageResult:
     report = {"out_dir": str(out), "layers_run": str(layers_run), "counts": dict(result.counts),
               "written": [p.name for p in result.written], "removed": [p.name for p in result.removed],
               "measurements": "measure" if inputs.measurements_csv is not None else "computed",
-              "has_route": inputs.route is not None}
+              "has_route": inputs.route is not None, "n_masks": len(result.masks),
+              "n_review_tiles": len(inputs.tile_review)}
     atomic_write_json(ctx.paths.metrics_dir / METRICS_FILE, report)
     log_event(_log, EVENT_WRITTEN, stage=STAGE_NAME, out_dir=str(out), layers_run=layers_run.name,
               counts=dict(result.counts))

@@ -305,12 +305,17 @@ def _decode_png(path: Path) -> np.ndarray:
     return img
 
 
-def write_mask_png(path: Path, mask: np.ndarray) -> Path:
-    """Write a bool mask as a 1-bit PNG, atomically."""
+def encode_mask_png(mask: np.ndarray, name: str = "mask") -> bytes:
+    """A bool mask as 1-bit PNG bytes (True = 255 when decoded as 8-bit)."""
     if mask.ndim != 2:
         raise ValueError(f"mask must be 2-D, got shape {mask.shape}")
     img = np.where(mask, np.uint8(_U8_MAX), np.uint8(0))
-    return atomic_write_bytes(Path(path), _encode_png(img, _PNG_BILEVEL, Path(path)))
+    return _encode_png(img, _PNG_BILEVEL, Path(name))
+
+
+def write_mask_png(path: Path, mask: np.ndarray) -> Path:
+    """Write a bool mask as a 1-bit PNG, atomically."""
+    return atomic_write_bytes(Path(path), encode_mask_png(mask, str(path)))
 
 
 def read_mask_png(path: Path) -> np.ndarray:
