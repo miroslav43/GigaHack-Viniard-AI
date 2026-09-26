@@ -10,6 +10,7 @@ from vineyard.errors import StageError
 from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.perception.blocks import BlockResult, BlockSettings, build_blocks
 from vineyard.perception.overrides import apply_row_overrides
+from vineyard.perception.row_evidence import VegEvidence
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult
 from vineyard.pipeline.stages.rows_link import (
@@ -20,17 +21,26 @@ from vineyard.pipeline.stages.rows_link import (
     nn_tag,
     write_issues,
 )
+from vineyard.pipeline.tile_cache import load_valid_mask, load_veg_mask
 
 if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "blocks"
-VERSION: Final = "1"
+VERSION: Final = "2"  # 2: row-frame regularisation (blocks.regularize: headlands, lattice, strays)
 OUTPUT_LAYERS: Final = ("rows", "blocks", "row_pairs", "rows_rejected")
 CFG_KEYS: Final = (
     "blocks", "orchard", "rows.detect.spacing_min_m", "rows.link", "canopy.corridor_half_m",
     "export.min_row_piece_m", "paths.overrides",
 )
+
+
+def evidence_of(ctx: RunContext) -> VegEvidence | None:
+    """Veg-mask evidence for blocks.regularize (None when disabled)."""
+    rc = ctx.cfg.blocks.regularize
+    if not rc.enabled:
+        return None
+    return VegEvidence(ctx.paths.cache_dir, rc.evidence_band_m, rc.evidence_step_m, load_veg_mask, load_valid_mask)
 
 
 def blocks_stage(ctx: RunContext) -> tuple[BlockResult, tuple]:
@@ -41,7 +51,7 @@ def blocks_stage(ctx: RunContext) -> tuple[BlockResult, tuple]:
     ov = apply_row_overrides(read_layer(path, ROWS_RAW_LAYER), load_overrides_cfg(ctx),
                              default_tol_m=ctx.cfg.blocks.override_match_tol_m)
     res = build_blocks(ov.frame, load_passages(ctx), load_clips(ctx), BlockSettings.from_config(ctx.cfg),
-                       run_id=ctx.run_id, model_version=ctx.model_version(nn=nn_tag(ctx)))
+                       run_id=ctx.run_id, model_version=ctx.model_version(nn=nn_tag(ctx)), evidence=evidence_of(ctx))
     return res, ov.issues
 
 

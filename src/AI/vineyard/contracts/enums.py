@@ -123,6 +123,8 @@ _PERCEPTION_QA_CODES: Final = (
     "row_interpolated", "missing_row_suspect", "row_offlattice", "row_rescued_low_snr",
     "orchard_rejected", "tree_removed", "tree_hole", "otsu_fallback", "texture_fallback",
     "transverse_band_cut", "curved_row", "override_applied", "override_unmatched", "low_snr",
+    "row_trimmed_headland", "row_off_lattice_removed", "row_undershoot", "row_stray_removed",
+    "row_overshoot_suspect", "row_extended_headland",
 )
 _POST_QA_CODES: Final = (
     "interrow_unlinked", "enum_normalized", "id_whitespace", "domain_disconnected",

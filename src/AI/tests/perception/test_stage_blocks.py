@@ -144,7 +144,8 @@ def test_overrides_are_applied(ctx: RunContext, tmp_path: Path) -> None:
     rows = read_layer(context.paths.layers_dir / "rows.parquet", "rows")
     assert len(rows) == 6 and rows.qa_flags.str.contains("override:A001").sum() == 1
     codes = list(read_layer(context.paths.qa_dir / "qa_blocks.parquet", "qa_issues").code)
-    assert codes == ["override_applied"]
+    # the added row ends 11 m short of the block's headland: blocks.regularize flags it (RC8)
+    assert [c for c in codes if c != "row_undershoot"] == ["override_applied"]
 
 
 def test_missing_inputs_raise(tmp_work: Path) -> None:
