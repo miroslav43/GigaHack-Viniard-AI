@@ -14,12 +14,20 @@ from pathlib import Path
 import pytest
 from shapely.geometry import box
 
-from tests.post.factories import BlockSpec, Prov, build_annset, canopy_record, make_annset, reference_annset
+from tests.post.factories import (
+    DEFAULT_ORIGIN,
+    BlockSpec,
+    Prov,
+    build_annset,
+    canopy_record,
+    make_annset,
+    reference_annset,
+)
 from tests.post.tgt_helpers import rows_from_pieces
 from vineyard.annset.io import write_annset
 from vineyard.config import load_config
 from vineyard.contracts.enums import Source
-from vineyard.geo.vector_io import write_layer
+from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.measure.csv_format import (
     HEADER_LINE,
     MeasurementRecord,
@@ -112,7 +120,7 @@ def test_reference_csv_text_is_exact(reference_measurements):
                           "block,V01,,,25,910.10,237.12,0.0237,2068.03,0.2068,399,",
                           "block,V02,,,26,1031.45,299.06,0.0299,1996.36,0.1996,251,"]
     assert lines[4] == "row,V01,V01-R01,,,1.10,,,,,1,regular"
-    assert check_measurements_csv(text, sum_tol_m=0.05) == ()
+    assert check_measurements_csv(text, sum_tol_m=0.05, sum_tol_m2=0.05) == ()
 
 
 def test_row_max_gap_prefers_the_global_row_value():
@@ -221,7 +229,7 @@ GOOD = ("survey,,,1,2,20.00,1.00,0.0001,2.00,0.0002,3,", "block,V01,,,2,20.00,1.
 
 
 def test_check_measurements_csv_accepts_a_consistent_table():
-    assert check_measurements_csv(_csv(*GOOD), sum_tol_m=0.05) == ()
+    assert check_measurements_csv(_csv(*GOOD), sum_tol_m=0.05, sum_tol_m2=0.05) == ()
     assert len(parse_measurements_csv(_csv(*GOOD))) == 4
 
 
@@ -230,6 +238,7 @@ def test_check_measurements_csv_accepts_a_consistent_table():
     (_csv(*GOOD, GOOD[0]), "survey_rows"),
     (_csv(GOOD[0], "block,V01,,,2,25.00,1.00,0.0001,2.00,0.0002,3,", *GOOD[2:]), "block_sum"),
     (_csv(GOOD[0], GOOD[1], GOOD[2], "row,V01,V01-R002,,,9.00,,,,,1,disrupted"), "row_sum"),
+    (_csv(GOOD[0], "block,V01,,,2,20.00,1.00,0.0001,3.00,0.0003,3,", *GOOD[2:]), "block_interrow_sum"),
     (_csv("survey,,,1,2,abc,1.00,0.0001,2.00,0.0002,3,", *GOOD[1:]), "numbers"),
     (_csv(*GOOD, "total,,,,,,,,,,,"), "levels"),
     (_csv(*GOOD, "row,V01,V01-R003,,,0.00"), "cells"),
@@ -237,12 +246,22 @@ def test_check_measurements_csv_accepts_a_consistent_table():
     ("", "header"),
 ])
 def test_check_measurements_csv_rejects(text, name):
-    assert name in {c.name for c in check_measurements_csv(text, sum_tol_m=0.05)}
+    assert name in {c.name for c in check_measurements_csv(text, sum_tol_m=0.05, sum_tol_m2=0.05)}
+
+
+def test_block_interrow_sum_allows_the_rounding_of_the_written_values():
+    survey = "survey,,,2,2,20.00,1.00,0.0001,2.00,0.0002,3,"
+    blocks = ("block,V01,,,1,12.00,0.50,0.0001,1.00,0.0001,2,", "block,V02,,,1,8.00,0.50,0.0001,1.01,0.0001,1,")
+    rows = ("row,V01,V01-R001,,,12.00,,,,,2,regular", "row,V02,V02-R001,,,8.00,,,,,1,regular")
+    assert check_measurements_csv(_csv(survey, *blocks, *rows), sum_tol_m=0.0, sum_tol_m2=0.0) == ()
+    (failed,) = check_measurements_csv(_csv(survey, blocks[0], blocks[1].replace("1.01", "1.02"), *rows),
+                                       sum_tol_m=0.0, sum_tol_m2=0.0)
+    assert failed.name == "block_interrow_sum" and "sum(block.interrow_area_m2)=2.02" in failed.detail
 
 
 def test_check_measurements_bytes_needs_utf8():
-    assert check_measurements_bytes(_csv(*GOOD).encode("utf-8"), sum_tol_m=0.05) == ()
-    (failed,) = check_measurements_bytes(b"\xff\xfe" + _csv(*GOOD).encode("utf-8"), sum_tol_m=0.05)
+    assert check_measurements_bytes(_csv(*GOOD).encode("utf-8"), sum_tol_m=0.05, sum_tol_m2=0.05) == ()
+    (failed,) = check_measurements_bytes(b"\xff\xfe" + _csv(*GOOD).encode("utf-8"), sum_tol_m=0.05, sum_tol_m2=0.05)
     assert failed.name == "utf8" and describe_failed([failed]).startswith("utf8: ")
 
 
@@ -293,12 +312,87 @@ def test_measure_stage_writes_csv_and_json(tmp_path, fake_runner):
     assert (spec.name, spec.scope, result.stage, result.n_failed, result.n_items) == ("measure", "global",
                                                                                     "measure", 0, 5)
     text = (ctx.paths.exports_dir / "measurements.csv").read_text(encoding="utf-8")
-    assert text.splitlines()[0] == EXPECTED_HEADER and check_measurements_csv(text, sum_tol_m=0.05) == ()
+    assert text.splitlines()[0] == EXPECTED_HEADER
+    assert check_measurements_csv(text, sum_tol_m=0.05, sum_tol_m2=0.05) == ()
     doc = json.loads((ctx.paths.exports_dir / "measurements.json").read_text(encoding="utf-8"))
     assert doc["meta"]["run_id"] == ctx.run_id and doc["meta"]["source"] == "marcaj"
     assert doc["meta"]["annset_ref"] == ctx.annset_ref and doc["total"]["row_count"] == 3
     assert result.metrics["row_length_m"] == pytest.approx(180.0)
+    assert result.metrics["interrow_overlap_removed_here"] == 1.0 and doc["meta"]["derive_run_id"] is None
     assert (ctx.paths.metrics_dir / "measure.json").is_file()
+
+
+def test_measure_stage_reads_derive_interrows(tmp_path, fake_runner):
+    ann = make_annset(BlockSpec(n_rows=3), prov=Prov(Source.MARCAJ, "20260926T0100-marcaj-aaaaaa", "m"))
+    ctx = _post_ctx(tmp_path, ann)
+    write_layer(rows_from_pieces(ann), "rows", ctx.paths.layers_dir / "rows.parquet")
+    linked = ann.interrow_pieces.iloc[:1]  # derive's pieces (overlap-free), not the AnnSet's
+    write_layer(linked, "interrow_pieces_linked", ctx.paths.layers_dir / "interrow_pieces_linked.parquet")
+    result = load_stage("measure").run(ctx)
+    assert result.metrics["interrow_area_m2"] == pytest.approx(linked.geometry.iloc[0].area)
+    assert result.metrics["interrow_area_m2"] < union_area(ann.interrow_pieces)
+    assert result.metrics["interrow_overlap_removed_here"] == 0.0
+    assert _json_doc(ctx)["meta"]["derive_run_id"] == ctx.run_id
+
+
+def _json_doc(ctx) -> dict:
+    return json.loads((ctx.paths.exports_dir / "measurements.json").read_text(encoding="utf-8"))
+
+
+def _earlier_post_run(ctx, annset_ref: str, linked, rows, run_id: str = "20260926T0200-post-bbbbbb") -> str:
+    """A post run (older than ctx's) holding derive's layers, recorded for `annset_ref`."""
+    run = ctx.paths.runs_dir / run_id
+    write_layer(linked, "interrow_pieces_linked", run / "layers" / "interrow_pieces_linked.parquet")
+    write_layer(rows, "rows", run / "layers" / "rows.parquet")
+    (run / "run.json").write_text(json.dumps({"annset_ref": annset_ref}), encoding="utf-8")
+    return run_id
+
+
+def test_standalone_measure_reads_derive_layers_of_an_earlier_post_run(tmp_path, fake_runner):
+    """`vineyard measure --annset X` runs in a new post run: derive's layers come from the newest post run
+    of the same AnnSet, rows (whole-row max_gap_m) included."""
+    ann = make_annset(BlockSpec(n_rows=2), prov=Prov(Source.MARCAJ, "20260926T0100-marcaj-aaaaaa", "m"))
+    ctx = _post_ctx(tmp_path, ann)
+    linked = ann.interrow_pieces.iloc[:1]
+    derive_run = _earlier_post_run(ctx, ctx.annset_ref, linked, rows_from_pieces(ann).assign(max_gap_m=[7.5, 1.0]))
+    result = load_stage("measure").run(ctx)
+    assert result.metrics["interrow_area_m2"] == pytest.approx(linked.geometry.iloc[0].area)
+    assert result.metrics["interrow_overlap_removed_here"] == 0.0
+    doc = _json_doc(ctx)
+    assert doc["meta"]["derive_run_id"] == derive_run and doc["rows"][0]["max_gap_m"] == pytest.approx(7.5)
+
+
+def test_derive_layers_of_another_annset_are_not_used(tmp_path, fake_runner):
+    ann = make_annset(BlockSpec(n_rows=2), prov=Prov(Source.MARCAJ, "20260926T0100-marcaj-aaaaaa", "m"))
+    ctx = _post_ctx(tmp_path, ann)
+    _earlier_post_run(ctx, "20260926T0000-marcaj-zzzzzz", ann.interrow_pieces.iloc[:1], rows_from_pieces(ann))
+    result = load_stage("measure").run(ctx)
+    assert result.metrics["interrow_overlap_removed_here"] == 1.0
+    assert result.metrics["interrow_area_m2"] == pytest.approx(union_area(ann.interrow_pieces))
+
+
+def _crossing_blocks(prov: Prov):
+    """V02 rows at 8° over V01's: their inter-row bands share ground (the r009_c002 shape)."""
+    crossing = BlockSpec(vineyard_id="V02", n_rows=4, angle_deg=8.0,
+                         origin_xy=(DEFAULT_ORIGIN[0] + 10.0, DEFAULT_ORIGIN[1] + 1.0))
+    return make_annset(BlockSpec(n_rows=4), crossing, prov=prov)
+
+
+def test_measure_without_derive_removes_the_cross_block_overlap(tmp_path, fake_runner):
+    ann = _crossing_blocks(Prov(Source.MARCAJ, "20260926T0100-marcaj-aaaaaa", "m"))
+    raw = compute_measurements(_inputs(ann))
+    raw_text = format_measurements_csv(raw.records(), m_decimals=2, ha_decimals=4)
+    assert "block_interrow_sum" in {c.name for c in check_measurements_csv(raw_text, sum_tol_m=0.05,
+                                                                              sum_tol_m2=0.05)}
+    ctx = _post_ctx(tmp_path, ann)
+    result = load_stage("measure").run(ctx)  # no derive layer in any post run of this AnnSet
+    assert result.metrics["interrow_overlap_removed_here"] == 1.0
+    lines = _table((ctx.paths.exports_dir / "measurements.csv").read_text(encoding="utf-8"))
+    survey = float(next(r for r in lines if r["level"] == "survey")["interrow_area_m2"])
+    blocks = sum(float(r["interrow_area_m2"]) for r in lines if r["level"] == "block")
+    assert blocks == pytest.approx(survey, abs=0.02) and survey <= raw.survey.interrow_area_m2 + 1e-6
+    issues = read_layer(ctx.paths.qa_dir / "issues_measure.parquet", "qa_issues")
+    assert "interrow_block_overlap" in set(issues["code"])
 
 
 def test_measure_stage_without_annset_ref_fails(tmp_path, fake_runner):

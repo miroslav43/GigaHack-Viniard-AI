@@ -215,11 +215,11 @@ def build_web_bundle(run_dir: Path, out_dir: Path, tile_index: gpd.GeoDataFrame,
 | Stage | Reads | Writes |
 |---|---|---|
 | `import_marcaj` / `import_reference` | CVAT XML/ZIP, `tile_index` (reference: grid fallback), `tile_valid` (optional) | **CONTRACT** `annset/{canopies,row_pieces,interrow_pieces,waste}.parquet` + `annset.json` (C§2.5.7–10, source = marcaj/reference); `qa/issues_import.parquet` |
-| `derive` | AnnSet, `tile_valid`, `in_passages`, `in_forbidden` | **CONTRACT** `layers/rows`, `layers/blocks`, `layers/interrows` (C§2.5.5/6/9); **REQ** `layers/interrow_pieces_linked` (piece columns + `interrow_id/row_left_id/row_right_id` filled); `qa/issues_derive.parquet` |
+| `derive` | AnnSet, `tile_valid`, `in_passages`, `in_forbidden` | **CONTRACT** `layers/rows`, `layers/blocks`, `layers/interrows` (C§2.5.5/6/9); **REQ** `layers/interrow_pieces_linked` (piece columns + `interrow_id/row_left_id/row_right_id` filled; no cross-block overlap: `perception/block_overlap.py` gives each contested area to one block, qa `interrow_block_overlap`; cut parts below `export.min_interrow_piece_m2` or nowhere `derive.interrow_overlap_min_width_m` wide are dropped); `qa/issues_derive.parquet` |
 | `passable` | AnnSet (`interrow_pieces`, `canopies`), `rows`, `interrow_pieces_linked`, `in_passages`, `in_forbidden`, `in_start` | **CONTRACT** `passable_parts`, `passable_domain` (stores `raw`, `erosion_m=0`), `walk_nodes`, `walk_edges` (C§2.5.12) |
 | `targets` | AnnSet, derive layers, `passable_domain` (**REQ** DAG edge passable→targets), `tile_valid`, `in_forbidden` | **CONTRACT** `targets` (C§2.5.11 + extra columns `reason`, `route_role`, `along_m`), `target_extents` |
 | `route` | `walk_*`, `passable_domain`, `targets`, `in_start` | **CONTRACT** `route`, `route_stops` (C§2.5.13), `metrics/route_validation.json` (C§10); **REQ** `layers/target_visits` (`target_id, reachable_final, reach_note, n_candidates, covered, visit_dist_m, route_role`); `metrics/route_baseline.json`; `exports/route.geojson` |
-| `measure` | AnnSet, `rows`, `targets` (**REQ** DAG edge targets→measure, for `n_targets`) | `exports/measurements.csv` (**CONTRACT** C§5.2), `exports/measurements.json` |
+| `measure` | AnnSet, `rows`, `interrow_pieces_linked` (interrow areas: block lines add up to the survey line, checked by `block_interrow_sum`), `targets` (**REQ** DAG edge targets→measure, for `n_targets`); the derive layers come from this run, else from the newest post run of the same AnnSet; without any, the AnnSet's pieces lose their cross-block overlap in `measure` (warning `measure.interrow_overlap_removed_here`) | `exports/measurements.csv` (**CONTRACT** C§5.2), `exports/measurements.json` |
 | `web_bundle` | all of the above, `tile_index`, tiles | `web.out_dir/**` (**CONTRACT** C§7 manifest/layers) |
 | `publish` | `exports/route.geojson`, `exports/measurements.csv`, `passable_domain` | repo-root `route.geojson`, `measurements.csv` (**CONTRACT** C§5.1/5.2); `metrics/publish_report.json` |
 
@@ -449,6 +449,7 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `derive.interrow_link_max_m` | 3.8 | A§3.6 spacing gate |
 | `derive.min_rows_per_block_warn` | 3 | A§4.4.3 |
 | `derive.garden_forbidden_dist_m` / `garden_max_rows` | 20.0 / 15 | new (informative `is_garden`) |
+| `derive.interrow_overlap_min_m2` / `interrow_overlap_support_m` / `interrow_overlap_min_width_m` | 0.0001 / 1.0 / 0.8 | new (cross-block interrow overlap; width floor > 2 × `interrow.offset_m`) |
 | `derive.gap_corridor_half_m` | 0.30 | A§4.8 |
 | `targets.gap_min_m` | 5.0 | A§3.6 / C§9 |
 | `targets.long_gap_m` | 20.0 | A§4.10 |
@@ -513,7 +514,8 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `measure.area_union_sum_warn_frac` | 0.001 | new |
 | `publish.root_dir` | ../.. | user decision |
 | `publish.require_source` | null (Makefile `final` sets marcaj) | new |
-| `publish.sum_check_tol_m` | 0.05 | new |
+| `publish.sum_check_tol_m` | 0.05 | new (block / row `row_length_m` sums) |
+| `publish.sum_check_tol_m2` | 0.05 | new (block `interrow_area_m2` sum) |
 | `web.out_dir` | ../Web/data | user decision |
 | `web.survey_id` / `survey_name` | siret3 / Sireț3 (bundle dir `surveys/<survey_id>/pipeline/`; id `^[a-z0-9][a-z0-9-]{1,39}$`, name 2-160 chars, as the web's `public.survey`) | C§6.1 |
 | `web.geojson_decimals_4326` | 7 | C§9 |

@@ -3,6 +3,11 @@
 Pure orchestration over merge_rows / row_order / blocks / link_interrows / import_checks. Row gap statistics
 (max_gap_m, n_gaps_ge5) come from the single gap engine through an injected `GapFn`; without one they stay
 NaN / null. Layers carry the AnnSet's source and model_version and the deriving run's run_id.
+
+Every AnnSet (model or Marcaj) passes here before targets / measure, so the interrow pieces lose their
+cross-block overlap first (perception.block_overlap): blocks, links and `interrow_pieces_linked` all use
+the overlap-free pieces, and the block interrow areas add up to the survey union. Import checks still see
+the AnnSet as given.
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ from vineyard.contracts.qa import QaIssue, issues_to_gdf
 from vineyard.contracts.schemas import coerce_layer, empty_layer, validate_layer
 from vineyard.errors import SchemaError
 from vineyard.geo.tiling import CRS_EPSG, tile_box, tile_ref
+from vineyard.perception.block_overlap import BlockOverlapParams, BlockOverlapResult, remove_block_overlap
 from vineyard.route.target_gaps import GapFn, row_gaps
 
 # CONFIG-REQUEST: derive.join_support_min_m = 2.0
@@ -48,6 +54,7 @@ class DeriveParams:
     checks: ImportCheckParams
     gap_ge_m: float  # n_gaps_ge5 threshold (row_structure.gap_disrupted_m)
     corridor_half_m: float  # canopies within this of a row feed its gap statistics
+    overlap: BlockOverlapParams
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> DeriveParams:
@@ -60,6 +67,7 @@ class DeriveParams:
             checks=ImportCheckParams.from_config(cfg),
             gap_ge_m=cfg.row_structure.gap_disrupted_m,
             corridor_half_m=cfg.canopy.corridor_half_m,
+            overlap=BlockOverlapParams.from_config(cfg),
         )
 
 
@@ -78,6 +86,7 @@ class DeriveResult:
     interrows: gpd.GeoDataFrame
     interrow_pieces_linked: gpd.GeoDataFrame
     issues: tuple[QaIssue, ...]
+    overlap: BlockOverlapResult  # the cross-block interrow overlap removal (for its metrics)
 
     def layer(self, name: str) -> gpd.GeoDataFrame:
         if name not in DERIVED_LAYERS:
@@ -93,7 +102,7 @@ class DeriveResult:
             "n_interrows": float(len(self.interrows)), "row_length_m": float(self.rows["length_m"].sum()),
             "n_issues_error": float(severities.count(Severity.ERROR)),
             "n_issues_warning": float(severities.count(Severity.WARNING)),
-        }
+        } | self.overlap.metrics()
 
 
 @dataclass(frozen=True)
@@ -199,17 +208,20 @@ def derive(inputs: DeriveInputs, params: DeriveParams, *, run_id: str | None = N
     rows, merge_issues = merge_rows(annset.row_pieces, params.merge, inputs.coverage)
     ordered = order_rows(rows)
     axes = block_axes(rows)
-    blocks, block_issues = build_blocks(annset, ordered, axes, params.blocks, passages=inputs.passages,
+    overlap = remove_block_overlap(annset.interrow_pieces, annset.canopies, params.overlap)
+    resolved = annset.with_layer("interrow_pieces", overlap.pieces)
+    blocks, block_issues = build_blocks(resolved, ordered, axes, params.blocks, passages=inputs.passages,
                                         forbidden=inputs.forbidden)
-    link = link_interrows(annset.interrow_pieces, annset.row_pieces, ordered, axes, params.link)
+    link = link_interrows(resolved.interrow_pieces, annset.row_pieces, ordered, axes, params.link)
     gaps = None if gap_fn is None else gap_stats(ordered, annset.canopies, inputs.coverage, gap_fn, params)
-    issues = check_annset(annset, params.checks) + merge_issues + block_issues + link.issues
+    issues = check_annset(annset, params.checks) + merge_issues + block_issues + link.issues + overlap.issues
     return DeriveResult(
         rows=records_layer(_row_records(ordered, annset.canopies, gaps), "rows", prov),
         blocks=records_layer([block_record(b) for b in blocks], "blocks", prov),
         interrows=records_layer(link.interrows, "interrows", prov),
         interrow_pieces_linked=_linked_layer(link.pieces),
         issues=tuple(sorted(issues, key=lambda i: i.sort_key)),
+        overlap=overlap,
     )
 
 

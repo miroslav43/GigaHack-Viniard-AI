@@ -40,11 +40,15 @@ HEADER = ("level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_ar
           "interrow_area_m2,interrow_area_ha,plant_count,row_structure")
 CSV_OK = "\n".join((HEADER, "survey,,,1,1,50.00,1.00,0.0001,2.00,0.0002,3,",
                     "block,V01,,,1,50.00,1.00,0.0001,2.00,0.0002,3,", "row,V01,V01-R001,,,50.00,,,,,3,regular")) + "\n"
+# The block line counts 1 m² of inter-row that the survey union has once (two blocks sharing ground).
+CSV_DOUBLED = CSV_OK.replace("block,V01,,,1,50.00,1.00,0.0001,2.00,0.0002,3,",
+                             "block,V01,,,1,50.00,1.00,0.0001,3.00,0.0003,3,")
 # 4 m wide corridor east of START; inner = buffer(-0.05) -> |dy| <= 1.95.
 DOMAIN = box(START[0] - 2.0, START[1] - 2.0, START[0] + 100.0, START[1] + 2.0)
 INNER = DOMAIN.buffer(-0.05)
 LIMITS = PublishLimits(route=RouteFileLimits(max_outside_frac=0.005, closure_max_m=0.01, length_tol_m=0.01,
-                                             grid_size_m=0.001, decimals=2), sum_tol_m=0.05, require_source=None)
+                                             grid_size_m=0.001, decimals=2), sum_tol_m=0.05, sum_tol_m2=0.05,
+                        require_source=None)
 
 
 def _pt(dx: float, dy: float = 0.0) -> list[float]:
@@ -139,7 +143,8 @@ def _detour(dy: float) -> list[list[float]]:
 def test_publish_limit_is_the_configured_1_5_percent(tmp_path, dy, ok):
     """0.95 % outside is published (the old 0.5 % limit refused it); 1.70 % is refused (official: 2 %)."""
     route_cfg = load_config(environ={}).route
-    limits = PublishLimits(route=RouteFileLimits.from_route_cfg(route_cfg), sum_tol_m=0.05, require_source=None)
+    limits = PublishLimits(route=RouteFileLimits.from_route_cfg(route_cfg), sum_tol_m=0.05, sum_tol_m2=0.05,
+                           require_source=None)
     assert limits.route.max_outside_frac == pytest.approx(0.015)
     assert limits.route.max_outside_frac < route_cfg.max_outside_frac_official
     report = _evaluate(tmp_path, _route_doc(_detour(dy)), limits=limits)
@@ -162,8 +167,12 @@ def test_bad_csv_is_refused(tmp_path):
     assert _failed(_evaluate(tmp_path, _route_doc(OUT_AND_BACK), "level,n_rows\nsurvey,1\n")) == {"header"}
 
 
+def test_double_counted_interrow_area_is_refused(tmp_path):
+    assert _failed(_evaluate(tmp_path, _route_doc(OUT_AND_BACK), CSV_DOUBLED)) == {"block_interrow_sum"}
+
+
 def test_require_source(tmp_path):
-    strict = PublishLimits(route=LIMITS.route, sum_tol_m=0.05, require_source="marcaj")
+    strict = PublishLimits(route=LIMITS.route, sum_tol_m=0.05, sum_tol_m2=0.05, require_source="marcaj")
     assert _failed(_evaluate(tmp_path, _route_doc(OUT_AND_BACK), limits=strict, source="reference")) == \
         {"require_source"}
     assert _evaluate(tmp_path, _route_doc(OUT_AND_BACK), limits=strict, source="marcaj").passed
@@ -255,6 +264,14 @@ def test_stage_require_source_from_config(post_run):
         load_stage("publish").run(ctx)
 
 
+def test_stage_refuses_a_double_counted_interrow_area(post_run):
+    (post_run.paths.exports_dir / "route.geojson").write_text(json.dumps(_route_doc(OUT_AND_BACK)))
+    (post_run.paths.exports_dir / "measurements.csv").write_text(CSV_DOUBLED, encoding="utf-8")
+    with pytest.raises(PublishRefused, match="block_interrow_sum"):
+        load_stage("publish").run(post_run)
+    assert not (post_run.cfg.paths.publish_dir / "measurements.csv").exists()
+
+
 def test_stage_refuses_without_a_passable_domain(post_run):
     (post_run.paths.exports_dir / "route.geojson").write_text(json.dumps(_route_doc(OUT_AND_BACK)))
     (post_run.paths.layers_dir / "passable_domain.parquet").unlink()
@@ -344,3 +361,4 @@ def test_find_post_run_matches_a_latest_alias_of_the_same_annset(tmp_path):
     (run / "run.json").write_text(json.dumps({"annset_ref": "20260101T0000-marcaj-gone00"}), encoding="utf-8")
     with pytest.raises(StageError, match="no post run"):
         _post_io.find_post_run(ctx, ("exports/route.geojson",), "publish")
+    assert _post_io.find_optional_post_run(ctx, ("exports/route.geojson",)) is None

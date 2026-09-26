@@ -174,6 +174,13 @@ def test_measurements_use_union_areas_and_exact_format(params: Any) -> None:
                     "row,V01,V01-R001,,,10.00,,,,,2,regular\n")
 
 
+def test_computed_measurements_prefer_derive_interrows(params: Any) -> None:
+    ann = _tiny_annset()
+    linked = ann.interrow_pieces.assign(geometry=[box(629610.0, 5220118.0, 629615.0, 5220119.0)])
+    text = measurements_bytes(WebInputs(annset=ann, interrows=linked), params).decode("utf-8")
+    assert text.splitlines()[1] == "survey,,,1,1,10.00,3.00,0.0003,5.00,0.0005,2,"
+
+
 # ------------------------------------------------------------------ object layers
 
 

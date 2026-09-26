@@ -119,16 +119,25 @@ def same_annset(ctx: RunContext, recorded: str | None) -> bool:
     return mine is not None and mine == theirs
 
 
-def find_post_run(ctx: RunContext, required: Sequence[str], stage: str) -> RunPaths:
-    """Paths of the run holding every `required` path (relative to the run dir)."""
+def find_optional_post_run(ctx: RunContext, required: Sequence[str]) -> RunPaths | None:
+    """Paths of the run holding every `required` path (relative to the run dir): this run, else the newest
+    post run of the same AnnSet; None when no such run exists."""
     if all((ctx.paths.run_dir / rel).exists() for rel in required):
         return ctx.paths
     if ctx.annset_ref:
         for run in other_post_runs(ctx):
             if all((run / rel).exists() for rel in required) and same_annset(ctx, run_annset_ref(run)):
                 return make_run_paths(ctx.cfg, run.name)
-    raise StageError("no post run of this annset holds the stage inputs (run the earlier stages first)",
-                     stage=stage, annset_ref=ctx.annset_ref, required=", ".join(required))
+    return None
+
+
+def find_post_run(ctx: RunContext, required: Sequence[str], stage: str) -> RunPaths:
+    """find_optional_post_run, as a StageError when no run holds the inputs."""
+    paths = find_optional_post_run(ctx, required)
+    if paths is None:
+        raise StageError("no post run of this annset holds the stage inputs (run the earlier stages first)",
+                         stage=stage, annset_ref=ctx.annset_ref, required=", ".join(required))
+    return paths
 
 
 def read_optional_layer(path: Path, name: str) -> gpd.GeoDataFrame | None:
