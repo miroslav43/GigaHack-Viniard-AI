@@ -30,6 +30,7 @@ from vineyard.errors import StageError
 from vineyard.geo.tiling import CRS_EPSG, TILE_M, tile_box, tile_of_point, tile_ref, tiles_for_bounds
 from vineyard.perception.blocks_graph import LineFrame, axial_diff_deg, line_coords, line_frame
 from vineyard.perception.row_features import SOFT_REJECT_REASONS
+from vineyard.perception.rows_seams import duplicate_pairs, groups_of, join_plan
 
 PIECE_ATTRS: Final = ("width_p80_m", "along_duty", "along_period_m", "harmonic_flag", "is_curved")
 FLAG_RESCUED: Final = "row_rescued_low_snr"
@@ -69,6 +70,11 @@ class LinkSettings:
     interp_min_m: float
     hole_support_min_frac: float
     refit_sample_m: float
+    seam_join_max_m: float = 0.0
+    seam_join_angle_max_deg: float = 3.0
+    seam_align_min_m: float = 0.0
+    dup_chain_max_m: float = 0.0
+    dup_chain_min_frac: float = 1.0
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> LinkSettings:
@@ -82,7 +88,10 @@ class LinkSettings:
             gap_record_min_m=det.gap_record_min_m, hole_split_m=blk.collinear_gap_max_m,
             neighbour_max_m=blk.neighbour_max_m, parallel_max_deg=blk.parallel_max_deg,
             interp_min_m=cfg.export.min_row_piece_m, hole_support_min_frac=lk.hole_support_min_frac,
-            refit_sample_m=lk.refit_sample_m,
+            refit_sample_m=lk.refit_sample_m, seam_join_max_m=lk.seam_join_max_m,
+            seam_join_angle_max_deg=lk.seam_join_angle_max_deg, seam_align_min_m=lk.seam_align_min_m,
+            dup_chain_max_m=lk.dup_chain_max_m,
+            dup_chain_min_frac=lk.dup_chain_min_frac,
         )
 
 
@@ -576,6 +585,35 @@ def _decisions(pre: Sequence[tuple[str, str]], chains: Sequence[_Chain], ids: Se
     return pd.DataFrame(sorted(rows, key=lambda r: r[0]), columns=["cand_id", "link_decision", "chain_id"])
 
 
+def merge_duplicate_chains(chains: Sequence[_Chain], pieces: Sequence[Piece], clips: Mapping[str, BaseGeometry],
+                           s: LinkSettings) -> list[_Chain]:
+    """Chains running within dup_chain_max_m of each other over >= dup_chain_min_frac of the shorter one
+    (one row detected twice, e.g. by two orientations or a guided pass) become one refit chain."""
+    if s.dup_chain_max_m <= 0.0 or len(chains) < 2:
+        return list(chains)
+    groups = groups_of(duplicate_pairs([c.line for c in chains], s.dup_chain_max_m, s.dup_chain_min_frac,
+                                       s.seam_join_angle_max_deg), len(chains))
+    grouped = {k for g in groups for k in g}
+    built = [_build_chain(sorted(i for k in g for i in chains[k].members), pieces, s) for g in groups]
+    merged = [replace(ch, line=extend_chain_ends(ch.line, clips, s.snap_m)) for ch in built]
+    return [c for k, c in enumerate(chains) if k not in grouped] + merged
+
+
+def join_chain_ends(chains: Sequence[_Chain], pieces: Sequence[Piece], s: LinkSettings) -> list[_Chain]:
+    """Chains whose facing ends meet (<= seam_join_max_m, head to tail, <= seam_join_angle_max_deg) are one
+    physical row cut at a tile edge: joined into one chain (seam vertex = midpoint of the two ends)."""
+    if s.seam_join_max_m <= 0.0 or len(chains) < 2:
+        return list(chains)
+    plan = join_plan([c.line for c in chains], s.seam_join_max_m, s.seam_join_angle_max_deg, s.seam_align_min_m)
+    joined = {k for path, _ in plan for k in path}
+    out = [c for k, c in enumerate(chains) if k not in joined]
+    for path, line in plan:
+        members = [i for k in path for i in chains[k].members]
+        order = sorted(members, key=lambda i: (line.project(pieces[i].line.centroid), pieces[i].cand_id))
+        out.append(_Chain(tuple(order), line))
+    return out
+
+
 def link_candidates(cands: gpd.GeoDataFrame, passages: BaseGeometry | None, clips: Mapping[str, BaseGeometry],
                     s: LinkSettings) -> LinkResult:
     """row_candidates (UTM) -> rows_raw chains L00001.. (deterministic for any input order)."""
@@ -585,8 +623,9 @@ def link_candidates(cands: gpd.GeoDataFrame, passages: BaseGeometry | None, clip
     chains = split_unsupported([_build_chain(g, pieces, s) for g in groups], pieces, s)
     keep = [ch for ch in chains if not all(pieces[i].soft for i in ch.members)]
     dropped = sorted(i for ch in chains if all(pieces[i].soft for i in ch.members) for i in ch.members)
-    keep = sorted((replace(ch, line=extend_chain_ends(ch.line, clips, s.snap_m)) for ch in keep),
-                  key=lambda ch: min(pieces[i].cand_id for i in ch.members))
+    keep = [replace(ch, line=extend_chain_ends(ch.line, clips, s.snap_m)) for ch in keep]
+    keep = join_chain_ends(merge_duplicate_chains(keep, pieces, clips, s), pieces, s)
+    keep = sorted(keep, key=lambda ch: min(pieces[i].cand_id for i in ch.members))
     ids = [format_chain_id(k + 1) for k in range(len(keep))]
     records = [_chain_record(cid, ch, pieces, clips, s) for cid, ch in zip(ids, keep, strict=True)]
     frame = gpd.GeoDataFrame(records if records else None, columns=list(ROWS_RAW_COLUMNS), geometry="geometry",

@@ -126,8 +126,10 @@ def test_connector_crossing_passage_blocks_link(settings: LinkSettings) -> None:
 
 
 def test_transitive_drift_refused(settings: LinkSettings) -> None:
+    from dataclasses import replace
+
     cands = frame([(0, 1, seg(0, 0.0, TILE_M)), (1, 1, seg(1, 0.0, 20.0, 0.25)), (1, 2, seg(1, 0.0, 20.0, -0.25))])
-    res = link_candidates(cands, None, clips(), settings)
+    res = link_candidates(cands, None, clips(), replace(settings, dup_chain_max_m=0.0))
     b, c = f"{TILES[1]}:K01", f"{TILES[1]}:K02"
     assert not any(b in ch and c in ch for ch in chains_of(res))
     assert len(res.rows_raw) == 2
@@ -244,3 +246,40 @@ def test_end_snap_to_clip(settings: LinkSettings) -> None:
 def test_empty_input(settings: LinkSettings) -> None:
     res = link_candidates(frame([]), None, clips(), settings)
     assert len(res.rows_raw) == 0 and "chain_id" in res.rows_raw.columns
+
+
+# ------------------------------------------------------------------ label audit 2026-09-26 (rows_seams)
+
+
+def test_chains_meeting_at_tile_edge_join_into_one_row(settings: LinkSettings) -> None:
+    """0.35 m apart at the seam and 0.6 deg apart: the support-line test refuses, the seam join unites."""
+    from dataclasses import replace
+
+    tilt = 30.0 * math.tan(math.radians(0.6))
+    cands = frame([(0, 1, seg(0, 20.0, TILE_M, 0.0)), (1, 1, seg(1, 0.0, 30.0, 0.35, 0.35 + tilt))])
+    assert len(link_candidates(cands, None, clips(), replace(settings, seam_join_max_m=0.0)).rows_raw) == 2
+    res = link_candidates(cands, None, clips(), replace(settings, seam_align_min_m=0.2))
+    assert len(res.rows_raw) == 1
+    line = res.rows_raw.geometry.iloc[0]
+    seam = [c for c in line.coords if abs(c[0] - (X0 + TILE_M)) < 1e-6]
+    assert seam and seam[0][1] == pytest.approx(YC + 0.175, abs=1e-6)  # midpoint: no lateral jump
+    kept = link_candidates(cands, None, clips(), replace(settings, seam_align_min_m=0.4))
+    assert len(kept.rows_raw) == 1
+    ys = sorted(c[1] for c in kept.rows_raw.geometry.iloc[0].coords if abs(c[0] - (X0 + TILE_M)) < 1e-6)
+    assert ys == pytest.approx([YC, YC + 0.35], abs=1e-6)  # both ends kept: each tile keeps its geometry
+
+
+def test_parallel_neighbour_rows_do_not_join(settings: LinkSettings) -> None:
+    cands = frame([(0, 1, seg(0, 20.0, TILE_M, 0.0)), (1, 1, seg(1, 0.0, 30.0, 2.5))])
+    assert len(link_candidates(cands, None, clips(), settings).rows_raw) == 2
+
+
+def test_duplicate_chains_merge(settings: LinkSettings) -> None:
+    """Two detections of one row 0.36 m apart that the linker keeps apart become one row."""
+    from dataclasses import replace
+
+    cands = frame([(1, 1, seg(1, 0.0, 40.0, 0.0)), (0, 1, seg(0, 5.0, TILE_M, 0.0)),
+                   (1, 2, seg(1, 2.0, 38.0, 0.36))])
+    res0 = link_candidates(cands, None, clips(), replace(settings, dup_chain_max_m=0.0))
+    res = link_candidates(cands, None, clips(), settings)
+    assert len(res.rows_raw) == len(res0.rows_raw) - 1

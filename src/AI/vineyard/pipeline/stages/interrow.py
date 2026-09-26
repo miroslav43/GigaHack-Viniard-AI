@@ -23,6 +23,8 @@ from vineyard.logging_setup import get_logger, log_event
 from vineyard.perception.corridor import clip_rows_to_tile, extend_censored_ends
 from vineyard.perception.interrow import build_interrow_bands, classify_pieces, row_positions
 from vineyard.perception.interrow_local import LocalPairOptions, tile_interrow_pieces
+from vineyard.perception.row_trim import TrimOptions, row_lengths_of, trim_row_pieces
+from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult, TileTask, run_tile_stage
 from vineyard.pipeline.stages.canopy import geometry_digest, tile_clip
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "interrow"
-VERSION: Final = "4"
+VERSION: Final = "6"  # 5/6: tile row pieces trimmed to the last canopy (row_trim, as row_attrs)
 BANDS_LAYER: Final = "interrows"
 PIECES_LAYER: Final = "interrow_pieces"
 ROWS_FILE: Final = "rows.parquet"
@@ -46,7 +48,11 @@ ROW_DIGEST_COLUMNS: Final = ("row_id", "vineyard_id", "row_index")
 BORDERLINE_CONFIDENCE: Final = 0.5
 FULL_CONFIDENCE: Final = 1.0
 CFG_KEYS: Final = ("interrow", "export.min_interrow_piece_m2", "export.cvat.notch_width_px", "export.min_row_piece_m",
-                   "blocks.neighbour_max_m", "blocks.min_overlap_frac")
+                   "blocks.neighbour_max_m", "blocks.min_overlap_frac", "row_structure.trim_ends_enabled",
+                   "row_structure.trim_band_m", "row_structure.trim_margin_m", "row_structure.trim_min_overshoot_m",
+                   "row_structure.trim_min_occupancy")
+CANOPY_STAGE: Final = "canopy"
+CANOPY_LAYER: Final = "canopies"
 EVENT_NO_FORBIDDEN: Final = "interrow.no_forbidden_layer"
 SEAM_CLOSE_M: Final = 0.01  # closing radius of the tile-clip union (float seams are ~1e-10 m wide)
 _MITRE: Final = "mitre"
@@ -145,10 +151,14 @@ def _piece_provenance(pieces: gpd.GeoDataFrame, bands: gpd.GeoDataFrame) -> gpd.
                             for c in ("source", "run_id", "model_version")}, confidence=conf, qa_flags=flags)
 
 
-def local_rows(rows: gpd.GeoDataFrame, tile_id: str, min_piece_m: float) -> gpd.GeoDataFrame:
-    """The tile's row pieces as exported (tile-box cut, >= min_piece_m), with row_id / vineyard_id / row_index."""
+def local_rows(rows: gpd.GeoDataFrame, tile_id: str, min_piece_m: float, canopies: gpd.GeoDataFrame | None = None,
+               trim: TrimOptions | None = None) -> gpd.GeoDataFrame:
+    """The tile's row pieces as exported (tile-box cut, row ends trimmed to the canopies like row_attrs,
+    >= min_piece_m), with row_id / vineyard_id / row_index."""
     box = tile_box(tile_ref(tile_id))
     pieces = clip_rows_to_tile(rows[rows.intersects(box).to_numpy()], tile_ref(tile_id), box, margin_m=0.0)
+    if trim is not None and canopies is not None:
+        pieces = trim_row_pieces(pieces, row_lengths_of(rows), canopies, trim, box.boundary)
     return pieces[(pieces.geometry.length >= min_piece_m).to_numpy()].reset_index(drop=True)
 
 
@@ -162,7 +172,10 @@ def interrow_tile(task: TileTask) -> Mapping[str, Any]:
     cfg: AppConfig = task.cfg  # type: ignore[assignment]
     bands = read_layer(task.inputs["interrows"], BANDS_LAYER)
     rows = read_layer(task.inputs["rows"], "rows")
-    local = local_rows(rows, task.tile_id, cfg.export.min_row_piece_m)
+    canopy_file = task.inputs["canopy"]
+    canopies = read_layer(canopy_file, CANOPY_LAYER) if canopy_file.is_file() else None
+    local = local_rows(rows, task.tile_id, cfg.export.min_row_piece_m, canopies,
+                       TrimOptions.from_config(cfg.row_structure))
     if bands.empty or len(local) < 2:
         return _write_empty(task)
     tile = tile_ref(task.tile_id)
@@ -187,7 +200,8 @@ def _make_task(ctx: RunContext, bands_path: Path, tile_id: str) -> TileTask:
     cache = ctx.paths.cache_dir
     inputs = {"interrows": bands_path, "rows": ctx.paths.layers_dir / ROWS_FILE, "veg": veg_mask_path(cache, tile_id),
               "vis": vis_path(cache, tile_id), "tile_valid": ctx.paths.tile_valid,
-              "forbidden": ctx.paths.static_layers_dir / FORBIDDEN_FILE}
+              "forbidden": ctx.paths.static_layers_dir / FORBIDDEN_FILE,
+              "canopy": ctx.paths.tile_cache(CANOPY_STAGE, tile_id, "parquet")}
     return TileTask(tile_id=tile_id, tif_path=tile_path(ctx, tile_id), key="", cfg=ctx.cfg, inputs=inputs,
                     outputs={"pieces": ctx.paths.tile_cache(NAME, tile_id, "parquet")})
 
@@ -196,7 +210,8 @@ def _input_keys(ctx: RunContext, bands: gpd.GeoDataFrame, rows: gpd.GeoDataFrame
     local = _local_bands(bands, tile_id)
     pieces = local_rows(rows, tile_id, ctx.cfg.export.min_row_piece_m)
     return [f"tile_prep:{tile_prep_key(ctx.paths.cache_dir, tile_id)}",
-            f"bands:{geometry_digest(local, DIGEST_COLUMNS)}", f"rows:{geometry_digest(pieces, ROW_DIGEST_COLUMNS)}"]
+            f"bands:{geometry_digest(local, DIGEST_COLUMNS)}", f"rows:{geometry_digest(pieces, ROW_DIGEST_COLUMNS)}",
+            f"canopy:{read_key(ctx.paths.tile_cache(CANOPY_STAGE, tile_id, 'parquet'))}"]
 
 
 def run(ctx: RunContext) -> StageResult:
@@ -210,6 +225,7 @@ def run(ctx: RunContext) -> StageResult:
 
 
 STAGE: Final = StageSpec(
-    name=NAME, version=VERSION, scope="block", cfg_keys=CFG_KEYS, requires=("tile_prep", "blocks"), run=run,
+    name=NAME, version=VERSION, scope="block", cfg_keys=CFG_KEYS, requires=("tile_prep", "blocks", "canopy"),
+    run=run,
     description="interrow bands between neighbour rows (global); per-tile pieces from local row pairs + cover",
 )

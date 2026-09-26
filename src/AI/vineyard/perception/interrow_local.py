@@ -51,6 +51,8 @@ class LocalPairOptions:
     hole_min_area_m2: float
     notch_width_m: float
     min_piece_m2: float
+    exclusive: bool = False  # label audit 2026-09-26: no band across a third row, no overlapping pieces
+    through_row_min_m: float = 1.0
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> LocalPairOptions:
@@ -59,7 +61,8 @@ class LocalPairOptions:
                    min_overlap_frac=cfg.blocks.min_overlap_frac, edge_extend_m=ir.edge_extend_m,
                    edge_tol_m=ir.edge_tol_m, hole_min_area_m2=ir.hole_min_area_m2,
                    notch_width_m=cfg.export.cvat.notch_width_px * GSD_M,
-                   min_piece_m2=cfg.export.min_interrow_piece_m2)
+                   min_piece_m2=cfg.export.min_interrow_piece_m2, exclusive=ir.exclusive_pieces,
+                   through_row_min_m=ir.through_row_min_m)
 
 
 # ------------------------------------------------------------------ pairing
@@ -187,12 +190,34 @@ def _block_parts(vid: str, block: gpd.GeoDataFrame, clip: BaseGeometry, forbidde
         left, right = _ordered(ids[i], ids[j], positions)
         a, b = (lines[i], lines[j]) if left == ids[i] else (lines[j], lines[i])
         parts, n_notches = _band_parts(a, b, clip, forbidden, opts)
+        if opts.exclusive and _spans_other_row(parts, [ln for k, ln in enumerate(lines) if k not in (i, j)],
+                                                opts.through_row_min_m):
+            continue  # a band across a third row of the block is not an inter-row (label audit #5)
         _, u, _ = _frame_of(a)
         for part in parts:
             t = shapely.get_coordinates(part) @ u
             span = float(t.max() - t.min())
             out.append(_Part(vid, left, right, n_notches, float(np.asarray(part.centroid.coords)[0] @ u),
                              float(part.area / span) if span > 0 else 0.0, part))
+    return out
+
+
+def _spans_other_row(parts: list[Polygon], others: list[LineString], min_m: float) -> bool:
+    """True when another row axis runs >= min_m inside one of the band parts."""
+    return any(ln.intersection(p).length >= min_m for p in parts for ln in others if ln.intersects(p))
+
+
+def exclusive_parts(parts: list[_Part], min_piece_m2: float) -> list[_Part]:
+    """Non-overlapping parts: narrowest band first (the true neighbour pair), later parts lose the area
+    already taken; pieces under min_piece_m2 are dropped. Deterministic (width, along, ids)."""
+    taken: BaseGeometry | None = None
+    out: list[_Part] = []
+    for part in sorted(parts, key=lambda p: (p.vineyard_id, round(p.width_mean_m, 6), p.left, p.right, p.along)):
+        geom = part.geometry if taken is None or not part.geometry.intersects(taken) else \
+            part.geometry.difference(taken)
+        pieces = [orient_ccw(g) for g in make_valid_polygonal(geom) if g.area >= min_piece_m2]
+        out.extend(replace(part, geometry=g) for g in pieces)
+        taken = part.geometry if taken is None else shapely.union(taken, part.geometry)
     return out
 
 
@@ -211,7 +236,10 @@ def tile_interrow_pieces(row_pieces: gpd.GeoDataFrame, bands: gpd.GeoDataFrame, 
     fresh: dict[str, int] = {}
     parts: list[_Part] = []
     for vid, block in ext.groupby("vineyard_id", sort=True):
-        for part in _block_parts(str(vid), block, clip, forbidden, global_pairs, positions, opts):
+        block_parts = _block_parts(str(vid), block, clip, forbidden, global_pairs, positions, opts)
+        if opts.exclusive:
+            block_parts = exclusive_parts(block_parts, opts.min_piece_m2)
+        for part in block_parts:
             iid = _pick_id(part.vineyard_id, part.left, part.right, part.geometry, index, fresh)
             parts.append(replace(part, interrow_id=iid))
     return _frame(parts, crs, tile)

@@ -31,6 +31,7 @@ from vineyard.perception.overrides import (
     load_overrides,
 )
 from vineyard.perception.rows_link import LinkSettings, link_candidates
+from vineyard.perception.rows_seams import reject_orientation_conflicts
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult
@@ -41,8 +42,9 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "rows_link"
-VERSION: Final = "3"  # 2: neighbour-guided second pass (rows_guided) before linking; 3: partial-block
-#   completion (own-lattice prior, lateral anchoring beside the tile's rows, 2 rounds, all tiles, pooled)
+VERSION: Final = "4"  # 2: neighbour-guided second pass (rows_guided) before linking; 3: partial-block
+#   completion (own-lattice prior, lateral anchoring beside the tile's rows, 2 rounds, all tiles, pooled);
+#   4: label audit — crossing row families rejected, duplicate chains merged, chain ends joined at seams
 DETECT_STAGE: Final = "rows_detect"
 CANDIDATES_LAYER: Final = "row_candidates"
 ROWS_RAW_LAYER: Final = "rows_raw"
@@ -150,12 +152,23 @@ def _with_decisions(cands: gpd.GeoDataFrame, decisions: pd.DataFrame) -> gpd.Geo
                         chain_id=[dec.chain_id.get(c) if c in dec.index else None for c in ids])
 
 
+def _without_conflicts(ctx: RunContext, cands: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Reject the weaker of two crossing row families per tile (rows.link.orientation_conflict_*)."""
+    lk = ctx.cfg.rows.link
+    if not lk.orientation_conflict_enabled or cands.empty:
+        return cands
+    return reject_orientation_conflicts(cands, lk.orientation_conflict_angle_deg,
+                                        lk.orientation_conflict_min_crossings)
+
+
 def link_stage(ctx: RunContext) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, list[QaIssue]]:
     """(rows_raw, candidates with decisions, issues) of the selected tiles."""
     tile_ids = ctx.selected_tiles(indexed_tile_ids(ctx))
     cands, issues = collect_candidates(ctx, tile_ids)
     clips = load_clips(ctx)
-    cands = add_guided_candidates(ctx, cands, tile_ids, clips, ctx.model_version(nn=nn_tag(ctx)))
+    cands = _without_conflicts(ctx, cands)
+    cands = _without_conflicts(ctx, add_guided_candidates(ctx, cands, tile_ids, clips,
+                                                          ctx.model_version(nn=nn_tag(ctx))))
     ov = apply_candidate_overrides(cands, load_overrides_cfg(ctx))
     res = link_candidates(ov.frame, load_passages(ctx), clips, LinkSettings.from_config(ctx.cfg))
     rows_raw = provenance(res.rows_raw, ctx)
