@@ -138,15 +138,16 @@ export function TasksPanel({
   const [assign, setAssign] = useState({ assignee: "", dueDate: "", priority: 2 });
   const [statusDraft, setStatusDraft] = useState<{ status: TaskStatus; note: string }>({ status: "in_progress", note: "" });
 
-  const counts = useMemo(
-    () => ({
-      open: tasks.filter((x) => x.status === "open").length,
-      in_progress: tasks.filter((x) => x.status === "in_progress").length,
-      done: tasks.filter((x) => x.status === "done").length,
+  // the cards follow the All / Mine switch, like the table under them
+  const counts = useMemo(() => {
+    const inScope = scope === "all" ? tasks : tasks.filter((x) => x.assignee === meId);
+    return {
+      open: inScope.filter((x) => x.status === "open").length,
+      in_progress: inScope.filter((x) => x.status === "in_progress").length,
+      done: inScope.filter((x) => x.status === "done").length,
       unassigned: tasks.filter((x) => !x.assignee && x.status !== "done" && x.status !== "cancelled").length,
-    }),
-    [tasks],
-  );
+    };
+  }, [tasks, scope, meId]);
   const visible = useMemo(
     () =>
       tasks.filter(
@@ -171,7 +172,7 @@ export function TasksPanel({
         <KpiCard label={t("kpiOpen")} value={f.int(counts.open)} tone="warning" />
         <KpiCard label={t("kpiInProgress")} value={f.int(counts.in_progress)} tone="primary" />
         <KpiCard label={t("kpiDone")} value={f.int(counts.done)} />
-        <KpiCard label={t("kpiUnassigned")} value={f.int(counts.unassigned)} />
+        {scope === "all" && <KpiCard label={t("kpiUnassigned")} value={f.int(counts.unassigned)} />}
       </KpiGrid>
 
       {role === "viewer" && <Alert severity="info">{t("readOnly")}</Alert>}
