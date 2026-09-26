@@ -24,6 +24,7 @@ from vineyard.contracts.ids import format_canopy_id, row_index_of
 from vineyard.geo.ops import make_valid_polygonal, orient_ccw
 from vineyard.geo.tiling import GSD_M, TileRef, px_to_utm
 from vineyard.perception.axis_refine import AxisRefineOptions, refine_pieces
+from vineyard.perception.canopy_split import NeckSplitOptions, split_at_necks
 from vineyard.perception.corridor import corridor_label_raster, corridor_polygon
 from vineyard.perception.types import I32, BoolMask
 
@@ -61,6 +62,7 @@ class CanopyOptions:
     label_convention: str  # "index": raw vertices stay inside ±half_m
     axis_refine: AxisRefineOptions | None = None  # None: corridors on the given axes
     evidence_min_area_m2: float | None = None  # None: no gap evidence
+    neck_split: NeckSplitOptions | None = None  # None: touching plants stay one component
 
     def __post_init__(self) -> None:
         if self.label_convention not in LABEL_CONVENTIONS:
@@ -81,6 +83,7 @@ class CanopyOptions:
             interpolated_min_veg_frac=_pick(interpolated_min_veg_frac, cfg.interpolated_min_veg_frac),
             label_convention=_pick(label_convention, cfg.corridor_label_convention),
             axis_refine=_refine_options(cfg), evidence_min_area_m2=_evidence_area(cfg),
+            neck_split=_neck_options(cfg),
         )
 
     @property
@@ -102,6 +105,14 @@ def _refine_options(cfg: CanopyConfig) -> AxisRefineOptions | None:
         return None
     return AxisRefineOptions(band_m=cfg.axis_refine_band_m, iterations=cfg.axis_refine_iters,
                              max_shift_m=cfg.axis_refine_max_m, min_px=cfg.axis_refine_min_px)
+
+
+def _neck_options(cfg: CanopyConfig) -> NeckSplitOptions | None:
+    if not cfg.neck_split_enabled:
+        return None
+    return NeckSplitOptions(min_along_m=cfg.neck_split_min_along_m, neck_ratio=cfg.neck_split_ratio,
+                            min_piece_m=cfg.neck_split_min_piece_m, window_m=cfg.neck_split_window_m,
+                            min_part_px=_min_px(cfg.min_area_m2))
 
 
 def _evidence_area(cfg: CanopyConfig) -> float | None:
@@ -315,6 +326,8 @@ def extract_canopies(
     eligible = eligible_labels(interp, veg_frac, opts.interpolated_min_veg_frac)
     keep = vine_mask(mask, labels, tree)
     keep = np.where(eligible[keep], keep, 0)
+    if opts.neck_split is not None:
+        keep = np.where(split_at_necks(keep > 0, opts.connectivity, opts.neck_split), keep, 0)
     comp, comps, n_all = _components(keep > 0, labels, n_labels, opts.connectivity, _min_px(opts.floor_area_m2))
     shapely.prepare(clip)
     polys, evidence = _vectorize(comp, comps, axes, tile, clip, opts)
