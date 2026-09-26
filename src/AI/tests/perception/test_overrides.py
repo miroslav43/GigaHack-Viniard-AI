@@ -11,6 +11,7 @@ from shapely.geometry import LineString
 
 from vineyard.config import load_config
 from vineyard.contracts.enums import Severity
+from vineyard.contracts.ids import tile_grid_ids
 from vineyard.errors import ConfigError
 from vineyard.geo.tiling import CRS_EPSG, tile_ref
 from vineyard.perception.overrides import (
@@ -48,9 +49,11 @@ def write_yaml(tmp_path: Path, text: str) -> Path:
     return path
 
 
-def test_template_file_loads(project_root: Path) -> None:
+def test_committed_file_loads(project_root: Path) -> None:
     ov = load_overrides(project_root / "configs" / "overrides.yaml")
-    assert ov == EMPTY_OVERRIDES
+    ids = [e.id for sec in (ov.exclude_areas, ov.delete_rows, ov.extend_rows, ov.add_rows) for e in sec]
+    assert len(ids) == len(set(ids))
+    assert set(ov.force_empty_tiles) <= set(tile_grid_ids())
 
 
 def test_empty_yaml_and_missing_file(tmp_path: Path) -> None:

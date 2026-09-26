@@ -95,7 +95,8 @@ def test_rows_link_then_blocks(ctx: RunContext) -> None:
     cands = read_layer(ctx.paths.layers_dir / "row_candidates.parquet", "row_candidates")
     assert len(cands) == 10 and set(cands.link_decision) == {"linked"}
     qa = read_layer(ctx.paths.qa_dir / "qa_rows_link.parquet", "qa_issues")
-    assert list(qa.code) == ["tile_failed"] and list(qa.tile_id) == [MISSING]
+    own = qa[~qa.code.str.startswith("override_")]  # the committed overrides.yaml matches nothing here
+    assert list(own.code) == ["tile_failed"] and list(own.tile_id) == [MISSING]
     out = blocks_stage.run(ctx)
     assert out.metrics["n_blocks"] == 1.0 and out.metrics["n_rows"] == 5.0
     rows = read_layer(ctx.paths.layers_dir / "rows.parquet", "rows")
