@@ -7,6 +7,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
 import MuiLink from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
@@ -67,12 +68,26 @@ const store = (() => {
 /** Only in-app paths become links (client navigation, so this panel stays open); anything else is plain text. */
 const isInternal = (href: string | undefined): href is string => !!href && href.startsWith("/") && !href.startsWith("//");
 
+const FAB = 56;
+const GAP = 12;
+/** Mobile bottom navigation height (AppShell) — the button sits above it. */
+const BOTTOM_NAV = 64;
+
 /**
- * The assistant of the app shell: a button in the menu opens a non-modal panel (the page stays usable) where
+ * Where the round button sits: bottom-right on every page; on the map, left of the zoom buttons and the ruler
+ * (MapLibre NavigationControl + MeasureTool, both at the right edge) and above the attribution line.
+ */
+function fabPosition(mobile: boolean, onMap: boolean, bottomNav: boolean) {
+  if (mobile) return { right: onMap ? 64 : 16, bottom: (bottomNav ? BOTTOM_NAV : 0) + (onMap ? 64 : 16) };
+  return { right: onMap ? 64 : 24, bottom: onMap ? 36 : 24 };
+}
+
+/**
+ * The assistant of the app shell: a round button, always at the bottom right, opens a non-modal panel (the page stays usable) where
  * Gemini explains how to do things in Solemtrix, with links to the right page. The shell layout persists across
  * navigation, so following a link keeps the conversation open.
  */
-export function AssistantChat({ role, demo }: { role: UatRole | null; demo: boolean }) {
+export function AssistantChat({ role, demo, bottomNav = true }: { role: UatRole | null; demo: boolean; bottomNav?: boolean }) {
   const t = useTranslations("assistant");
   const locale = useLocale();
   const pathname = usePathname();
@@ -84,6 +99,8 @@ export function AssistantChat({ role, demo }: { role: UatRole | null; demo: bool
   const listRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { open, messages } = state;
+  const fab = fabPosition(mobile, pathname.startsWith("/harta"), bottomNav);
+  const panelBottom = fab.bottom + FAB + GAP;
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
@@ -208,10 +225,16 @@ export function AssistantChat({ role, demo }: { role: UatRole | null; demo: bool
 
   return (
     <>
-      <Tooltip title={t("open")}>
-        <IconButton size="small" onClick={() => setOpen(!open)} aria-label={t("open")} aria-expanded={open} color={open ? "primary" : "default"}>
-          <AutoAwesomeOutlined />
-        </IconButton>
+      <Tooltip title={open ? t("close") : t("open")} placement="left">
+        <Fab
+          color="primary"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? t("close") : t("open")}
+          aria-expanded={open}
+          sx={{ position: "fixed", zIndex: (th) => th.zIndex.modal - 1, right: fab.right, bottom: fab.bottom, width: FAB, height: FAB }}
+        >
+          {open ? <CloseOutlined /> : <AutoAwesomeOutlined />}
+        </Fab>
       </Tooltip>
 
       {open && (
@@ -222,11 +245,11 @@ export function AssistantChat({ role, demo }: { role: UatRole | null; demo: bool
           sx={{
             position: "fixed",
             zIndex: (th) => th.zIndex.modal - 1,
-            right: mobile ? 8 : 24,
+            right: mobile ? 8 : fab.right,
             left: mobile ? 8 : "auto",
-            bottom: mobile ? 72 : 24,
+            bottom: panelBottom,
             width: mobile ? "auto" : 420,
-            height: mobile ? "min(70dvh, 560px)" : "min(640px, calc(100dvh - 48px))",
+            height: `min(${mobile ? 560 : 640}px, calc(100dvh - ${panelBottom + (mobile ? 72 : 24)}px))`,
             display: "flex",
             flexDirection: "column",
             borderRadius: 3,

@@ -121,7 +121,6 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         >
           <Logo />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {assistant}
             {bell}
             <LanguageSwitch dense />
             <UserCard viewer={viewer} collapsed />
@@ -141,6 +140,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
             <BottomNavigationAction key={n.href} component={Link} href={n.href} label={t(n.short)} icon={n.icon} />
           ))}
         </BottomNavigation>
+        {assistant}
       </Box>
     );
   }
@@ -175,7 +175,6 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         >
           <Logo collapsed={collapsed} />
           <Box sx={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: 1 }}>
-            {assistant}
             {bell}
             <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? t("shell.collapse") : t("shell.expand")}>
               {open ? <MenuOpen /> : <Menu />}
@@ -236,6 +235,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
       <Box component="main" sx={{ flex: 1, minWidth: 0, overflow: "auto" }}>
         {children}
       </Box>
+      {assistant}
     </Box>
   );
 }
