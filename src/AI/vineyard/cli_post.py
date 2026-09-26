@@ -115,7 +115,7 @@ def measure(opts: CommonOptions) -> None:
 @app.command("post")
 @with_common_options
 def post(opts: CommonOptions, final: FinalOpt = False) -> None:
-    """derive -> passable -> targets -> route -> measure -> web_bundle."""
+    """derive -> passable -> targets -> route -> measure -> farms -> web_bundle."""
     _run_on_annset(opts.with_sets(SET_FINAL) if final else opts, DERIVE_TO_WEB)
 
 

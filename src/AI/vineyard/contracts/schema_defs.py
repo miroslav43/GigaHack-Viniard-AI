@@ -256,6 +256,17 @@ _POST: Final = (
         (C("path_id", "str"), _block(), C("length_m", "float64")),
     ),
     LayerSchema(
+        "farms", POLY_MULTI, ("farm_id",),
+        (C("farm_id", "str"), C("vineyard_ids", "str"), C("n_blocks", "int32"), C("area_m2", "float64")),
+    ),
+    LayerSchema(
+        "roads", ("LineString", "MultiLineString"), ("road_id",),
+        (C("road_id", "str"), C("road_class", "str"), C("highway", "str"), C("name", "str", nullable=True),
+         C("surface", "str", nullable=True), C("farm_id", "str", nullable=True), C("origin", "str"),
+         C("length_m", "float64")),
+        line_rules=False,
+    ),
+    LayerSchema(
         "passable_parts", POLY_MULTI, ("part_id",),
         (C("part_id", "str"), C("kind", "str"), C("ref_id", "str", blank_ok=True), C("area_m2", "float64"),
          C("erosion_m", "float32")),

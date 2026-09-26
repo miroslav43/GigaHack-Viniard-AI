@@ -27,6 +27,7 @@ PROJECT_RELATIVE_KEYS: Final = (
     "paths.waste_confirmed",
     "web.out_dir",
     "web.tile_review",
+    "farms.osm_highways",
     "waste.sam3.local_checkpoint",
     "nn.pseudolabels.train_tiles_file",
     "eval.baseline_file",

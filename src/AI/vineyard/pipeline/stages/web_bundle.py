@@ -40,7 +40,8 @@ STAGE_NAME: Final = "web_bundle"
 # measurements without derive's pieces remove the cross-block overlap here; 4: tiles.geojson + masks/ + manifest
 # counts.tiles / masks
 # 5: + cross_paths.geojson (passable's tracks across the rows) + its manifest count
-STAGE_VERSION: Final = "5"
+# 6: + farms.geojson / roads.geojson (stage farms) + blocks.geojson farm_id
+STAGE_VERSION: Final = "6"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
                    "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
@@ -53,6 +54,7 @@ OPTIONAL_LAYERS: Final = {
     "targets": ("targets.parquet", "targets"), "stops": ("route_stops.parquet", "route_stops"),
     "visits": ("target_visits.parquet", "target_visits"),
     "cross_paths": ("cross_paths.parquet", "cross_paths"),
+    "farms": ("farms.parquet", "farms"), "roads": ("roads.parquet", "roads"),
 }
 ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"

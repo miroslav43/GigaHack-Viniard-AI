@@ -182,7 +182,7 @@ def test_import_marcaj_relative_file_is_made_absolute(fake_runner: Recorder, mon
 def test_post_runs_derive_to_web_in_post_run(fake_runner: Recorder) -> None:
     assert _invoke("post", "--annset", "LATEST_MARCAJ", "--final").exit_code == 0
     ctx, names = fake_runner.calls[0]
-    assert names == ("derive", "passable", "targets", "route", "measure", "web_bundle")
+    assert names == ("derive", "passable", "targets", "route", "measure", "farms", "web_bundle")
     assert ctx.source is Source.MARCAJ and "-post-" in ctx.run_id and ctx.annset_ref == "LATEST_MARCAJ"
     assert ctx.cfg.route.solver.final is True
 

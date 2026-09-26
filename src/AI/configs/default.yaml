@@ -645,6 +645,18 @@ measure:
   total_label: ALL
   area_union_sum_warn_frac: 0.001
 
+farms:                                     # farms and road classes (vineyard.farms): web map only, never CVAT / measurements
+  enabled: true
+  gap_max_m: 10.0                          # blocks this close (headland, field track between them) are one farm ...
+  touch_m: 0.5                             # ... blocks closer than this touch: one farm whatever the roads
+  link_width_m: 1.0                        # the gap = shortest segment between two blocks, buffered by this
+  public_road_buffer_m: 3.0                # ... a gap meeting a public road (buffered by this) splits the farms
+  outline_simplify_m: 0.2                  # farm outline = closing (gap_max_m / 2) of its blocks, simplified
+  osm_highways: data/osm/siret3_highways.geojson  # OSM snapshot (ODbL), refreshed by `vineyard osm-fetch`; null = no roads
+  public_highways: [motorway, trunk, primary, secondary, tertiary, unclassified, residential, living_street, service]
+  internal_min_len_m: 5.0                  # a field track's stretch inside a farm counts as internal from this length
+  osm_fetch_pad_m: 300.0                   # osm-fetch: the study area's bbox grown by this
+
 publish:
   require_source: null                     # `make final` sets marcaj
   sum_check_tol_m: 0.05                    # block / row row_length_m sums vs the survey line

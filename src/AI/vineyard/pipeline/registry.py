@@ -25,7 +25,7 @@ PRE_STAGES: Final[tuple[str, ...]] = (
     "interrow", "row_attrs", "waste", "assemble", "qa_previews",
 )
 POST_STAGES: Final[tuple[str, ...]] = (
-    "import_marcaj", "derive", "passable", "targets", "route", "measure", "web_bundle",
+    "import_marcaj", "derive", "passable", "targets", "route", "measure", "farms", "web_bundle",
 )
 STANDALONE_STAGES: Final[tuple[str, ...]] = ("export_cvat", "import_reference", "evaluate", "publish")
 ALL_STAGES: Final[tuple[str, ...]] = (*PRE_STAGES, *POST_STAGES, *STANDALONE_STAGES)

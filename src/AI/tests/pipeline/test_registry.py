@@ -28,7 +28,8 @@ def test_stage_orders_exactly_as_plan() -> None:
         "ingest", "tile_prep", "nn_infer", "rows_detect", "rows_link", "blocks", "canopy",
         "interrow", "row_attrs", "waste", "assemble", "qa_previews",
     )
-    assert POST_STAGES == ("import_marcaj", "derive", "passable", "targets", "route", "measure", "web_bundle")
+    assert POST_STAGES == ("import_marcaj", "derive", "passable", "targets", "route", "measure", "farms",
+                           "web_bundle")
     assert STANDALONE_STAGES == ("export_cvat", "import_reference", "evaluate", "publish")
 
 

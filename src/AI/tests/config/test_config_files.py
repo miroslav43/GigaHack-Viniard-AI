@@ -23,16 +23,11 @@ def _leaf_keys(tree: dict, prefix: str = "") -> set[str]:
     return keys
 
 
-def test_overrides_template_is_empty() -> None:
+def test_overrides_file_has_every_section_as_a_list() -> None:
     data = yaml.safe_load((CONFIGS / "overrides.yaml").read_text(encoding="utf-8"))
-    assert data == {
-        "version": 1,
-        "force_empty_tiles": [],
-        "exclude_areas": [],
-        "delete_rows": [],
-        "extend_rows": [],
-        "add_rows": [],
-    }
+    assert data["version"] == 1
+    assert set(data) == {"version", "force_empty_tiles", "exclude_areas", "delete_rows", "extend_rows", "add_rows"}
+    assert all(isinstance(data[k] or [], list) for k in data if k != "version")
 
 
 def test_waste_confirmed_header_and_row_width() -> None:

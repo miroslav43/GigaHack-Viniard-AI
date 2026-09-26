@@ -23,7 +23,7 @@ from vineyard.cli_options import (
 )
 from vineyard.config import cfg_hash, cfg_subtree, resolved_config_dict
 from vineyard.contracts.enums import Source
-from vineyard.errors import VineyardError
+from vineyard.errors import ConfigError, IngestError, VineyardError
 from vineyard.pipeline.context import POST_KIND, source_from_annset_ref
 from vineyard.pipeline.registry import PRE_STAGES, select_stages
 
@@ -161,6 +161,35 @@ def doctor(opts: CommonOptions) -> None:
     checks = run_checks(cfg)
     render(checks)
     raise typer.Exit(exit_code(checks))
+
+
+@app.command("osm-fetch")
+@with_config_options
+def osm_fetch(opts: CommonOptions) -> None:
+    """Descarcă drumurile OSM (Overpass) din jurul celor 311 tile-uri în `farms.osm_highways` (rețea)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    import shapely
+
+    from vineyard.contracts.ids import tile_grid_ids
+    from vineyard.farms.osm import bbox_4326, fetch_highways, write_snapshot
+    from vineyard.geo.tiling import tile_box, tile_ref
+
+    try:
+        cfg = load_cli_config(opts)
+        if cfg.farms.osm_highways is None:
+            raise ConfigError("farms.osm_highways is null: nowhere to write the snapshot")
+        bounds = shapely.union_all([tile_box(tile_ref(t)) for t in tile_grid_ids()]).bounds
+        bbox = bbox_4326(bounds, cfg.farms.osm_fetch_pad_m)
+        stamp = datetime.now(ZoneInfo(cfg.logging.tz)).isoformat(timespec="seconds")
+        collection = fetch_highways(bbox, stamp)
+        path = write_snapshot(collection, cfg.farms.osm_highways)
+    except VineyardError as exc:
+        raise fail(exc) from exc
+    except (OSError, ValueError) as exc:  # network / HTTP / JSON errors of the Overpass request
+        raise fail(IngestError("OSM download failed", error=f"{type(exc).__name__}: {exc}")) from exc
+    typer.echo(f"{len(collection['features'])} OSM highways, bbox {bbox} -> {path}")
 
 
 @config_app.command("show")

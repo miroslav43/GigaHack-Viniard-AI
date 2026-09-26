@@ -31,6 +31,7 @@ from vineyard.config.sections_perception import (
 from vineyard.config.sections_post import (
     CrossPathsConfig,
     DeriveConfig,
+    FarmsConfig,
     MeasureConfig,
     PublishConfig,
     RouteConfig,
@@ -65,6 +66,7 @@ class AppConfig(Section):
     export: ExportConfig
     import_: ImportConfig = Field(alias="import")
     measure: MeasureConfig
+    farms: FarmsConfig
     publish: PublishConfig
     web: WebConfig
     eval: EvalConfig

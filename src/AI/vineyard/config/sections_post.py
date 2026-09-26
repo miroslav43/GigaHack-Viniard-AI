@@ -184,6 +184,27 @@ class PublishConfig(Section):
     sum_check_tol_m2: NonNegFloat
 
 
+class FarmsConfig(Section):
+    """Farms (groups of neighbouring blocks) and road classes (vineyard.farms): web map only, never CVAT."""
+
+    enabled: bool
+    gap_max_m: PosFloat
+    touch_m: NonNegFloat
+    link_width_m: PosFloat
+    public_road_buffer_m: NonNegFloat
+    outline_simplify_m: NonNegFloat
+    osm_highways: Path | None = None
+    public_highways: Annotated[tuple[str, ...], Field(min_length=1)]
+    internal_min_len_m: NonNegFloat
+    osm_fetch_pad_m: NonNegFloat
+
+    @model_validator(mode="after")
+    def _touch_below_gap(self) -> FarmsConfig:
+        if self.touch_m > self.gap_max_m:
+            raise ValueError(f"farms.touch_m ({self.touch_m}) must not exceed gap_max_m ({self.gap_max_m})")
+        return self
+
+
 class Gdal2TilesConfig(Section):
     zoom: str
     resampling: str

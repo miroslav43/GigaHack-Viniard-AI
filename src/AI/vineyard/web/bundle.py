@@ -67,13 +67,15 @@ LAYER_FILES: Final[Mapping[str, str]] = MappingProxyType({
     "blocks": "blocks.geojson", "rows": "rows.geojson", "canopies": "canopies.geojsonl",
     "interrows": "interrows.geojson", "waste": "waste.geojson", "targets": "targets.geojson",
     "route": "route.geojson", "tiles": "tiles.geojson", "cross_paths": "cross_paths.geojson",
+    "farms": "farms.geojson", "roads": "roads.geojson",
 })
-# Layers describing the grid rather than the survey's objects: left out of the manifest bbox.
-GRID_LAYERS: Final = frozenset({"tiles"})
+# Layers describing the grid or the surroundings rather than the survey's objects (the OSM roads reach past the
+# study area): left out of the manifest bbox.
+GRID_LAYERS: Final = frozenset({"tiles", "roads"})
 SEQ_LAYERS: Final = frozenset({"canopies"})
 # canopies.geojson is the non-sequence spelling of the same layer: a stale copy would shadow ours.
 BUNDLE_FILES: Final = frozenset({*LAYER_FILES.values(), "canopies.geojson", MEASUREMENTS_FILE, MANIFEST_FILE})
-BLOCK_COLUMNS: Final = ("vineyard_id", "area_m2")
+BLOCK_COLUMNS: Final = ("vineyard_id", "farm_id", "area_m2")
 ROW_LINK_TOL_M: Final = 1.0  # CONFIG-REQUEST: web.row_link_tol_m = 1.0
 WASTE_BLOCK_MAX_M: Final = 10.0  # CONFIG-REQUEST: web.waste_block_max_m = 10.0 (contract §6.3)
 SEQ_SEPARATORS: Final = (",", ":")  # compact GeoJSONSeq: canopies are the bulk of the bundle
@@ -137,6 +139,8 @@ class WebInputs:
     cache_dir: Path | None = None  # tile_prep cache: veg/<tile>.png masks, stats/<tile>.json
     tile_review: Mapping[str, TileReview] = MappingProxyType({})  # web.tile_review
     cross_paths: gpd.GeoDataFrame | None = None  # passable `cross_paths` (tracks across the rows)
+    farms: gpd.GeoDataFrame | None = None  # stage `farms`: groups of neighbouring blocks
+    roads: gpd.GeoDataFrame | None = None  # stage `farms`: public / field / internal roads
 
 
 @dataclass(frozen=True)
@@ -188,7 +192,9 @@ def block_features(inputs: WebInputs, buffer_m: float) -> gpd.GeoDataFrame:
     outlines = given | _derived_outlines(inputs.annset, buffer_m, frozenset(given))
     ids = sorted(outlines, key=natural_key)
     geoms = [_polygonal(outlines[vid]) for vid in ids]
-    records = [{"vineyard_id": vid, "area_m2": float(g.area)} for vid, g in zip(ids, geoms, strict=True)]
+    farm_of = farm_of_block_ids(inputs.farms)
+    records = [{"vineyard_id": vid, "farm_id": farm_of.get(vid), "area_m2": float(g.area)}
+               for vid, g in zip(ids, geoms, strict=True)]
     return features_frame(records, geoms, BLOCK_COLUMNS)
 
 
@@ -212,10 +218,13 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
             "canopies": canopy_features(ann.canopies),
             "interrows": interrow_features(pieces, ann.row_pieces, link_tol_m=params.row_link_tol_m),
             "waste": waste, "targets": targets, "route": route,
-            "cross_paths": cross_path_features(inputs.cross_paths)}
+            "cross_paths": cross_path_features(inputs.cross_paths), "farms": farm_features(inputs.farms),
+            "roads": road_features(inputs.roads)}
 
 
 CROSS_PATH_PROPERTIES: Final = ("id", "vineyard_id", "n_rows", "width_m", "length_m")
+FARM_PROPERTIES: Final = ("farm_id", "vineyard_ids", "n_blocks", "area_m2")
+ROAD_PROPERTIES: Final = ("road_id", "road_class", "highway", "name", "surface", "farm_id", "length_m", "source")
 
 
 def cross_path_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
@@ -227,6 +236,38 @@ def cross_path_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | No
             "n_rows": [int(v) for v in ordered["n_rows"]], "width_m": [float(v) for v in ordered["width_m"]],
             "length_m": [float(v) for v in ordered["length_m"]]}
     return gpd.GeoDataFrame(data, geometry=list(ordered.geometry), crs=ordered.crs)
+
+
+def farm_of_block_ids(farms: gpd.GeoDataFrame | None) -> dict[str, str]:
+    """vineyard_id -> farm_id from the `farms` layer's comma-joined vineyard_ids (empty without the layer)."""
+    if farms is None:
+        return {}
+    return {vid: str(fid) for fid, vids in zip(farms["farm_id"], farms["vineyard_ids"], strict=True)
+            for vid in str(vids).split(",") if vid}
+
+
+def farm_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
+    """farms.geojson: one outline per farm; vineyard_ids as a JSON array (None when the run has no layer)."""
+    if frame is None:
+        return None
+    ordered = frame.sort_values("farm_id", kind="stable")
+    records = [{"farm_id": str(fid), "vineyard_ids": [v for v in str(vids).split(",") if v], "n_blocks": int(n),
+                "area_m2": float(area)}
+               for fid, vids, n, area in zip(ordered["farm_id"], ordered["vineyard_ids"], ordered["n_blocks"],
+                                             ordered["area_m2"], strict=True)]
+    return features_frame(records, list(ordered.geometry), FARM_PROPERTIES)
+
+
+def road_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
+    """roads.geojson: every road piece; `source` = osm | detected (None when the run has no layer)."""
+    if frame is None:
+        return None
+    ordered = frame.sort_values("road_id", kind="stable")
+    records = [{"road_id": str(r["road_id"]), "road_class": str(r["road_class"]), "highway": str(r["highway"]),
+                "name": text_or_none(r["name"]), "surface": text_or_none(r["surface"]),
+                "farm_id": text_or_none(r["farm_id"]), "length_m": float(r["length_m"]), "source": str(r["origin"])}
+               for r in ordered.to_dict("records")]
+    return features_frame(records, list(ordered.geometry), ROAD_PROPERTIES)
 
 
 def tiles_with_objects(layers: Mapping[str, gpd.GeoDataFrame | None]) -> int:
