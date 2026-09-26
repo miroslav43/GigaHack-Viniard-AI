@@ -1,6 +1,6 @@
 // Builds everything the site reads from public/:
 //   public/ortho/overview.webp + public/ortho/tiles/<tile>.jpg   (orthophoto from the 311 GeoTIFF tiles)
-//   public/data/tiles.json                                        (tile index with 4326 corners)
+//   public/data/tiles.json                                        (tile index with 4326 corners; image urls null when not generated)
 //   public/data/<survey>/*.geojson, summary.json, measurements.csv, route.gpx
 // Survey "siret3-mock" = the two organizer example tiles (CVAT annotations), measured in EPSG:32635.
 // Usage: node scripts/build-data.mjs [--skip-ortho]
@@ -122,12 +122,6 @@ const rows = tiles.map((t) => t.r), cols = tiles.map((t) => t.c);
 const grid = { rMin: Math.min(...rows), rMax: Math.max(...rows), cMin: Math.min(...cols), cMax: Math.max(...cols) };
 const [gx0, gy0] = tileOrigin(grid.rMin, grid.cMin);
 const gx1 = gx0 + (grid.cMax - grid.cMin + 1) * TILE_M, gy1 = gy0 - (grid.rMax - grid.rMin + 1) * TILE_M;
-writeJson(path.join(PUBLIC, "data", "tiles.json"), {
-  tile_m: TILE_M,
-  overview: { url: "/ortho/overview.webp", corners: [ll([gx0, gy0]), ll([gx1, gy0]), ll([gx1, gy1]), ll([gx0, gy1])] },
-  tiles: tiles.map(({ id, r, c, corners }) => ({ id, r, c, url: `/ortho/tiles/${id}.jpg`, corners })),
-});
-
 if (!SKIP_ORTHO && HAS_TIFFS) {
   const OV = 128; // px per tile in the overview mosaic (~0.4 m/px)
   const DETAIL = 1024; // px per tile for the detail layer (5 cm/px)
@@ -161,6 +155,17 @@ if (!SKIP_ORTHO && HAS_TIFFS) {
     .toFile(path.join(PUBLIC, "ortho", "overview.webp"));
   console.log(`ortho: ${tiles.length} tiles in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
+
+// written after the orthophoto step and decided on the files on disk: without GeoTIFFs (CI) or with --skip-ortho on a
+// fresh checkout there is no image, so the map must not request one (a 404 per image, logged as a console error)
+const orthoFile = (rel) => (fs.existsSync(path.join(PUBLIC, rel)) ? `/${rel}` : null);
+const overviewUrl = orthoFile("ortho/overview.webp");
+if (!overviewUrl) console.warn("! no orthophoto in public/ortho/ — tiles.json declares none");
+writeJson(path.join(PUBLIC, "data", "tiles.json"), {
+  tile_m: TILE_M,
+  overview: overviewUrl && { url: overviewUrl, corners: [ll([gx0, gy0]), ll([gx1, gy0]), ll([gx1, gy1]), ll([gx0, gy1])] },
+  tiles: tiles.map(({ id, r, c, corners }) => ({ id, r, c, url: orthoFile(`ortho/tiles/${id}.jpg`), corners })),
+});
 
 // ---------- CVAT examples → mock survey ----------
 const xml = fs.readFileSync(path.join(ORGANIZER, "05_examples/siret3_examples_cvat/annotations.xml"), "utf8");

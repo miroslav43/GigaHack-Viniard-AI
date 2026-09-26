@@ -14,10 +14,11 @@ test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([{ name: "solemtrix_demo", value: "1", url: baseURL! }]);
 });
 
-/** The layer panel (closed by default on narrow screens). */
+/** The layer panel, closed by default below the theme's lg breakpoint (MUI default, 1200 px). Decided on the
+ *  viewport, not on what is visible: the server render has the panel open and it closes after hydration on narrow
+ *  screens, so a visibility check could catch the panel open just before it closes. */
 async function openLayers(page: Page) {
-  const open = page.getByRole("button", { name: "Deschide straturile" });
-  if (await open.isVisible()) await open.click();
+  if (page.viewportSize()!.width < 1200) await page.getByRole("button", { name: "Deschide straturile" }).click();
   await expect(page.getByText("Straturi", { exact: true })).toBeVisible();
 }
 
