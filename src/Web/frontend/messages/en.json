@@ -843,7 +843,7 @@
       ]
     },
     "errors": {
-      "not_configured": "The assistant is not configured on this server (GEMINI_API_KEY is missing).",
+      "not_configured": "The assistant is not configured on this server (no API key: OPENROUTER_API_KEY or GEMINI_API_KEY).",
       "rate_limit": "Too many questions in a short time. Try again in a few minutes.",
       "sign_in": "Sign in or enter the demo to use the assistant.",
       "generic": "Could not get an answer. Try again."

@@ -1,15 +1,15 @@
-// In-app assistant: questions about using Solemtrix, answered by Gemini with a system prompt built from the app's
-// own labels (src/lib/assistant/prompt.ts). The API key stays on the server (GEMINI_API_KEY, never NEXT_PUBLIC_).
-// The answer is streamed as plain text (markdown). The proxy does not run on /api, so access is checked here.
-import { GoogleGenAI } from "@google/genai";
+// In-app assistant: questions about using Solemtrix, answered by Gemini (via OpenRouter or Google directly,
+// src/lib/assistant/llm.ts) with a system prompt built from the app's own labels (src/lib/assistant/prompt.ts).
+// The API keys stay on the server (never NEXT_PUBLIC_). The answer is streamed as plain text (markdown).
+// The proxy does not run on /api, so access is checked here.
 import { cookies } from "next/headers";
 import { routing, type Locale } from "@/i18n/routing";
+import { LlmError, assistantConfigured, streamAnswer, type Turn } from "@/lib/assistant/llm";
 import { buildSystemPrompt } from "@/lib/assistant/prompt";
 import { SURVEY_ID, getSummary } from "@/lib/data";
 import { AUTH_ENABLED, DEMO_COOKIE } from "@/lib/supabase/config";
 import { getViewer } from "@/lib/viewer";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const MAX_HISTORY = 12;
 const MAX_MESSAGE = 2000;
 const MAX_QUESTION = 1000;
@@ -17,8 +17,6 @@ const MAX_QUESTION = 1000;
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 30;
 const hits = new Map<string, number[]>();
-
-type Turn = { role: "user" | "assistant"; text: string };
 
 const json = (status: number, error: string) => Response.json({ error }, { status });
 
@@ -46,8 +44,7 @@ function parseBody(body: unknown): { turns: Turn[]; locale: Locale; path: string
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return json(503, "not_configured");
+  if (!assistantConfigured()) return json(503, "not_configured");
 
   const viewer = await getViewer();
   const jar = await cookies();
@@ -64,16 +61,11 @@ export async function POST(request: Request) {
   const summary = viewer.uat?.surveys.includes(SURVEY_ID) ? await getSummary().catch(() => null) : null;
   const systemInstruction = buildSystemPrompt({ locale: input.locale, viewer, path: input.path, summary });
 
-  const ai = new GoogleGenAI({ apiKey });
-  let stream: AsyncGenerator<{ text?: string }>;
+  let stream: AsyncIterable<string>;
   try {
-    stream = await ai.models.generateContentStream({
-      model: MODEL,
-      contents: input.turns.map((t) => ({ role: t.role === "assistant" ? "model" : "user", parts: [{ text: t.text }] })),
-      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 1024, abortSignal: request.signal },
-    });
+    stream = await streamAnswer({ system: systemInstruction, turns: input.turns, signal: request.signal });
   } catch (e) {
-    const status = (e as { status?: number }).status;
+    const status = e instanceof LlmError ? e.status : 502;
     console.error("[assistant]", status, e instanceof Error ? e.message : e);
     return json(status === 429 ? 429 : 502, status === 429 ? "rate_limit" : "upstream");
   }
@@ -83,7 +75,7 @@ export async function POST(request: Request) {
     new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) if (chunk.text) controller.enqueue(encoder.encode(chunk.text));
+          for await (const text of stream) controller.enqueue(encoder.encode(text));
         } catch (e) {
           console.error("[assistant] stream", e instanceof Error ? e.message : e);
         } finally {

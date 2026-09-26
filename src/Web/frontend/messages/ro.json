@@ -843,7 +843,7 @@
       ]
     },
     "errors": {
-      "not_configured": "Asistentul nu este configurat pe acest server (lipsește GEMINI_API_KEY).",
+      "not_configured": "Asistentul nu este configurat pe acest server (lipsește cheia API: OPENROUTER_API_KEY sau GEMINI_API_KEY).",
       "rate_limit": "Prea multe întrebări într-un timp scurt. Încercați din nou peste câteva minute.",
       "sign_in": "Autentificați-vă sau intrați în demo ca să folosiți asistentul.",
       "generic": "Nu am putut obține un răspuns. Încercați din nou."

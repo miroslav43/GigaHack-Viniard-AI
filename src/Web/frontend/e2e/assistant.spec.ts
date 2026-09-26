@@ -27,7 +27,7 @@ test("assistant answers with an in-app link and stays open across navigation", a
 });
 
 test("without a Gemini key the assistant explains it is not configured", async ({ page, context }) => {
-  test.skip(!!process.env.GEMINI_API_KEY, "a key is configured here");
+  test.skip(!!(process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY), "a key is configured here");
   await context.addCookies([{ name: "solemtrix_demo", value: "1", url: "http://localhost" }]);
   await page.goto("/");
   await page.getByRole("button", { name: "Asistent" }).first().click();
