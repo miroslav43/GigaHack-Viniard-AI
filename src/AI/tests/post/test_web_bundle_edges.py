@@ -13,7 +13,7 @@ import pytest
 import shapely
 from shapely.geometry import LineString, Point, box, shape
 
-from tests.post.factories import BlockSpec, layer_frame, make_annset
+from tests.post.factories import DEFAULT_ORIGIN, BlockSpec, layer_frame, make_annset
 from tests.post.web_oracle import CRS_MEMBER, CSV_HEADER, features_of
 from vineyard.config import load_config
 from vineyard.contracts.enums import Source
@@ -136,15 +136,52 @@ def test_find_layers_run_rejects_a_corrupt_run_json(tmp_path: Path) -> None:
 
 CONTRACT_EXAMPLE: Final = (f"{CSV_HEADER}\nsurvey,,,1,1,1.10,,,,,3,\nblock,V01,,,1,1.10,,,,,3,\n"
                            "row,V01,V01-R01,,,1.10,,,,,3,regular\n")
+# The block line counts inter-row ground the survey union has once: a measure CSV from overlapping pieces.
+DOUBLE_COUNTED: Final = (f"{CSV_HEADER}\nsurvey,,,1,1,1.10,,,2.00,0.0002,3,\nblock,V01,,,1,1.10,,,3.00,0.0003,3,\n"
+                         "row,V01,V01-R01,,,1.10,,,,,3,regular\n")
 
 
 @pytest.mark.parametrize("data", [b"\xff\xfe", f"{CSV_HEADER}\nsurvey,,\n".encode(),
                                   f"{CSV_HEADER}\ntotal,,,1,1,1.00,1.00,0.0001,1.00,0.0001,1,\n".encode(), b"",
-                                  CONTRACT_EXAMPLE.replace("block,V01,,,1,1.10", "block,V01,,,1,9.10").encode()])
+                                  CONTRACT_EXAMPLE.replace("block,V01,,,1,1.10", "block,V01,,,1,9.10").encode(),
+                                  DOUBLE_COUNTED.encode()])
 def test_bundle_refuses_a_bad_measure_csv(data: bytes) -> None:
     params = web_params(load_config(environ={}))
     with pytest.raises(SchemaError):
         measurements_bytes(WebInputs(annset=make_annset(BlockSpec(n_rows=1)), measurements_csv=data), params)
+
+
+def test_computed_measurements_without_derive_remove_the_cross_block_overlap() -> None:
+    crossing = BlockSpec(vineyard_id="V02", n_rows=4, angle_deg=8.0,
+                         origin_xy=(DEFAULT_ORIGIN[0] + 10.0, DEFAULT_ORIGIN[1] + 1.0))
+    ann = make_annset(BlockSpec(n_rows=4), crossing)
+    params = web_params(load_config(environ={}))
+    text = measurements_bytes(WebInputs(annset=ann), params).decode("utf-8")  # no derive interrows given
+    lines = [line.split(",") for line in text.splitlines()[1:]]
+    survey = float(next(c for c in lines if c[0] == "survey")[8])
+    blocks = [float(c[8]) for c in lines if c[0] == "block"]
+    assert len(blocks) == 2 and sum(blocks) == pytest.approx(survey, abs=0.02)
+    irs = ann.interrow_pieces
+    raw_blocks = sum(union_area(irs[irs["vineyard_id"] == vid]) for vid in ("V01", "V02"))
+    assert raw_blocks > union_area(irs) + 1.0  # the AnnSet's own pieces double count
+
+
+def test_bundle_without_derive_exports_overlap_free_interrows(tmp_path: Path) -> None:
+    crossing = BlockSpec(vineyard_id="V02", n_rows=4, angle_deg=8.0,
+                         origin_xy=(DEFAULT_ORIGIN[0] + 10.0, DEFAULT_ORIGIN[1] + 1.0))
+    ann = make_annset(BlockSpec(n_rows=4), crossing)
+    build_web_bundle(WebInputs(annset=ann), tmp_path, web_params(load_config(environ={})), generated_at=GEN,
+                     pipeline_version="x", run_id="r")
+    features = features_of(tmp_path / "interrows.geojson")
+    by_block: dict[str, list[Any]] = {}
+    for f in features:
+        by_block.setdefault(f["properties"]["vineyard_id"], []).append(shape(f["geometry"]))
+    unions = [shapely.union_all(geoms) for geoms in by_block.values()]
+    assert sorted(by_block) == ["V01", "V02"]
+    assert unions[0].intersection(unions[1]).area == pytest.approx(0.0, abs=1e-3)  # 3-decimal coordinates
+    lines = (tmp_path / "measurements.csv").read_text(encoding="utf-8").splitlines()
+    survey = float(lines[1].split(",")[8])
+    assert survey == pytest.approx(sum(u.area for u in unions), abs=0.05)
 
 
 def test_bundle_copies_a_consistent_measure_csv_verbatim() -> None:

@@ -35,6 +35,7 @@ class DeriveConfig(Section):
     garden_max_rows: NonNegInt
     interrow_overlap_min_m2: NonNegFloat
     interrow_overlap_support_m: NonNegFloat
+    interrow_overlap_min_width_m: NonNegFloat
 
 
 class TargetsConfig(Section):
@@ -150,6 +151,7 @@ class MeasureConfig(Section):
 class PublishConfig(Section):
     require_source: Literal["model", "marcaj", "reference"] | None
     sum_check_tol_m: NonNegFloat
+    sum_check_tol_m2: NonNegFloat
 
 
 class Gdal2TilesConfig(Section):

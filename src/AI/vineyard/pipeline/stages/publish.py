@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 STAGE_NAME: Final = "publish"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"  # 2: block interrow_area_m2 sum check (publish.sum_check_tol_m2)
 CFG_KEYS: Final = ("publish", "paths.publish_dir", "route.max_outside_frac_publish", "route.validate",
                    "route.domain")
 ROUTE_NAME: Final = "route.geojson"
@@ -62,7 +62,8 @@ class PublishRefused(StageError):
 @dataclass(frozen=True)
 class PublishLimits:
     route: RouteFileLimits
-    sum_tol_m: float
+    sum_tol_m: float  # block / row row_length_m sums vs the survey line
+    sum_tol_m2: float  # block interrow_area_m2 sum vs the survey line
     require_source: str | None
 
 
@@ -170,7 +171,7 @@ def evaluate_publish(sources: PublishSources, staging: Path, *, inner: BaseGeome
     else:
         route_checks = check_route_file(staged.route, start_xy=start_xy, inner=inner, limits=limits.route)
         checks += [Verdict(c.name, c.ok, c.detail) for c in route_checks]
-    failed_csv = check_measurements_bytes(table, sum_tol_m=limits.sum_tol_m)
+    failed_csv = check_measurements_bytes(table, sum_tol_m=limits.sum_tol_m, sum_tol_m2=limits.sum_tol_m2)
     checks += [Verdict(c.name, c.ok, c.detail) for c in failed_csv] or [Verdict(CSV_NAME, True)]
     required = limits.require_source
     checks.append(Verdict("require_source", required is None or required == source,
@@ -193,7 +194,7 @@ def write_published(report: PublishReport, dest_dir: Path) -> tuple[Path, ...]:
 def _limits(ctx: RunContext) -> PublishLimits:
     cfg = ctx.cfg
     return PublishLimits(route=RouteFileLimits.from_route_cfg(cfg.route), sum_tol_m=cfg.publish.sum_check_tol_m,
-                         require_source=cfg.publish.require_source)
+                         sum_tol_m2=cfg.publish.sum_check_tol_m2, require_source=cfg.publish.require_source)
 
 
 def run(ctx: RunContext) -> Any:

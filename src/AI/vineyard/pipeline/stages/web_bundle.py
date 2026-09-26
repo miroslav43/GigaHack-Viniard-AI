@@ -33,9 +33,14 @@ if TYPE_CHECKING:
     from vineyard.pipeline.runner import StageResult
 
 STAGE_NAME: Final = "web_bundle"
-STAGE_VERSION: Final = "2"  # 2: computed measurements use derive's overlap-free interrows
-CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m",
-                   "grid.gsd_m", "grid.expected_tiles", "project.crs", "logging.tz")
+# 2: computed measurements use derive's overlap-free interrows; 3: block interrow_area_m2 sum check, computed
+# measurements without derive's pieces remove the cross-block overlap here
+STAGE_VERSION: Final = "3"
+CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
+                   "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
+                   "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
+                   "derive.interrow_overlap_support_m", "derive.interrow_overlap_min_width_m",
+                   "export.min_interrow_piece_m2")
 # WebInputs field -> (layer file in <run>/layers, contract layer name)
 OPTIONAL_LAYERS: Final = {
     "rows": ("rows.parquet", "rows"), "blocks": ("blocks.parquet", "blocks"),

@@ -122,8 +122,8 @@ def _numbers_ok(rows: Sequence[Mapping[str, str]]) -> CsvCheck:
     return CsvCheck("numbers", not bad, "; ".join(bad[:5]))
 
 
-def _lengths(rows: Sequence[Mapping[str, str]], level: str) -> list[str]:
-    return [r.get("row_length_m") or "" for r in rows if r.get("level") == level]
+def _values(rows: Sequence[Mapping[str, str]], level: str, column: str) -> list[str]:
+    return [r.get(column) or "" for r in rows if r.get("level") == level]
 
 
 def _half_unit(text: str) -> float:
@@ -132,22 +132,28 @@ def _half_unit(text: str) -> float:
     return 0.5 * 10.0 ** (-decimals)
 
 
-def _sum_checks(rows: Sequence[Mapping[str, str]], sum_tol_m: float) -> list[CsvCheck]:
-    (survey_text,) = _lengths(rows, LEVEL_SURVEY)
+def _sum_check(rows: Sequence[Mapping[str, str]], name: str, level: str, column: str, sum_tol: float) -> CsvCheck:
+    """sum(`level`.`column`) equals the survey line within sum_tol (empty cells count as 0)."""
+    (survey_text,) = _values(rows, LEVEL_SURVEY, column)
     survey = float(survey_text or 0.0)
-    checks = []
-    for level, name in ((LEVEL_BLOCK, "block_sum"), (LEVEL_ROW, "row_sum")):
-        values = _lengths(rows, level)
-        total = sum(float(v or 0.0) for v in values)
-        # Every written value (and the survey one) may be off by half a unit: allow that on top.
-        tol = sum_tol_m + sum(_half_unit(v) for v in (*values, survey_text))
-        checks.append(CsvCheck(name, abs(total - survey) <= tol,
-                               f"sum({level}.row_length_m)={total:.2f} survey={survey:.2f} tol={tol:.3f}"))
-    return checks
+    values = _values(rows, level, column)
+    total = sum(float(v or 0.0) for v in values)
+    # Every written value (and the survey one) may be off by half a unit: allow that on top.
+    tol = sum_tol + sum(_half_unit(v) for v in (*values, survey_text))
+    return CsvCheck(name, abs(total - survey) <= tol,
+                    f"sum({level}.{column})={total:.2f} survey={survey:.2f} tol={tol:.3f}")
 
 
-def check_measurements_csv(text: str, *, sum_tol_m: float) -> tuple[CsvCheck, ...]:
-    """Failed checks only (empty = the file may be published)."""
+def _sum_checks(rows: Sequence[Mapping[str, str]], sum_tol_m: float, sum_tol_m2: float) -> list[CsvCheck]:
+    """Block and row lengths, and block inter-row areas (overlap-free pieces), add up to the survey line."""
+    return [_sum_check(rows, "block_sum", LEVEL_BLOCK, "row_length_m", sum_tol_m),
+            _sum_check(rows, "row_sum", LEVEL_ROW, "row_length_m", sum_tol_m),
+            _sum_check(rows, "block_interrow_sum", LEVEL_BLOCK, "interrow_area_m2", sum_tol_m2)]
+
+
+def check_measurements_csv(text: str, *, sum_tol_m: float, sum_tol_m2: float) -> tuple[CsvCheck, ...]:
+    """Failed checks only (empty = the file may be published). sum_tol_m: row_length_m sums; sum_tol_m2:
+    the block interrow_area_m2 sum."""
     first = text.splitlines()[0] if text else ""
     if first != HEADER_LINE:
         return (CsvCheck("header", False, f"got {first[:120]!r}"),)
@@ -161,17 +167,17 @@ def check_measurements_csv(text: str, *, sum_tol_m: float) -> tuple[CsvCheck, ..
         numbers = _numbers_ok(rows)
         checks.append(numbers)
         if numbers.ok and survey.ok:
-            checks += _sum_checks(rows, sum_tol_m)
+            checks += _sum_checks(rows, sum_tol_m, sum_tol_m2)
     return tuple(c for c in checks if not c.ok)
 
 
-def check_measurements_bytes(data: bytes, *, sum_tol_m: float) -> tuple[CsvCheck, ...]:
+def check_measurements_bytes(data: bytes, *, sum_tol_m: float, sum_tol_m2: float) -> tuple[CsvCheck, ...]:
     """check_measurements_csv on raw file bytes; a non-UTF-8 file fails the `utf8` check."""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
         return (CsvCheck("utf8", False, str(exc)),)
-    return check_measurements_csv(text, sum_tol_m=sum_tol_m)
+    return check_measurements_csv(text, sum_tol_m=sum_tol_m, sum_tol_m2=sum_tol_m2)
 
 
 def describe_failed(failed: Sequence[CsvCheck]) -> str:
