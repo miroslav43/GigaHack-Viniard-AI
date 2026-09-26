@@ -19,16 +19,17 @@ from shapely.geometry.base import BaseGeometry
 
 from vineyard.contracts.enums import InterrowCover
 from vineyard.errors import SchemaError
-from vineyard.web.rows_export import features_frame, natural_key, normalize_enum, text_or_none
+from vineyard.web.rows_export import features_frame, finite_or_none, natural_key, normalize_enum, text_or_none
 from vineyard.web.targets_export import RouteInfo, route_features, target_features
 
 __all__ = [
-    "CANOPY_COLUMNS", "INTERROW_COLUMNS", "WASTE_COLUMNS", "RouteInfo", "canopy_features", "canopy_web_ids",
-    "interrow_features", "route_features", "target_features", "waste_features",
+    "CANOPY_COLUMNS", "INTERROW_COLUMNS", "WASTE_COLUMNS", "RouteInfo", "canopy_areas", "canopy_features",
+    "canopy_web_ids", "interrow_features", "interrow_totals", "route_features", "target_features", "waste_features",
 ]
 
-CANOPY_COLUMNS: Final = ("canopy_id", "vineyard_id", "tile", "row_id")
-INTERROW_COLUMNS: Final = ("interrow_id", "vineyard_id", "interrow_cover", "tile", "row_ids", "area_m2", "piece_id")
+CANOPY_COLUMNS: Final = ("canopy_id", "vineyard_id", "tile", "row_id", "area_m2")
+INTERROW_COLUMNS: Final = ("interrow_id", "vineyard_id", "interrow_cover", "tile", "row_ids", "area_m2",
+                           "interrow_total_m2", "piece_id")
 WASTE_COLUMNS: Final = ("waste_id", "vineyard_id", "tile", "confidence")
 INTERROW_COVERS: Final[tuple[str, ...]] = tuple(c.value for c in InterrowCover)
 WEB_CANOPY_SEPARATOR: Final = "#"
@@ -72,13 +73,21 @@ def canopy_web_ids(canopy_ids: Sequence[str], tiles: Sequence[str]) -> list[str]
     return [web_ids[i] for i in range(len(canopy_ids))]
 
 
+def canopy_areas(canopies: gpd.GeoDataFrame) -> list[float]:
+    """The layer's `area_m2`; the polygon area where the column is missing or not finite."""
+    given = canopies["area_m2"] if "area_m2" in canopies.columns else [None] * len(canopies)
+    return [area if area is not None else float(geom.area)
+            for area, geom in zip(map(finite_or_none, given), canopies.geometry, strict=True)]
+
+
 def canopy_features(canopies: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """canopy_id `<tile>#<n>`, vineyard_id, tile, row_id; ordered by tile then canopy id."""
+    """canopy_id `<tile>#<n>`, vineyard_id, tile, row_id, area_m2; ordered by tile then canopy id."""
     tiles = [str(t) for t in canopies["tile_id"]]
     web_ids = canopy_web_ids([str(c) for c in canopies["canopy_id"]], tiles)
-    records = [{"canopy_id": cid, "vineyard_id": text_or_none(vid), "tile": tile, "row_id": text_or_none(rid)}
-               for cid, vid, tile, rid in zip(web_ids, canopies["vineyard_id"], tiles, canopies["row_id"],
-                                              strict=True)]
+    records = [{"canopy_id": cid, "vineyard_id": text_or_none(vid), "tile": tile, "row_id": text_or_none(rid),
+                "area_m2": area}
+               for cid, vid, tile, rid, area in zip(web_ids, canopies["vineyard_id"], tiles, canopies["row_id"],
+                                                    canopy_areas(canopies), strict=True)]
     order = sorted(range(len(records)), key=lambda i: (natural_key(tiles[i]), natural_key(web_ids[i])))
     geoms = canopies.geometry.to_numpy()
     return features_frame([records[i] for i in order], [geoms[i] for i in order], CANOPY_COLUMNS)
@@ -123,15 +132,27 @@ def _interrow_record(rec: Mapping[str, Any], index: _RowIndex, tol_m: float) -> 
             "area_m2": float(geom.area), "piece_id": piece_id}
 
 
+def interrow_totals(interrow_ids: Sequence[str], geoms: Sequence[BaseGeometry]) -> list[float]:
+    """Area of the union of all pieces sharing an interrow id, for every piece (one union per interrow)."""
+    members: dict[str, list[BaseGeometry]] = {}
+    for iid, geom in zip(interrow_ids, geoms, strict=True):
+        members.setdefault(iid, []).append(geom)
+    area = {iid: float(shapely.union_all(parts).area) for iid, parts in members.items()}
+    return [area[iid] for iid in interrow_ids]
+
+
 def interrow_features(interrow_pieces: gpd.GeoDataFrame, row_pieces: gpd.GeoDataFrame, *,
                       link_tol_m: float) -> gpd.GeoDataFrame:
     """One feature per interrow piece (tile part); `interrow_id` is the linked global id when derive set it,
-    else the piece id. `row_ids` come from the links, else from the (<= 2) nearest rows of the same block."""
+    else the piece id. `row_ids` come from the links, else from the (<= 2) nearest rows of the same block.
+    `area_m2` is the piece's area, `interrow_total_m2` the area of the whole interrow (union of its pieces)."""
     if link_tol_m <= 0:
         raise SchemaError("interrow row-link tolerance must be > 0", link_tol_m=link_tol_m)
     index = _RowIndex(row_pieces)
-    records = [_interrow_record(rec, index, link_tol_m) for rec in interrow_pieces.to_dict("records")]
+    pieces = [_interrow_record(rec, index, link_tol_m) for rec in interrow_pieces.to_dict("records")]
     geoms = list(interrow_pieces.geometry)
+    totals = interrow_totals([r["interrow_id"] for r in pieces], geoms)
+    records = [r | {"interrow_total_m2": total} for r, total in zip(pieces, totals, strict=True)]
     order = sorted(range(len(records)),
                    key=lambda i: (natural_key(records[i]["tile"]), natural_key(records[i]["piece_id"])))
     return features_frame([records[i] for i in order], [geoms[i] for i in order], INTERROW_COLUMNS)

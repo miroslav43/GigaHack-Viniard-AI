@@ -9,7 +9,7 @@ import math
 import sys
 import types
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Final
 
@@ -43,6 +43,7 @@ from vineyard.web.bundle import WebInputs, build_web_bundle, bundle_dir, measure
 from vineyard.web.manifest import build_manifest, generated_at_from_run_id, manifest_stage, survey_info
 from vineyard.web.objects_export import (
     RouteInfo,
+    canopy_features,
     canopy_web_ids,
     interrow_features,
     route_features,
@@ -106,6 +107,22 @@ def test_manifest_rejects_bad_values(kwargs: dict[str, Any]) -> None:
         build_manifest(survey_info(load_config(environ={})), **base)
 
 
+def test_survey_identity_comes_from_the_web_config() -> None:
+    cfg = load_config(overrides=("web.survey_id=siret3-nn1", "web.survey_name=Sireț3 NN1"), environ={})
+    info = survey_info(cfg)
+    assert (info.survey_id, info.name) == ("siret3-nn1", "Sireț3 NN1")
+    assert web_params(cfg).survey == info
+
+
+@pytest.mark.parametrize(("survey_id", "name"), [("siret3_nn1", "Sireț3"), ("x", "Sireț3"), ("a" * 41, "Sireț3"),
+                                                 ("siret3\n", "Sireț3"), ("siret3", "Y"), ("siret3", "N" * 161)])
+def test_survey_info_rejects_what_the_web_cannot_register(survey_id: str, name: str) -> None:
+    info = survey_info(load_config(environ={}))
+    assert replace(info, survey_id="s3", name="N" * 160).survey_id == "s3"
+    with pytest.raises(SchemaError):
+        replace(info, survey_id=survey_id, name=name)
+
+
 def test_stage_and_generated_at() -> None:
     assert [manifest_stage(s) for s in Source] == ["model", "marcaj_corrected", "marcaj_corrected"]
     with pytest.raises(SchemaError):
@@ -166,6 +183,36 @@ def test_canopy_web_ids_keep_numbers_or_renumber() -> None:
         [f"{T_V01}#0002", f"{T_V01}#0001", f"{T_V02}#0007"]
 
 
+def test_canopy_area_from_the_layer_with_geometry_fallback() -> None:
+    canopies = make_annset(BlockSpec(n_rows=2)).canopies
+    n = len(canopies)
+    given = canopies.assign(area_m2=[1.25, math.nan] + [None] * (n - 2))
+    web_ids = canopy_web_ids([str(c) for c in canopies.canopy_id], [str(t) for t in canopies.tile_id])
+    expected = dict(zip(web_ids, [1.25, *canopies.geometry.area.iloc[1:]], strict=True))
+    f = canopy_features(given)
+    assert dict(zip(f.canopy_id, f.area_m2, strict=True)) == pytest.approx(expected)
+    assert all(type(a) is float for a in f.area_m2)
+    missing = canopy_features(canopies.drop(columns="area_m2"))
+    assert list(missing.area_m2) == pytest.approx(list(missing.geometry.area))
+
+
+def test_interrow_total_is_the_union_area_of_the_interrow_pieces() -> None:
+    linked = make_annset(BlockSpec(n_rows=3), linked=True)
+    f = interrow_features(linked.interrow_pieces, linked.row_pieces, link_tol_m=1.0)
+    for iid, pieces in f.groupby("interrow_id"):
+        assert len(pieces) == 2, iid
+        assert list(pieces.interrow_total_m2) == pytest.approx([pieces.geometry.union_all().area] * 2)
+    x0, y0 = 629610.0, 5220120.0
+    overlapping = layer_frame("interrow_pieces", [
+        interrow_piece_record(f"{T_V01}:I001", T_V01, "V01", box(x0, y0, x0 + 10, y0 + 2), interrow_id="V01-I001"),
+        interrow_piece_record(f"{T_V01}:I002", T_V01, "V01", box(x0 + 5, y0, x0 + 15, y0 + 2), interrow_id="V01-I001"),
+        interrow_piece_record(f"{T_V01}:I003", T_V01, "V01", box(x0, y0 + 5, x0 + 4, y0 + 6))])
+    g = interrow_features(overlapping, linked.row_pieces, link_tol_m=1.0)
+    assert list(g.piece_id) == [f"{T_V01}:I001", f"{T_V01}:I002", f"{T_V01}:I003"]
+    assert list(g.area_m2) == pytest.approx([20.0, 20.0, 4.0])
+    assert list(g.interrow_total_m2) == pytest.approx([30.0, 30.0, 4.0])
+
+
 def test_interrows_linked_ids_or_piece_ids_with_geometric_row_links() -> None:
     linked = make_annset(BlockSpec(n_rows=3), linked=True)
     f = interrow_features(linked.interrow_pieces, linked.row_pieces, link_tol_m=1.0)
@@ -208,6 +255,64 @@ def test_targets_route_order_types_and_reachability() -> None:
     assert list(t["type"]) == ["waste", "gap", "gap", "missing"] and list(t.route_order) == [1, 2, None, None]
     assert list(t.reachable) == [True, True, True, False] and list(t.vineyard_id) == [None, "V01", "V01", "V01"]
     assert t.gap_length_m[1] == 6.25 and t.gap_length_m[0] is None and t.note[3] == "missing_plant; far"
+    assert list(t.skip_reason) == [None, None, "not_covered", "far"]
+    assert list(t.priority) == [1, 1, 1, 1] and all(type(p) is int for p in t.priority)
+    assert list(t.route_role) == [None] * 4  # neither the targets layer nor the route stage gave one
+
+
+_NOTES: Final = ("", "disconnected", "too_far", "optional_detour", "truncated", "", "outside_budget")
+
+
+def _noted_targets() -> gpd.GeoDataFrame:
+    """T-GAP-0001..0007 far from the stub route; 0001 is the only one the route covers."""
+    records = [_target(f"T-GAP-000{k}", "row_gap", (629600.0 + 10.0 * k, 5220400.0)) for k in range(1, 8)]
+    return _frame("targets", records).assign(priority=[1, 2, 3, 1, 2, 3, 2],
+                                             route_role=["must", "must", "optional", "optional", "optional",
+                                                         "optional", "must"])
+
+
+def _noted_visits(covered: tuple[bool, ...] = (True,) + (False,) * 6) -> pd.DataFrame:
+    return pd.DataFrame({"target_id": [f"T-GAP-000{k}" for k in range(1, 8)], "covered": list(covered),
+                         "reachable_final": [c or n == "" for c, n in zip(covered, _NOTES, strict=True)],
+                         "reach_note": list(_NOTES),
+                         "route_role": ["must", "optional", "optional", "optional", "optional", "optional", "must"]})
+
+
+def test_targets_reachable_only_when_walkable_and_skip_reason_when_unvisited() -> None:
+    t = target_features(_noted_targets(), route=_route(), visits=_noted_visits(), visit_radius_m=2.0)
+    assert list(t.source_target_id) == [f"T-GAP-000{k}" for k in range(1, 8)]
+    assert list(t.route_order) == [1] + [None] * 6
+    assert list(t.reachable) == [True, False, False, True, True, True, True]
+    assert list(t.skip_reason) == [None, "disconnected", "too_far", "optional_detour", "truncated", "not_covered",
+                                   "outside_budget"]
+    assert list(t.priority) == [1, 2, 3, 1, 2, 3, 2] and all(type(p) is int for p in t.priority)
+    # the route stage's role wins over the targets layer's (T-GAP-0002 is must in targets, optional in visits)
+    assert list(t.route_role) == ["must", "optional", "optional", "optional", "optional", "optional", "must"]
+    assert t.note[1] == "row_gap; disconnected" and t.note[0] == "row_gap"
+
+
+def test_targets_all_visited_have_no_skip_reason() -> None:
+    covered = (True,) * 7
+    t = target_features(_noted_targets(), route=_route(), visits=_noted_visits(covered), visit_radius_m=2.0)
+    assert list(t.route_order) == list(range(1, 8)) and all(type(o) is int for o in t.route_order)
+    assert list(t.reachable) == [True] * 7 and list(t.skip_reason) == [None] * 7
+
+
+def test_targets_without_a_route_keep_the_targets_layer_verdict() -> None:
+    targets = _noted_targets().assign(reachable=[True, False, True, True, True, True, False],
+                                      reach_note=["", "too_far", "", "", "", "", "in_forbidden"],
+                                      priority=[1, 2, 3, 1, 2, 3, 2])
+    t = target_features(targets.drop(columns="route_role"), route=None, visit_radius_m=2.0)
+    assert list(t.route_order) == [None] * 7
+    assert list(t.reachable) == [True, False, True, True, True, True, False]
+    assert list(t.skip_reason) == ["no_route", "too_far", "no_route", "no_route", "no_route", "no_route",
+                                   "in_forbidden"]
+    assert list(t.route_role) == [None] * 7
+
+
+def test_targets_route_role_from_the_targets_layer_without_visits() -> None:
+    t = target_features(_noted_targets(), route=_route(), visit_radius_m=2.0)
+    assert list(t.route_role) == ["must", "must", "optional", "optional", "optional", "optional", "must"]
 
 
 def test_targets_prefer_route_stops_and_visit_flags() -> None:
@@ -225,6 +330,7 @@ def test_route_feature_length_on_written_coordinates() -> None:
     r = route_features(RouteInfo(LineString([START, (START[0] + 1000.0004, START[1]), START])), speed_kmh=4.0,
                        decimals=3)
     assert r.length_m[0] == pytest.approx(2000.0) and r.duration_min[0] == pytest.approx(30.0)
+    assert r.speed_kmh[0] == 4.0 and type(r.speed_kmh[0]) is float
     assert r.baseline_length_m[0] is None and r.outside_share[0] is None
     with pytest.raises(SchemaError):
         RouteInfo(LineString([START, (START[0] + 1, START[1])]), outside_share=1.5)
@@ -265,6 +371,10 @@ def test_reference_bundle_passes_the_web_contract(tmp_path: Path, examples_xml: 
         [("gap", 1), ("waste", 2), ("missing", 3), ("gap", None)]
     assert sum(f["row_structure"] == "disrupted" for f in found["rows.geojson"]) == 5
     assert [f["vineyard_id"] for f in found["waste.geojson"]] == ["V01", None]
+    assert all(f["area_m2"] == pytest.approx(f["_geom"].area, abs=0.01) for f in found["canopies.geojsonl"])
+    assert all(f["interrow_total_m2"] >= f["area_m2"] for f in found["interrows.geojson"])
+    assert [f["priority"] for f in found["targets.geojson"]] == [1, 1, 1, 1]
+    assert found["route.geojson"][0]["speed_kmh"] == params.speed_kmh
     table = _csv(tmp_path / "a" / "measurements.csv")
     facts = {"V01": (25, 910.1, 237.1, 2068.0, 399), "V02": (26, 1031.5, 299.1, 1996.4, 251)}
     for vid, (n_rows, length, canopy, interrow, plants) in facts.items():
@@ -346,8 +456,25 @@ def test_stage_builds_the_bundle_from_the_post_run(post_run: Any) -> None:
         ("marcaj_corrected", GEN, post_run.git_sha)
     (route,) = found["route.geojson"]
     assert (route["baseline_length_m"], route["outside_share"]) == (99.5, 0.002)
-    assert found["targets.geojson"][0]["route_order"] == 1
+    assert route["speed_kmh"] == post_run.cfg.route.walking_speed_kmh
+    (target,) = found["targets.geojson"]
+    assert type(target["route_order"]) is int and target["route_order"] == 1 and target["skip_reason"] is None
+    assert manifest["model_version"] == "m" and manifest["tiles_with_objects"] == 2
+    bbox = manifest["bbox_32635"]
+    assert len(bbox) == 4 and all(round(v, 3) == v for v in bbox) and bbox[0] < bbox[2] and bbox[1] < bbox[3]
     assert (post_run.paths.metrics_dir / "web_bundle.json").is_file()
+
+
+def test_stage_writes_the_configured_survey(post_run: Any, tmp_path: Path) -> None:
+    cfg = load_config(overrides=(f"web.out_dir={tmp_path / 'web'}", "web.survey_id=siret3-nn1",
+                                 "web.survey_name=Sireț3 NN1"),
+                      environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
+    ctx = new_run_context(cfg, source=Source.MARCAJ, kind="post", annset_ref=post_run.annset_ref,
+                          run_id=post_run.run_id)
+    load_stage("web_bundle").run(ctx)
+    manifest = json.loads((bundle_dir(tmp_path / "web", "siret3-nn1") / "manifest.json").read_text(encoding="utf-8"))
+    assert (manifest["survey_id"], manifest["name"]) == ("siret3-nn1", "Sireț3 NN1")
+    assert not bundle_dir(tmp_path / "web", "siret3").exists()
 
 
 def test_stage_finds_the_post_run_of_the_same_annset(post_run: Any) -> None:

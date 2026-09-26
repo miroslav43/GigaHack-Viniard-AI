@@ -12,12 +12,12 @@ import json
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import shapely
 from shapely.geometry import MultiPolygon, mapping
@@ -191,6 +191,38 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
             "waste": waste, "targets": targets, "route": route}
 
 
+def tiles_with_objects(layers: Mapping[str, gpd.GeoDataFrame | None]) -> int:
+    """Distinct tiles holding a row piece (rows' `tile_structures`), a canopy or an interrow piece."""
+    tiles: set[str] = set()
+    for name, column in (("canopies", "tile"), ("interrows", "tile")):
+        frame = layers.get(name)
+        if frame is not None:
+            tiles.update(t for t in map(text_or_none, frame[column]) if t is not None)
+    rows = layers.get("rows")
+    if rows is not None:
+        tiles.update(str(t) for structures in rows["tile_structures"] for t in (structures or {}))
+    return len(tiles)
+
+
+def bundle_bbox(layers: Mapping[str, gpd.GeoDataFrame | None], decimals: int) -> list[float] | None:
+    """[minx, miny, maxx, maxy] (EPSG:32635) of every geometry of the bundle; None when it has none."""
+    arrays = [frame.geometry.to_numpy() for frame in layers.values() if frame is not None and len(frame)]
+    bounds = shapely.total_bounds(np.concatenate(arrays)) if arrays else np.full(4, np.nan)
+    if not np.isfinite(bounds).all():
+        return None  # no layer, or only empty / null geometries
+    return [round(float(v), decimals) for v in bounds]
+
+
+def manifest_extras(inputs: WebInputs, layers: Mapping[str, gpd.GeoDataFrame | None], params: WebParams, *,
+                    run_id: str) -> dict[str, Any]:
+    """Informative manifest fields: provenance (runs, AnnSet source, model version), layer counts, extent."""
+    meta = inputs.annset.meta
+    counts = {name: 0 if frame is None else len(frame) for name, frame in layers.items()}
+    return {"run_id": run_id, "annset_run_id": meta.run_id, "annset_source": meta.source.value,
+            "model_version": meta.model_version, "counts": counts, "tiles_with_objects": tiles_with_objects(layers),
+            "bbox_32635": bundle_bbox(layers, params.utm_decimals)}
+
+
 def measurements_bytes(inputs: WebInputs, params: WebParams) -> bytes:
     """measure's CSV when given (copied verbatim), else computed by the same `vineyard.measure` writer;
     either way it must pass the checks `publish` applies (SchemaError otherwise)."""
@@ -214,11 +246,16 @@ def _rounded_value(value: Any, decimals: int) -> Any:
     return round(value, decimals) if isinstance(value, float) and math.isfinite(value) else value
 
 
+def _rounded_column(values: pd.Series, decimals: int) -> pd.Series:
+    # Built as object dtype: Series.map would infer float64 and write the ints of `[1, 2, None]` as 1.0, 2.0.
+    return pd.Series([_rounded_value(v, decimals) for v in values], index=values.index, dtype=object)
+
+
 def rounded_properties(frame: gpd.GeoDataFrame, decimals: int) -> gpd.GeoDataFrame:
     """New frame whose float properties are rounded to `decimals` (hides float32 / summation noise); fractions
-    in FRACTION_DECIMALS keep their own precision."""
+    in FRACTION_DECIMALS keep their own precision, ints (and nulls next to them) stay as they are."""
     places = {c: FRACTION_DECIMALS.get(c, decimals) for c in frame.columns if c != frame.geometry.name}
-    return frame.assign(**{c: frame[c].map(partial(_rounded_value, decimals=n)) for c, n in places.items()})
+    return frame.assign(**{c: _rounded_column(frame[c], n) for c, n in places.items()})
 
 
 def _json_ready(value: Any) -> Any:
@@ -258,12 +295,10 @@ def build_web_bundle(inputs: WebInputs, out_dir: Path, params: WebParams, *, gen
     """Write the whole bundle into `out_dir` (see the module docstring)."""
     layers = build_layers(inputs, params)
     csv_bytes = measurements_bytes(inputs, params)
-    counts = {name: 0 if frame is None else len(frame) for name, frame in layers.items()}
-    meta = inputs.annset.meta
-    manifest = build_manifest(params.survey, stage=manifest_stage(meta.source), generated_at=generated_at,
-                              pipeline_version=pipeline_version,
-                              extras={"run_id": run_id, "annset_run_id": meta.run_id,
-                                      "annset_source": meta.source.value, "counts": counts})
+    extras = manifest_extras(inputs, layers, params, run_id=run_id)
+    counts = extras["counts"]
+    manifest = build_manifest(params.survey, stage=manifest_stage(inputs.annset.meta.source),
+                              generated_at=generated_at, pipeline_version=pipeline_version, extras=extras)
     out = Path(out_dir)
     written = [_write_layer(name, frame, out, params.utm_decimals) for name, frame in layers.items()
                if frame is not None]

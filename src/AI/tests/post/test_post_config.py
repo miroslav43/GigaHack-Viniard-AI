@@ -55,6 +55,29 @@ def test_outside_limit_cannot_exceed_the_official_one() -> None:
         _cfg("route.max_outside_frac_publish=0.025")
 
 
+def test_web_survey_identity_defaults_and_overrides() -> None:
+    web = _cfg().web
+    assert (web.survey_id, web.survey_name) == ("siret3", "Sireț3")
+    other = _cfg("web.survey_id=siret3-nn1", "web.survey_name=Sireț3 NN1").web
+    assert (other.survey_id, other.survey_name) == ("siret3-nn1", "Sireț3 NN1")
+
+
+def test_web_survey_identity_accepts_the_web_limits() -> None:
+    edge = _cfg(f"web.survey_id=a{'-' * 38}9", "web.survey_name=Ab").web
+    assert (len(edge.survey_id), edge.survey_name) == (40, "Ab")
+    assert _cfg("web.survey_id=s3", f"web.survey_name={'N' * 160}").web.survey_id == "s3"
+
+
+# The web registers only ids of public.survey.id (`^[a-z0-9][a-z0-9-]{1,39}$`) and names of 2-160 characters.
+@pytest.mark.parametrize("override", ["web.survey_id=Siret3", "web.survey_id=siret 3", "web.survey_id=-x",
+                                      "web.survey_id=siret3_nn1", "web.survey_id=x", f"web.survey_id={'a' * 41}",
+                                      "web.survey_id=''", "web.survey_id=null", "web.survey_name=''",
+                                      "web.survey_name=Y", f"web.survey_name={'N' * 161}"])
+def test_web_survey_identity_rejects_bad_values(override: str) -> None:
+    with pytest.raises((ConfigError, ValueError)):
+        _cfg(override)
+
+
 def test_plan_margin_must_leave_a_positive_planning_limit() -> None:
     with pytest.raises((ConfigError, ValueError), match="plan_outside_margin"):
         _cfg("route.plan_outside_margin=0.015")

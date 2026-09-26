@@ -76,6 +76,7 @@ def _check_refs(p: Mapping[str, list[dict[str, Any]]]) -> None:
     targets = p["targets.geojson"]
     assert [f["target_id"] for f in targets] == [f"T{k:03d}" for k in range(1, len(targets) + 1)]
     orders = [f["route_order"] for f in targets]
+    assert all(o is None or type(o) is int for o in orders), "route_order must be an int or null"
     visited = [o for o in orders if o is not None]
     assert visited == list(range(1, len(visited) + 1)) and orders[: len(visited)] == visited
     assert all(isinstance(f["reachable"], bool) and (f["route_order"] is None or f["reachable"]) for f in targets)

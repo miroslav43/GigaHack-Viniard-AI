@@ -10,14 +10,13 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 from zoneinfo import ZoneInfo
 
+from vineyard.config.sections_post import SURVEY_ID_PATTERN, SURVEY_NAME_MAX_LEN, SURVEY_NAME_MIN_LEN
 from vineyard.contracts.enums import Source
 from vineyard.errors import SchemaError
 
 if TYPE_CHECKING:
     from vineyard.config import AppConfig
 
-SURVEY_ID: Final = "siret3"  # CONFIG-REQUEST: web.survey_id = "siret3"
-SURVEY_NAME: Final = "Sireț3"  # CONFIG-REQUEST: web.survey_name = "Sireț3"
 CAPTURED_AT: Final = "2025-05-20"  # CONFIG-REQUEST: web.captured_at = "2025-05-20"
 IMAGERY_SOURCE: Final = "3DATA COLLECT / OpenAerialMap"  # CONFIG-REQUEST: web.imagery_source = "3DATA COLLECT / OpenAerialMap"
 IMAGERY_LICENSE: Final = "CC BY 4.0"  # CONFIG-REQUEST: web.imagery_license = "CC BY 4.0"
@@ -29,7 +28,7 @@ MANIFEST_STAGES: Final = (STAGE_MODEL, STAGE_CORRECTED)
 STAGE_OF_SOURCE: Final[Mapping[Source, str]] = MappingProxyType(
     {Source.MODEL: STAGE_MODEL, Source.MARCAJ: STAGE_CORRECTED, Source.REFERENCE: STAGE_CORRECTED}
 )
-_SURVEY_ID_RE: Final = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_SURVEY_ID_RE: Final = re.compile(SURVEY_ID_PATTERN)
 _RUN_STAMP_RE: Final = re.compile(r"^(\d{8}T\d{4})-")
 _RUN_STAMP_FORMAT: Final = "%Y%m%dT%H%M"
 
@@ -46,8 +45,12 @@ class SurveyInfo:
     tiles: int
 
     def __post_init__(self) -> None:
-        if not _SURVEY_ID_RE.match(self.survey_id):
-            raise SchemaError("survey_id must be lowercase letters, digits, '_' or '-'", survey_id=self.survey_id)
+        if not _SURVEY_ID_RE.fullmatch(self.survey_id):  # fullmatch: `$` alone would accept a trailing newline
+            raise SchemaError("survey_id must be 2-40 lowercase letters, digits or '-', not starting with '-'",
+                              survey_id=self.survey_id, pattern=SURVEY_ID_PATTERN)
+        if not SURVEY_NAME_MIN_LEN <= len(self.name) <= SURVEY_NAME_MAX_LEN:
+            raise SchemaError(f"survey name must be {SURVEY_NAME_MIN_LEN}-{SURVEY_NAME_MAX_LEN} characters",
+                              name=self.name)
         try:
             date.fromisoformat(self.captured_at)
         except ValueError:
@@ -57,9 +60,10 @@ class SurveyInfo:
 
 
 def survey_info(cfg: AppConfig) -> SurveyInfo:
+    """Survey identity from `web.survey_id` / `web.survey_name`, imagery facts from the grid and constants."""
     return SurveyInfo(
-        survey_id=SURVEY_ID, name=SURVEY_NAME, captured_at=CAPTURED_AT, gsd_m=cfg.grid.gsd_m, crs=cfg.project.crs,
-        source=IMAGERY_SOURCE, license=IMAGERY_LICENSE, tiles=cfg.grid.expected_tiles,
+        survey_id=cfg.web.survey_id, name=cfg.web.survey_name, captured_at=CAPTURED_AT, gsd_m=cfg.grid.gsd_m,
+        crs=cfg.project.crs, source=IMAGERY_SOURCE, license=IMAGERY_LICENSE, tiles=cfg.grid.expected_tiles,
     )
 
 
