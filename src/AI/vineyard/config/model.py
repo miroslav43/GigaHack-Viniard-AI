@@ -25,6 +25,7 @@ from vineyard.config.sections_perception import (
     OrchardConfig,
     QaConfig,
     RowsConfig,
+    RowsGuidedConfig,
     RowStructureConfig,
 )
 from vineyard.config.sections_post import (
@@ -49,6 +50,7 @@ class AppConfig(Section):
     nn: NnConfig
     rows: RowsConfig
     orchard: OrchardConfig
+    rows_guided: RowsGuidedConfig
     blocks: BlocksConfig
     canopy: CanopyConfig
     interrow: InterrowConfig

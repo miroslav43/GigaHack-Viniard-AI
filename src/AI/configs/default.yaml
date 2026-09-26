@@ -198,6 +198,35 @@ orchard:
   block_reject_enabled: false              # P1
   block_majority_frac: 0.5
 
+# Neighbour-guided recovery (rows_link, before linking): a tile with <= target_max_accepted accepted rows
+# is retried at the lattice (angle, spacing, UTM phase) of each 8-neighbour with >= prior_min_rows
+# accepted rows. Only the angle +- angle_search_deg and the spacing +- spacing_rel_tol are searched, and
+# only candidates on the extended lattice that continue a neighbour row across the tile edge, with real
+# row structure (occupancy, rel_contrast, width, no orchard period) are added, so young vines on bare soil (no_periodicity / too_wide in the global pass)
+# are recovered without the global gates. Priors come from rows_detect only (no propagation).
+rows_guided:
+  enabled: true
+  target_max_accepted: 4
+  prior_min_rows: 5
+  prior_angle_merge_deg: 5.0
+  max_priors_per_cluster: 3                # neighbours at one angle may disagree on spacing/phase: best of 3
+  angle_search_deg: 2.0
+  angle_step_deg: 0.5
+  spacing_rel_tol: 0.15
+  min_snr: 3.0
+  lattice_tol_frac: 0.25
+  phase_tol_frac: 0.25
+  occupancy_min: 0.3
+  min_rel_contrast: 0.15
+  width_p80_max_m: 1.4
+  wide_min_rel_contrast: 0.5               # wide (weedy) rows kept only with a strong interrow density drop
+  orchard_along_period_m: [3.3, 6.0]       # guided pass only; young vines have a 3.0-3.1 m plant period
+  min_row_len_m: 5.0
+  min_rows: 3
+  min_sep_m: 1.0
+  continue_max_m: 1.5                      # a guided row must continue a neighbour's accepted row (gap <= this)
+  cut_gap_m: 3.0                           # guided rows end at empty runs >= this (road): only the continued piece
+
 blocks:
   neighbour_max_m: 4.0
   parallel_max_deg: 5.0
