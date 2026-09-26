@@ -36,6 +36,8 @@ export function SetPasswordForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+  // "forgot password" links carry ?flow=reset (ForgotPasswordForm); invitations do not
+  const [reset, setReset] = useState(false);
 
   useEffect(() => {
     // the link's tokens are single-use: run once, also under StrictMode's double effect
@@ -48,6 +50,7 @@ export function SetPasswordForm() {
     if (window.location.hash || query.has("token_hash")) window.history.replaceState(null, "", window.location.pathname);
 
     (async () => {
+      setReset(query.get("flow") === "reset" || hash.get("type") === "recovery");
       if (hash.has("error") || hash.has("error_code")) {
         setState({ kind: "invalid", expired: true });
         return;
@@ -93,7 +96,7 @@ export function SetPasswordForm() {
         {t("title")}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-        {state.kind === "ready" ? t("subtitle", { email: state.email }) : t("subtitleGeneric")}
+        {state.kind === "ready" ? t("subtitle", { email: state.email }) : reset ? t("subtitleReset") : t("subtitleGeneric")}
       </Typography>
     </Box>
   );
@@ -114,7 +117,12 @@ export function SetPasswordForm() {
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
         {heading}
-        <Alert severity="warning">{state.expired ? t("expired") : t("invalid")}</Alert>
+        <Alert severity="warning">{reset ? t("expiredReset") : state.expired ? t("expired") : t("invalid")}</Alert>
+        {reset && (
+          <Button component={Link} href="/login?forgot=1" variant="contained" size="large" sx={{ py: 3 }}>
+            {t("newResetLink")}
+          </Button>
+        )}
         <Button component={Link} href="/login" variant="outlined" size="large" sx={{ py: 3 }}>
           {t("toLogin")}
         </Button>

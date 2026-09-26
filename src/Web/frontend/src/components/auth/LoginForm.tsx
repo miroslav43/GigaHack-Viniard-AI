@@ -7,6 +7,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import MuiLink from "@mui/material/Link";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
@@ -17,6 +18,7 @@ import ArrowForward from "@mui/icons-material/ArrowForward";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { AUTH_ENABLED, DEMO_COOKIE } from "@/lib/supabase/config";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 /** Only same-app relative paths are accepted as a post-login target. */
 const safeNext = (v: string | null) => (v && v.startsWith("/") && !v.startsWith("//") ? v : "/");
@@ -30,6 +32,8 @@ export function LoginForm() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(AUTH_ENABLED ? null : t("unavailable"));
+  // ?forgot=1 (from an expired reset link) opens the "forgot password" step directly
+  const [forgot, setForgot] = useState(params.get("forgot") === "1");
 
   const go = () => {
     router.replace(safeNext(params.get("next")));
@@ -55,6 +59,8 @@ export function LoginForm() {
     document.cookie = `${DEMO_COOKIE}=1; Max-Age=${60 * 60 * 24 * 7}; path=/; SameSite=Lax`;
     go();
   };
+
+  if (forgot) return <ForgotPasswordForm initialEmail={email} onBack={() => setForgot(false)} />;
 
   return (
     <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -100,6 +106,17 @@ export function LoginForm() {
           },
         }}
       />
+      <MuiLink
+        component="button"
+        type="button"
+        variant="body2"
+        underline="hover"
+        onClick={() => setForgot(true)}
+        disabled={!AUTH_ENABLED}
+        sx={{ alignSelf: "flex-end", mt: -3, fontWeight: 500 }}
+      >
+        {t("forgot")}
+      </MuiLink>
       <Button type="submit" variant="contained" size="large" disabled={!AUTH_ENABLED || busy || !email || !password} sx={{ py: 3.5, fontSize: 16 }}>
         {t("signIn")}
       </Button>
