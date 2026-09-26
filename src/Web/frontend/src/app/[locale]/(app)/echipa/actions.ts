@@ -3,6 +3,7 @@
 // Team management for the municipality (UAT) admin — strictly limited to its own municipality and to
 // team roles (inspector, viewer). Other admins and other municipalities are never reachable.
 import { revalidatePath } from "next/cache";
+import { inviteUser, sendPasswordLink } from "@/lib/invite";
 import { auditAsUatAdmin, requireTeamMember, requireUatAdmin, TEAM_ROLES, type TeamRole } from "@/lib/team";
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string };
@@ -25,23 +26,16 @@ const checkRole = (role: string): TeamRole => {
   return role as TeamRole;
 };
 
-export async function createMember(input: { email: string; fullName: string; password: string; role: string }): Promise<ActionResult<string>> {
+/** Invites a member by email: Supabase sends the link, the member sets the password on /parola-noua. */
+export async function inviteMember(input: { email: string; fullName: string; role: string }): Promise<ActionResult<string>> {
   return run(async () => {
     const { admin, viewer, uatKey } = await requireUatAdmin();
     const email = input.email.trim().toLowerCase();
     if (!EMAIL_RE.test(email)) throw new Error("invalid_email");
-    if (input.password.length < 10) throw new Error("weak_password");
     const role = checkRole(input.role);
-    const { data, error } = await admin.auth.admin.createUser({
-      email,
-      password: input.password,
-      email_confirm: true,
-      user_metadata: { full_name: input.fullName.trim() || undefined },
-      app_metadata: { uat: uatKey, uat_role: role },
-    });
-    if (error) throw new Error(error.code === "email_exists" ? "email_exists" : error.message);
-    await auditAsUatAdmin(admin, { id: viewer.userId!, email: viewer.email }, uatKey, "team.create", data.user.id, { email, role });
-    return data.user.id;
+    const user = await inviteUser(admin, email, input.fullName, { uat: uatKey, uat_role: role });
+    await auditAsUatAdmin(admin, { id: viewer.userId!, email: viewer.email }, uatKey, "team.invite", user.id, { email, role });
+    return email;
   });
 }
 
@@ -61,15 +55,15 @@ export async function updateMember(input: { id: string; fullName: string; role: 
   });
 }
 
-export async function resetMemberPassword(id: string, password: string): Promise<ActionResult> {
+/** Emails the member a new link: the invitation again while pending, otherwise a password reset. */
+export async function sendMemberPasswordLink(id: string): Promise<ActionResult<{ email: string; kind: "invite" | "reset" }>> {
   return run(async () => {
     const { admin, viewer, uatKey } = await requireUatAdmin();
     const member = await requireTeamMember(admin, id, uatKey);
-    if (password.length < 10) throw new Error("weak_password");
-    const { error } = await admin.auth.admin.updateUserById(id, { password });
-    if (error) throw new Error(error.message);
-    await auditAsUatAdmin(admin, { id: viewer.userId!, email: viewer.email }, uatKey, "team.reset_password", id, { email: member.email });
-    return null;
+    const kind = await sendPasswordLink(admin, member);
+    const action = kind === "invite" ? "team.resend_invite" : "team.password_reset_email";
+    await auditAsUatAdmin(admin, { id: viewer.userId!, email: viewer.email }, uatKey, action, id, { email: member.email });
+    return { email: member.email ?? "", kind };
   });
 }
 

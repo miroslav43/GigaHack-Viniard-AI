@@ -121,7 +121,9 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         <Box component="main" sx={{ flex: 1, minHeight: 0, pb: 16 }}>
           {children}
         </Box>
+        {/* the same navigation landmark as the desktop sidebar */}
         <BottomNavigation
+          component="nav"
           showLabels
           value={NAV.findIndex((n) => active(n.href))}
           sx={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: 1, borderColor: "divider", zIndex: 10 }}

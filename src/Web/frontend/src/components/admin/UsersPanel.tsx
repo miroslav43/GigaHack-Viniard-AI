@@ -28,16 +28,10 @@ import KeyOutlined from "@mui/icons-material/KeyOutlined";
 import BlockOutlined from "@mui/icons-material/BlockOutlined";
 import CheckCircleOutline from "@mui/icons-material/CheckCircleOutlined";
 import DeleteOutline from "@mui/icons-material/DeleteOutlined";
+import ForwardToInboxOutlined from "@mui/icons-material/ForwardToInboxOutlined";
 import { useFormat } from "@/lib/useFormat";
-import {
-  createUser,
-  deleteUser,
-  resetUserPassword,
-  setUserBanned,
-  updateUserAccess,
-} from "@/app/[locale]/(admin)/super-admin/actions";
+import { deleteUser, inviteUser, sendUserPasswordLink, setUserBanned, updateUserAccess } from "@/app/[locale]/(admin)/super-admin/actions";
 import { ConfirmDialog, useAdminAction } from "./common";
-import { PasswordField, generatePassword } from "@/components/common/PasswordField";
 import { ROLES, type AdminUser, type Role } from "./types";
 
 type UatOption = { key: string; name: string };
@@ -99,11 +93,13 @@ export function UsersPanel({
   const tr = useTranslations("auth.roles");
   const f = useFormat();
   const { run, pending, snackbar } = useAdminAction();
+  const linkSent = ({ email, kind }: { email: string; kind: "invite" | "reset" }) =>
+    t(kind === "invite" ? "users.inviteSent" : "users.resetSent", { email });
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [resetting, setResetting] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
-  const [draft, setDraft] = useState({ email: "", fullName: "", password: "", uat: null as string | null, role: "uat_admin" as Role });
+  const [draft, setDraft] = useState({ email: "", fullName: "", uat: null as string | null, role: "uat_admin" as Role });
   // opened from a municipality row (?new=uat_admin&uat=…): open the create dialog prefilled, once
   const presetOpened = useRef(false);
   useEffect(() => {
@@ -111,7 +107,7 @@ export function UsersPanel({
     // mark as opened only when it really opens: in dev (StrictMode) the first effect run is cleaned up at once
     const frame = requestAnimationFrame(() => {
       presetOpened.current = true;
-      setDraft({ email: "", fullName: "", password: generatePassword(), uat: preset.uat, role: preset.role });
+      setDraft({ email: "", fullName: "", uat: preset.uat, role: preset.role });
       setCreating(true);
     });
     return () => cancelAnimationFrame(frame);
@@ -133,17 +129,13 @@ export function UsersPanel({
   }
 
   const openCreate = (p?: { uat: string; role: Role } | null) => {
-    setDraft({ email: "", fullName: "", password: generatePassword(), uat: p?.uat ?? uats[0]?.key ?? null, role: p?.role ?? "uat_admin" });
+    setDraft({ email: "", fullName: "", uat: p?.uat ?? uats[0]?.key ?? null, role: p?.role ?? "uat_admin" });
     setCreating(true);
   };
 
   const openEdit = (u: AdminUser) => {
-    setDraft({ email: u.email, fullName: u.name ?? "", password: "", uat: u.uat, role: u.role ?? "viewer" });
+    setDraft({ email: u.email, fullName: u.name ?? "", uat: u.uat, role: u.role ?? "viewer" });
     setEditing(u);
-  };
-  const openReset = (u: AdminUser) => {
-    setDraft((d) => ({ ...d, password: generatePassword() }));
-    setResetting(u);
   };
 
   return (
@@ -181,7 +173,12 @@ export function UsersPanel({
                   {u.role ? <Chip size="small" variant="outlined" color={u.role === "platform_admin" ? "primary" : "default"} label={tr(u.role)} /> : t("common.none")}
                 </TableCell>
                 <TableCell>
-                  <Chip size="small" color={u.banned ? "error" : "success"} variant="outlined" label={u.banned ? t("users.disabled") : t("users.active")} />
+                  <Chip
+                    size="small"
+                    color={u.banned ? "error" : u.invited ? "warning" : "success"}
+                    variant="outlined"
+                    label={u.banned ? t("users.disabled") : u.invited ? t("users.invited") : t("users.active")}
+                  />
                 </TableCell>
                 <TableCell>{u.last_sign_in_at ? f.date(u.last_sign_in_at) : t("common.none")}</TableCell>
                 <TableCell>{f.date(u.created_at)}</TableCell>
@@ -191,11 +188,19 @@ export function UsersPanel({
                       <ManageAccountsOutlined fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={t("users.resetPassword")}>
-                    <IconButton size="small" onClick={() => openReset(u)} disabled={pending}>
-                      <KeyOutlined fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  {u.invited ? (
+                    <Tooltip title={t("users.resendInvite")}>
+                      <IconButton size="small" onClick={() => run(() => sendUserPasswordLink(u.id), undefined, linkSent)} disabled={pending}>
+                        <ForwardToInboxOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title={t("users.resetPassword")}>
+                      <IconButton size="small" onClick={() => setResetting(u)} disabled={pending}>
+                        <KeyOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   <Tooltip title={u.banned ? t("users.enable") : t("users.disable")}>
                     <span>
                       <IconButton size="small" onClick={() => run(() => setUserBanned(u.id, !u.banned))} disabled={pending || u.id === meId}>
@@ -223,17 +228,19 @@ export function UsersPanel({
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <TextField label={t("users.fieldEmail")} type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} fullWidth autoFocus />
           <TextField label={t("users.fieldName")} value={draft.fullName} onChange={(e) => setDraft({ ...draft, fullName: e.target.value })} fullWidth />
-          <PasswordField value={draft.password} onChange={(password) => setDraft({ ...draft, password })} label={t("users.fieldPassword")} generateLabel={t("users.generate")} />
           <AccessFields uats={uats} uat={draft.uat} role={draft.role} onChange={(a) => setDraft({ ...draft, ...a })} />
+          <Typography variant="caption" color="text.secondary">
+            {t("users.inviteNote")}
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreating(false)}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
-            disabled={pending || !draft.email || draft.password.length < 10}
-            onClick={() => run(() => createUser(draft), () => setCreating(false))}
+            disabled={pending || !draft.email}
+            onClick={() => run(() => inviteUser(draft), () => setCreating(false), (email) => t("users.inviteSent", { email }))}
           >
-            {t("common.save")}
+            {t("users.sendInvite")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -260,24 +267,14 @@ export function UsersPanel({
         </DialogActions>
       </Dialog>
 
-      {/* reset password */}
-      <Dialog open={resetting !== null} onClose={() => setResetting(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>{resetting && t("users.dialogReset", { email: resetting.email })}</DialogTitle>
-        <DialogContent dividers>
-          <PasswordField value={draft.password} onChange={(password) => setDraft({ ...draft, password })} label={t("users.fieldPassword")} generateLabel={t("users.generate")} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetting(null)}>{t("common.cancel")}</Button>
-          <Button
-            variant="contained"
-            disabled={pending || draft.password.length < 10}
-            onClick={() => resetting && run(() => resetUserPassword(resetting.id, draft.password), () => setResetting(null))}
-          >
-            {t("common.save")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+      {/* password reset: a link by email, the user chooses the new password */}
+      <ConfirmDialog
+        open={resetting !== null}
+        danger={false}
+        text={resetting ? t("users.resetConfirm", { email: resetting.email }) : ""}
+        onConfirm={() => resetting && run(() => sendUserPasswordLink(resetting.id), undefined, linkSent)}
+        onClose={() => setResetting(null)}
+      />
       <ConfirmDialog
         open={deleting !== null}
         text={deleting ? t("users.deleteConfirm", { email: deleting.email }) : ""}

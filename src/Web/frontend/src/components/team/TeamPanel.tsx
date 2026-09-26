@@ -27,11 +27,11 @@ import KeyOutlined from "@mui/icons-material/KeyOutlined";
 import BlockOutlined from "@mui/icons-material/BlockOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import ForwardToInboxOutlined from "@mui/icons-material/ForwardToInboxOutlined";
 import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
-import { PasswordField, generatePassword } from "@/components/common/PasswordField";
 import { ConfirmDialog, useAdminAction } from "@/components/admin/common";
 import { useFormat } from "@/lib/useFormat";
-import { createMember, deleteMember, resetMemberPassword, setMemberBanned, updateMember } from "@/app/[locale]/(app)/echipa/actions";
+import { deleteMember, inviteMember, sendMemberPasswordLink, setMemberBanned, updateMember } from "@/app/[locale]/(app)/echipa/actions";
 
 export interface TeamRow {
   id: string;
@@ -39,6 +39,7 @@ export interface TeamRow {
   name: string | null;
   role: string | null;
   banned: boolean;
+  invited: boolean;
   last_sign_in_at: string | null;
   isMe: boolean;
   tasks: { open: number; in_progress: number; done: number };
@@ -52,11 +53,12 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
   const tc = useTranslations("superAdmin.common");
   const f = useFormat();
   const { run, pending, snackbar } = useAdminAction();
+  const linkSent = ({ email, kind }: { email: string; kind: "invite" | "reset" }) => t(kind === "invite" ? "inviteSent" : "resetSent", { email });
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TeamRow | null>(null);
   const [resetting, setResetting] = useState<TeamRow | null>(null);
   const [deleting, setDeleting] = useState<TeamRow | null>(null);
-  const [draft, setDraft] = useState({ email: "", fullName: "", password: "", role: "inspector" as string });
+  const [draft, setDraft] = useState({ email: "", fullName: "", role: "inspector" as string });
 
   const team = rows.filter((r) => !r.isMe);
 
@@ -76,7 +78,7 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
             variant="contained"
             startIcon={<PersonAddOutlined />}
             onClick={() => {
-              setDraft({ email: "", fullName: "", password: generatePassword(), role: "inspector" });
+              setDraft({ email: "", fullName: "", role: "inspector" });
               setCreating(true);
             }}
           >
@@ -118,7 +120,12 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
                     <Chip size="small" variant="outlined" color={r.role === "uat_admin" ? "primary" : "default"} label={r.role ? tr(r.role) : "—"} />
                   </TableCell>
                   <TableCell>
-                    <Chip size="small" variant="outlined" color={r.banned ? "error" : "success"} label={r.banned ? t("disabled") : t("active")} />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color={r.banned ? "error" : r.invited ? "warning" : "success"}
+                      label={r.banned ? t("disabled") : r.invited ? t("invited") : t("active")}
+                    />
                   </TableCell>
                   <TableCell align="right">{r.tasks.open}</TableCell>
                   <TableCell align="right">{r.tasks.in_progress}</TableCell>
@@ -127,30 +134,36 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                     {!r.isMe && r.role !== "uat_admin" && (
                       <>
+                        {r.invited && (
+                          <Tooltip title={t("resendInvite")}>
+                            <IconButton
+                              size="small"
+                              disabled={pending}
+                              onClick={() => run(() => sendMemberPasswordLink(r.id), undefined, linkSent)}
+                            >
+                              <ForwardToInboxOutlined fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={t("edit")}>
                           <IconButton
                             size="small"
                             disabled={pending}
                             onClick={() => {
-                              setDraft({ email: r.email, fullName: r.name ?? "", password: "", role: r.role ?? "inspector" });
+                              setDraft({ email: r.email, fullName: r.name ?? "", role: r.role ?? "inspector" });
                               setEditing(r);
                             }}
                           >
                             <EditOutlined fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title={t("resetPassword")}>
-                          <IconButton
-                            size="small"
-                            disabled={pending}
-                            onClick={() => {
-                              setDraft((d) => ({ ...d, password: generatePassword() }));
-                              setResetting(r);
-                            }}
-                          >
-                            <KeyOutlined fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {!r.invited && (
+                          <Tooltip title={t("resetPassword")}>
+                            <IconButton size="small" disabled={pending} onClick={() => setResetting(r)}>
+                              <KeyOutlined fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={r.banned ? t("enable") : t("disable")}>
                           <IconButton size="small" disabled={pending} onClick={() => run(() => setMemberBanned(r.id, !r.banned))}>
                             {r.banned ? <CheckCircleOutlined fontSize="small" /> : <BlockOutlined fontSize="small" />}
@@ -177,7 +190,6 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <TextField label={t("fieldEmail")} type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} fullWidth autoFocus />
           <TextField label={t("fieldName")} value={draft.fullName} onChange={(e) => setDraft({ ...draft, fullName: e.target.value })} fullWidth />
-          <PasswordField value={draft.password} onChange={(password) => setDraft({ ...draft, password })} label={t("fieldPassword")} generateLabel={t("generate")} />
           <TextField select label={t("fieldRole")} value={draft.role} onChange={(e) => setDraft({ ...draft, role: e.target.value })} fullWidth>
             {ROLES.map((r) => (
               <MenuItem key={r} value={r}>
@@ -186,17 +198,23 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
             ))}
           </TextField>
           <Typography variant="caption" color="text.secondary">
-            {t("roleHelp", { uat: uatName })} {t("passwordNote")}
+            {t("roleHelp", { uat: uatName })} {t("inviteNote")}
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreating(false)}>{tc("cancel")}</Button>
           <Button
             variant="contained"
-            disabled={pending || !draft.email || draft.password.length < 10}
-            onClick={() => run(() => createMember(draft), () => setCreating(false))}
+            disabled={pending || !draft.email}
+            onClick={() =>
+              run(
+                () => inviteMember({ email: draft.email, fullName: draft.fullName, role: draft.role }),
+                () => setCreating(false),
+                (email) => t("inviteSent", { email }),
+              )
+            }
           >
-            {tc("save")}
+            {t("sendInvite")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -226,27 +244,14 @@ export function TeamPanel({ uatName, rows, doneWeek, openTotal }: { uatName: str
         </DialogActions>
       </Dialog>
 
-      {/* reset password */}
-      <Dialog open={resetting !== null} onClose={() => setResetting(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>{resetting && t("dialogReset", { email: resetting.email })}</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <PasswordField value={draft.password} onChange={(password) => setDraft({ ...draft, password })} label={t("fieldPassword")} generateLabel={t("generate")} />
-          <Typography variant="caption" color="text.secondary">
-            {t("passwordNote")}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetting(null)}>{tc("cancel")}</Button>
-          <Button
-            variant="contained"
-            disabled={pending || draft.password.length < 10}
-            onClick={() => resetting && run(() => resetMemberPassword(resetting.id, draft.password), () => setResetting(null))}
-          >
-            {tc("save")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+      {/* password reset: a link by email, the member chooses the new password */}
+      <ConfirmDialog
+        open={resetting !== null}
+        danger={false}
+        text={resetting ? t("resetConfirm", { email: resetting.email }) : ""}
+        onConfirm={() => resetting && run(() => sendMemberPasswordLink(resetting.id), undefined, linkSent)}
+        onClose={() => setResetting(null)}
+      />
       <ConfirmDialog
         open={deleting !== null}
         text={deleting ? t("deleteConfirm", { email: deleting.email }) : ""}

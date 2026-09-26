@@ -34,3 +34,11 @@ test("tasks page asks the demo visitor for a municipality account", async ({ pag
   await page.goto("/sarcini");
   await expect(page.getByText("Sarcinile sunt disponibile doar cu un cont de primărie.")).toBeVisible();
 });
+
+test("set-password page opens without a session and explains an invalid link", async ({ page }) => {
+  const res = await page.goto("/parola-noua");
+  expect(res?.status()).toBe(200);
+  await expect(page).toHaveURL(/\/parola-noua$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Setați parola" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Mergi la autentificare" })).toBeVisible();
+});

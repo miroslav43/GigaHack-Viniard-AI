@@ -7,6 +7,8 @@ import { AUTH_ENABLED, DEMO_COOKIE, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } fro
 const intl = createMiddleware(routing);
 
 const PUBLIC_PATHS = ["/login", "/acces-interzis"];
+/** Open with or without a session: the invitation link lands here before the page creates the session. */
+const OPEN_PATHS = ["/parola-noua"];
 
 /** "/en/harta" → { locale: "en", path: "/harta" }; Romanian has no prefix. */
 function splitLocale(pathname: string) {
@@ -63,6 +65,7 @@ export default async function proxy(request: NextRequest) {
   const signedIn = Boolean(data?.claims);
   const demo = request.cookies.get(DEMO_COOKIE)?.value === "1";
 
+  if (matches(path, OPEN_PATHS)) return response;
   const isPublic = matches(path, PUBLIC_PATHS);
 
   // role from app_metadata (server-set); pages and every server action check it again

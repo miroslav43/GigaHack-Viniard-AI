@@ -24,11 +24,11 @@ export function useAdminAction() {
 
   const message = (code: string) => (t.has(`errors.${code}`) ? t(`errors.${code}`) : t("common.error", { message: code }));
 
-  function run<T>(action: () => Promise<Result<T>>, onOk?: (data: T) => void) {
+  function run<T>(action: () => Promise<Result<T>>, onOk?: (data: T) => void, okText?: (data: T) => string) {
     startTransition(async () => {
       const res = await action();
       if (res.ok) {
-        setToast({ kind: "success", text: t("common.saved") });
+        setToast({ kind: "success", text: okText ? okText(res.data) : t("common.saved") });
         onOk?.(res.data);
         router.refresh();
       } else {

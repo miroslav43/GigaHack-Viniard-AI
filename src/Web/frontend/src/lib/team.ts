@@ -2,6 +2,7 @@
 // Uses the Admin API (secret key, server-only); the caller's role and municipality are re-read from Auth.
 import "server-only";
 import type { User } from "@supabase/supabase-js";
+import { isPendingInvite } from "./invite";
 import { ADMIN_API_ENABLED, createAdminClient } from "./supabase/admin";
 import { getViewer } from "./viewer";
 
@@ -14,6 +15,8 @@ export interface TeamMember {
   name: string | null;
   role: string | null;
   banned: boolean;
+  /** invited by email and has not set a password yet */
+  invited: boolean;
   created_at: string;
   last_sign_in_at: string | null;
 }
@@ -24,6 +27,7 @@ export const toMember = (u: User): TeamMember => ({
   name: (u.user_metadata?.full_name as string | undefined) ?? null,
   role: (u.app_metadata?.uat_role as string | undefined) ?? null,
   banned: Boolean(u.banned_until && new Date(u.banned_until) > new Date()),
+  invited: isPendingInvite(u),
   created_at: u.created_at,
   last_sign_in_at: u.last_sign_in_at ?? null,
 });

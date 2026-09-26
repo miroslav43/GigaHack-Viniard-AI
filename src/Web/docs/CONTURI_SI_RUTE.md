@@ -22,9 +22,13 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 **Fără cont:** butonul **„Demo fără cont”** de pe `/login` → date publice Sireț3, doar vizualizare (cookie `solemtrix_demo=1`, 7 zile).
 
 **Unde se gestionează:**
-- din aplicație: `/super-admin?tab=users` (logat ca `admin@solemtrix.demo`) — creare, primărie + rol, resetare parolă, dezactivare, ștergere;
+- din aplicație: `/super-admin?tab=users` (logat ca `admin@solemtrix.demo`) — invitație pe email, primărie + rol, link de resetare a parolei, dezactivare, ștergere;
 - din Supabase: [Auth → Users](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/users); rolul și primăria sunt în `raw_app_meta_data` (`uat`, `uat_role`);
 - re-creare de la zero: `src/Web/supabase/seed/demo_users.sql` (înlocuiește `__DEMO_PASSWORD__` cu parola demo și rulează în SQL Editor).
+
+**Invitații pe email (`/echipa` → „Adaugă membru”, `/super-admin?tab=users` → „Cont nou”):** nimeni nu setează parola altcuiva; Supabase trimite un link de unică folosință (expiră după `mailer_otp_exp`, implicit 24 h), iar membrul își setează parola pe `/parola-noua`. Configurare în Supabase → [Auth → URL Configuration](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/url-configuration): adresa aplicației (ex. `http://localhost:3000/**`) trebuie să fie în *Redirect URLs*, altfel linkul duce la *Site URL*. Serverul de email implicit al Supabase trimite **doar către adresele membrilor organizației Supabase** și câteva emailuri pe oră; pentru adrese reale configurați un SMTP propriu ([Auth → SMTP](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/smtp)). „Trimite link de resetare a parolei” din tabel trimite tot un link spre `/parola-noua` (pentru un cont care nu și-a setat încă parola, retrimite invitația). Adresele fără domeniu real (ex. `@solemtrix.demo`) nu pot primi invitații: Supabase le respinge.
+
+**„Ați uitat parola?” (pe `/login`):** utilizatorul își introduce emailul → `resetPasswordForEmail` (flux *implicit*, deci linkul merge deschis și pe alt dispozitiv, ex. telefonul) → email cu link spre `/parola-noua?flow=reset` → parolă nouă și intrare directă. Răspunsul e același dacă adresa are cont sau nu (nu se pot ghici conturile). Linkul expirat → „Cere un link nou” → `/login?forgot=1`. Aceleași limite de email ca la invitații (SMTP propriu pentru adrese reale; la depășirea limitei formularul spune „Prea multe cereri de email”).
 
 **Chei (în `src/Web/frontend/.env.local`, ignorat de git):**
 
@@ -42,7 +46,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 
 | Rută | Pagină | Cine are acces | Parametri |
 |---|---|---|---|
-| `/login` | Autentificare (+ „Demo fără cont”) | oricine; un utilizator logat e trimis la `/` | `?next=/harta` — unde revine după login |
+| `/login` | Autentificare (+ „Demo fără cont”, „Ați uitat parola?”) | oricine; un utilizator logat e trimis la `/` | `?next=/harta` — unde revine după login; `?forgot=1` — deschide direct pasul de resetare |
 | `/` | Panou general (KPI comună, zbor, plantații, inspecție, blocuri) | cont logat sau demo | — |
 | `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc; `?tinta=T003` — ținta unei sarcini |
 | `/blocuri` | Blocuri și rânduri (tabel, filtre, export CSV) | cont logat sau demo | — |
@@ -51,6 +55,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 | `/echipa` | Echipa primăriei: membri, roluri, încărcare pe sarcini | **doar `uat_admin`**; oricine altcineva logat / demo: **HTTP 403** | — |
 | `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |
+| `/parola-noua` | Setarea parolei din emailul de invitație sau de resetare | oricine, cu sau fără sesiune; fără link valid arată „Linkul nu este valid” | tokenii vin în fragmentul URL (`#access_token=…`) sau `?token_hash=…&type=invite` |
 
 Comportament fără cont și fără demo: orice pagină (în afară de `/login` și `/super-admin`) → redirect la `/login?next=…`; `/super-admin` → 403 direct.
 

@@ -10,6 +10,7 @@ import type { Geometry } from "geojson";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
 import { getViewer, isPlatformAdmin, type UatRole } from "@/lib/viewer";
+import { inviteUser as sendInvitation, sendPasswordLink } from "@/lib/invite";
 import { fetchOsmBoundary, searchOsmBoundaries, type OsmBoundary, type OsmSearchHit } from "@/lib/osm";
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string };
@@ -175,30 +176,17 @@ function checkAccess(uat: string | null, role: string) {
   if (uat !== null && !KEY_RE.test(uat)) throw new Error("invalid_key");
 }
 
-export async function createUser(input: {
-  email: string;
-  password: string;
-  fullName: string;
-  uat: string | null;
-  role: UatRole;
-}): Promise<ActionResult<string>> {
+/** Invites an account by email: Supabase sends the link, the user sets the password on /parola-noua. */
+export async function inviteUser(input: { email: string; fullName: string; uat: string | null; role: UatRole }): Promise<ActionResult<string>> {
   return run(async () => {
     const { admin } = await requireAdminStrict();
     const email = input.email.trim().toLowerCase();
     if (!EMAIL_RE.test(email)) throw new Error("invalid_email");
-    if (input.password.length < 10) throw new Error("weak_password");
     checkAccess(input.uat, input.role);
-    const { data, error } = await admin.auth.admin.createUser({
-      email,
-      password: input.password,
-      email_confirm: true,
-      user_metadata: { full_name: input.fullName.trim() || undefined },
-      app_metadata: { uat: input.uat, uat_role: input.role },
-    });
-    if (error) throw new Error(error.code === "email_exists" ? "email_exists" : error.message);
-    await audit("user.create", "user", data.user.id, { email, uat: input.uat, role: input.role });
+    const user = await sendInvitation(admin, email, input.fullName, { uat: input.uat, uat_role: input.role });
+    await audit("user.invite", "user", user.id, { email, uat: input.uat, role: input.role });
     done();
-    return data.user.id;
+    return email;
   });
 }
 
@@ -223,15 +211,16 @@ export async function updateUserAccess(input: {
   });
 }
 
-export async function resetUserPassword(id: string, password: string): Promise<ActionResult> {
+/** Emails the account a new link: the invitation again while pending, otherwise a password reset. */
+export async function sendUserPasswordLink(id: string): Promise<ActionResult<{ email: string; kind: "invite" | "reset" }>> {
   return run(async () => {
     const { admin } = await requireAdminStrict();
-    if (password.length < 10) throw new Error("weak_password");
-    const { error } = await admin.auth.admin.updateUserById(id, { password });
-    if (error) throw new Error(error.message);
-    await audit("user.reset_password", "user", id, { email: await emailOf(admin, id) });
+    const { data, error } = await admin.auth.admin.getUserById(id);
+    if (error || !data.user) throw new Error(error?.message ?? "not_found");
+    const kind = await sendPasswordLink(admin, data.user);
+    await audit(kind === "invite" ? "user.resend_invite" : "user.password_reset_email", "user", id, { email: data.user.email });
     done();
-    return null;
+    return { email: data.user.email ?? "", kind };
   });
 }
 
