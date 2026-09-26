@@ -182,6 +182,16 @@ rows:                                      # D2 §4 (A names inside the C struct
     rescue_soft_rejects: true
     hole_support_min_frac: 0.5             # S4: neighbour rows must cover >= this of a hole
     refit_sample_m: 0.5
+    # label audit 2026-09-26: one physical row = one row_id across tile edges (rows_seams)
+    seam_join_max_m: 0.4                   # facing chain ends this close (head to tail) are joined; 0 = off
+    seam_join_angle_max_deg: 3.0
+    seam_align_min_m: 0.4                  # seam ends farther apart move to their midpoint; closer ones stay
+    #   (0.4 = never move: the midpoint cost 0.004-0.012 inter-row IoU on the example tiles)
+    dup_chain_max_m: 0.4                   # a chain within this of another over dup_chain_min_frac = duplicate; 0 = off
+    dup_chain_min_frac: 0.6
+    orientation_conflict_enabled: true     # per tile: of two crossing row families the weaker is rejected
+    orientation_conflict_angle_deg: 3.0
+    orientation_conflict_min_crossings: 3
   filter:
     width_p80_max_m: 1.2
     width_station_m: 0.25
@@ -307,6 +317,8 @@ interrow:
   edge_extend_m: 10.0                      # row ends on the data boundary are extended for the bands
   edge_tol_m: 0.05
   canopy_clearance_m: 0.01                 # gap kept when canopies are cut out of interrows (> 0.1 px export rounding)
+  exclusive_pieces: true                   # label audit 2026-09-26: tile pieces never overlap nor span a third row
+  through_row_min_m: 1.0                   # a band with another row axis this long inside spans two inter-rows
 
 row_structure:
   gap_disrupted_m: 5.0
@@ -320,6 +332,13 @@ row_structure:
   occ_smoothing_enabled: false             # S2: window+closing only for model canopies, re-validate 51/51 first
   gap_fill_max_width_m: 1.2
   visible_bin_max_hidden: 0.5
+  # label audit 2026-09-26: a row end that is not continued in the next tile stops at the last canopy
+  trim_ends_enabled: true
+  trim_band_m: 0.35                        # canopies within this of the axis count as the row's vines
+  trim_margin_m: 0.2                       # kept past the last canopy
+  trim_min_overshoot_m: 1.0                # ends overshooting by less are left alone
+  trim_min_occupancy: 0.3                  # only rows whose canopies cover >= this of their span (young vines
+  #   missed by the canopy stage, r037_c023 / r034_c027, keep their fitted ends)
 
 waste:                                     # D3 §4
   enabled: true

@@ -76,6 +76,15 @@ class RowsLinkConfig(Section):
     rescue_soft_rejects: bool
     hole_support_min_frac: Frac
     refit_sample_m: PosFloat
+    # label audit 2026-09-26 (rows_seams): end-to-end chain joins, duplicate chains, crossing families
+    seam_join_max_m: NonNegFloat
+    seam_join_angle_max_deg: PosFloat
+    seam_align_min_m: NonNegFloat
+    dup_chain_max_m: NonNegFloat
+    dup_chain_min_frac: Frac
+    orientation_conflict_enabled: bool
+    orientation_conflict_angle_deg: PosFloat
+    orientation_conflict_min_crossings: PosInt
 
 
 class RowsFilterConfig(Section):
@@ -197,6 +206,8 @@ class InterrowConfig(Section):
     edge_extend_m: NonNegFloat
     edge_tol_m: NonNegFloat
     canopy_clearance_m: NonNegFloat
+    exclusive_pieces: bool
+    through_row_min_m: PosFloat
 
     @model_validator(mode="after")
     def _cover_ordered(self) -> InterrowConfig:
@@ -217,6 +228,12 @@ class RowStructureConfig(Section):
     occ_smoothing_enabled: bool
     gap_fill_max_width_m: NonNegFloat
     visible_bin_max_hidden: Frac
+    # label audit 2026-09-26 (perception.row_trim): row ends at the last vine, not past it
+    trim_ends_enabled: bool
+    trim_band_m: PosFloat
+    trim_margin_m: NonNegFloat
+    trim_min_overshoot_m: NonNegFloat
+    trim_min_occupancy: Frac
 
 
 class QaConfig(Section):

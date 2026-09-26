@@ -116,3 +116,24 @@ def test_no_rows_or_one_row_give_no_pieces_and_inputs_are_not_modified() -> None
     assert tile_interrow_pieces(local, _bands(rows), TILE, tile_box(TILE), None, row_positions(rows), OPTS).empty
     assert tile_interrow_pieces(local.iloc[0:0], _bands(rows), TILE, tile_box(TILE), None, {}, OPTS).empty
     assert local.equals(before)
+
+
+# ------------------------------------------------------------------ label audit 2026-09-26 (exclusive pieces)
+
+
+def test_exclusive_pieces_never_overlap_nor_span_a_third_row() -> None:
+    """R002 is short (a partial row): R001 pairs with R003 over the part R002 misses, and that band would
+    overlap the R001|R002 and R002|R003 bands; exclusive pieces drop bands across R002 and overlaps."""
+    from dataclasses import replace
+
+    rows = _rows([("V01-R001", 500.0, -400.0, 2400.0), ("V01-R002", 620.0, 800.0, 1300.0),
+                  ("V01-R003", 740.0, -400.0, 2400.0)])
+    local = clip_rows_to_tile(rows, TILE, tile_box(TILE))
+    excl = replace(OPTS, exclusive=True)
+    out = tile_interrow_pieces(local, _bands(rows), TILE, tile_box(TILE), None, row_positions(rows), excl)
+    geoms = list(out.geometry)
+    assert len(geoms) >= 2
+    assert all(geoms[i].intersection(geoms[j]).area < 1e-6 for i in range(len(geoms))
+               for j in range(i + 1, len(geoms)))
+    r2 = rows.geometry.iloc[1]
+    assert all(r2.intersection(g).length < 0.5 for g in geoms)

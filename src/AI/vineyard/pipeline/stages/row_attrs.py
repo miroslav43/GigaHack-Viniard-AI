@@ -24,6 +24,7 @@ from vineyard.geo.tiling import TileRef, tile_box, tile_ref
 from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.perception.attrs import row_pieces_attributes
 from vineyard.perception.corridor import clip_rows_to_tile
+from vineyard.perception.row_trim import TrimOptions, row_lengths_of, trim_row_pieces
 from vineyard.pipeline.atomic import atomic_path
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
@@ -36,7 +37,8 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 NAME: Final = "row_attrs"
-VERSION: Final = "2"
+VERSION: Final = "4"  # 3/4: row ends that are not continued (and not on the tile edge) are trimmed to the
+#   last canopy (row_trim)
 LAYER: Final = "row_pieces"
 ROWS_LAYER: Final = "rows"
 ROWS_FILE: Final = "rows.parquet"
@@ -112,8 +114,10 @@ def row_attrs_tile(task: TileTask) -> Mapping[str, Any]:
     tcfg = _task_cfg(task)
     cfg = tcfg.app
     tile = tile_ref(task.tile_id)
-    pieces = local_row_pieces(read_layer(task.inputs["rows"], ROWS_LAYER), tile)
+    rows = read_layer(task.inputs["rows"], ROWS_LAYER)
     canopies = read_layer(task.inputs["canopy"], CANOPY_LAYER)
+    pieces = trim_row_pieces(local_row_pieces(rows, tile), row_lengths_of(rows), canopies,
+                             TrimOptions.from_config(cfg.row_structure), tile_box(tile).boundary)
     evidence = read_evidence(task.inputs["evidence"])
     vis = load_vis(task.inputs["vis"].parents[1], task.tile_id) if not pieces.empty else None
     res = row_pieces_attributes(
