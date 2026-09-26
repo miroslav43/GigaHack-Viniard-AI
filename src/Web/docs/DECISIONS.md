@@ -248,3 +248,16 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - upload manual de GeoJSON: fără sursă verificabilă a limitei.
 - **Consecințe:** fără `SUPABASE_SECRET_KEY` tab-ul Utilizatori e dezactivat (cu instrucțiuni); schimbările de rol se aplică la reîmprospătarea JWT (≤ 1 h).
 
+### ADR-024 — Roluri pe primărie, echipă și sarcini de teren
+- **Context:** primarul nu administrează aplicația; un **administrator UAT** o face pentru primărie și își coordonează echipa de teren, care primește sarcini din analiza AI (goluri, plante lipsă, deșeuri).
+- **Decizie:**
+  - roluri în `app_metadata`: `platform_admin` (Solemtrix) → înrolează primării și administratori UAT; `uat_admin` → își gestionează echipa (`inspector`, `viewer`) doar în primăria lui; `inspector` → execută sarcini; `viewer` → doar citește;
+  - echipa se gestionează prin Admin API pe server, cu rolul și primăria apelantului re-citite din Auth la fiecare acțiune;
+  - sarcinile stau în `public.task`, cu RLS pe primărie și un trigger care limitează inspectorul la stare + notă și ține locația în limita primăriei;
+  - sarcinile se generează din țintele pachetului AI (`targets.geojson`), o singură dată pe țintă (`unique (uat_key, survey_id, target_id)`).
+- **Respins:**
+  - primarul ca administrator: nu e rolul lui în practică;
+  - administratorul UAT care creează alți administratori: rămâne privilegiul super-adminului;
+  - sarcini doar în interfață (fără RLS): inspectorul ar putea modifica orice prin API.
+- **Consecințe:** fără `SUPABASE_SECRET_KEY` pagina Echipă și atribuirea arată un avertisment; notificările (email / push) către inspectori vin după configurarea SMTP.
+

@@ -140,20 +140,32 @@ export function MapExplorer({
     [blocksFc, fit],
   );
 
-  // deep links: /harta?bloc=V01 or /harta?rand=V01-R05
+  const selectTarget = useCallback(
+    (id: string) => {
+      const f = targets?.features.find((x) => x.properties.target_id === id);
+      if (!f) return;
+      setSelection({ layer: "targets", props: f.properties as unknown as Record<string, unknown> });
+      const [lon, lat] = f.geometry.coordinates;
+      mapRef.current?.flyTo({ center: [lon, lat], zoom: 20, duration: 800 });
+    },
+    [targets],
+  );
+
+  // deep links: /harta?bloc=V01, /harta?rand=V01-R05, /harta?tinta=T003 (from a field task)
   const deepLinked = useRef(false);
   useEffect(() => {
-    if (deepLinked.current || !rowsFc || !blocksFc || !studyBbox) return;
+    if (deepLinked.current || !rowsFc || !blocksFc || !studyBbox || !targets) return;
     const frame = requestAnimationFrame(() => {
       if (!mapRef.current) return;
       deepLinked.current = true;
-      const rand = params.get("rand"), bloc = params.get("bloc");
-      if (rand) selectRow(rand);
+      const rand = params.get("rand"), bloc = params.get("bloc"), tinta = params.get("tinta");
+      if (tinta) selectTarget(tinta);
+      else if (rand) selectRow(rand);
       else if (bloc) selectBlock(bloc);
       else fit(studyBbox, 17);
     });
     return () => cancelAnimationFrame(frame);
-  }, [rowsFc, blocksFc, studyBbox, params, selectRow, selectBlock, fit]);
+  }, [rowsFc, blocksFc, studyBbox, targets, params, selectRow, selectBlock, selectTarget, fit]);
 
   const onLoad = () => {
     const map = mapRef.current?.getMap();

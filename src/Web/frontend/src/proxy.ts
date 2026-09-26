@@ -25,6 +25,8 @@ function redirectKeepingCookies(url: URL, from: NextResponse) {
 
 /** Paths only a platform administrator may open; everyone else gets a 403 (no login redirect, no hint). */
 const ADMIN_ONLY_PATHS = ["/super-admin"];
+/** Paths only a municipality (UAT) admin may open; a signed-in user or demo visitor with another role gets 403. */
+const UAT_ADMIN_PATHS = ["/echipa"];
 const matches = (path: string, list: string[]) => list.some((p) => path === p || path.startsWith(`${p}/`));
 
 /** Renders the localized 403 page in place of the requested URL, keeping any refreshed session cookies. */
@@ -43,7 +45,7 @@ export default async function proxy(request: NextRequest) {
   const adminOnly = matches(path, ADMIN_ONLY_PATHS);
   if (response.headers.get("location")) return response;
   // without Supabase (CI / open demo) nobody is a platform admin
-  if (!AUTH_ENABLED) return adminOnly ? denyAccess(request, prefix) : response;
+  if (!AUTH_ENABLED) return adminOnly || matches(path, UAT_ADMIN_PATHS) ? denyAccess(request, prefix) : response;
 
   // refresh the Supabase session cookie on the response next-intl produced
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -73,6 +75,8 @@ export default async function proxy(request: NextRequest) {
     url.search = "";
     return redirectKeepingCookies(url, response);
   }
+
+  if (matches(path, UAT_ADMIN_PATHS) && (signedIn || demo) && role !== "uat_admin") return denyAccess(request, prefix, response);
 
   if (!signedIn && !demo && !isPublic) {
     const url = request.nextUrl.clone();

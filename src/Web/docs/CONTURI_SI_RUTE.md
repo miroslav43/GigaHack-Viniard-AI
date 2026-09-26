@@ -15,8 +15,8 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 | Email | Rol (`uat_role`) | Primărie (`uat`) | Ce vede |
 |---|---|---|---|
 | `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (panou general, UAT-uri, utilizatori, survey-uri, sistem, jurnal); paginile de primărie îl redirecționează acolo |
-| `primar@sireti.demo` | `uat_admin` — administrator UAT | Sireți | panou, hartă, blocuri, rută pentru Sireți |
-| `inspector@sireti.demo` | `inspector` — inspector de teren | Sireți | panou, hartă, blocuri, rută pentru Sireți |
+| `primar@sireti.demo` | `uat_admin` — administrator UAT | Sireți | panou, hartă, blocuri, rută + **Sarcini** (creează din țintele AI, atribuie) + **Echipă** (adaugă inspectori) |
+| `inspector@sireti.demo` | `inspector` — inspector de teren | Sireți | panou, hartă, blocuri, rută + **Sarcini** (actualizează sarcinile atribuite lui); fără Echipă (403) |
 | `primar@cojusna.demo` | `uat_admin` — administrator UAT | Cojușna | doar limita comunei Cojușna + „niciun zbor” (nu vede nimic din Sireți) |
 
 **Fără cont:** butonul **„Demo fără cont”** de pe `/login` → date publice Sireț3, doar vizualizare (cookie `solemtrix_demo=1`, 7 zile).
@@ -44,9 +44,11 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 |---|---|---|---|
 | `/login` | Autentificare (+ „Demo fără cont”) | oricine; un utilizator logat e trimis la `/` | `?next=/harta` — unde revine după login |
 | `/` | Panou general (KPI comună, zbor, plantații, inspecție, blocuri) | cont logat sau demo | — |
-| `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc |
+| `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc; `?tinta=T003` — ținta unei sarcini |
 | `/blocuri` | Blocuri și rânduri (tabel, filtre, export CSV) | cont logat sau demo | — |
 | `/ruta` | Rută de inspecție (lungime, durată, ordine ținte, GPX / GeoJSON) | cont logat sau demo | — |
+| `/sarcini` | Sarcini de teren (din țintele AI): creare, atribuire, stare, notă | conturi de primărie (`uat_admin` gestionează, `inspector` își actualizează sarcinile, `viewer` citește); demo: mesaj, fără date | — |
+| `/echipa` | Echipa primăriei: membri, roluri, încărcare pe sarcini | **doar `uat_admin`**; oricine altcineva logat / demo: **HTTP 403** | — |
 | `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |
 
@@ -84,7 +86,8 @@ Generate de `pnpm data` în `src/Web/frontend/public/` (ignorate de git). Sunt d
 |---|---|---|
 | `public.uat` | tabel — primării (limită OSM, arie, activă) | citire: propria primărie; scriere: `platform_admin` |
 | `public.survey` | tabel — zboruri (amprentă, cale date) | citire: survey-urile care intersectează propria primărie; scriere: `platform_admin` |
-| `public.admin_audit_log` | tabel — jurnal (append-only) | citire și inserare: `platform_admin` |
+| `public.admin_audit_log` | tabel — jurnal (append-only) | citire și inserare: `platform_admin` (acțiunile pe echipă ale administratorilor UAT se scriu de server) |
+| `public.task` · view `task_public` | sarcini de teren | citire: propria primărie; creare / atribuire / ștergere: `uat_admin`; inspectorul: doar starea + nota sarcinilor lui (trigger) |
 | `public.uat_public` · `survey_public` · `uat_survey` | view-uri (security_invoker, GeoJSON) | ca tabelele de mai sus |
 | `public.enroll_uat(...)` · `public.upsert_survey(...)` | RPC | `authenticated`, RLS decide (practic doar `platform_admin`) |
 | `anon` | rol | **niciun acces** la tabele |

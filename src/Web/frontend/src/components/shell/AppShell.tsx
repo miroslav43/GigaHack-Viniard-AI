@@ -23,6 +23,8 @@ import RouteOutlined from "@mui/icons-material/RouteOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
+import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
+import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
@@ -35,6 +37,9 @@ const BASE_NAV = [
   { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
 ];
 
+
+const TASKS_NAV = { href: "/sarcini", label: "nav.tasks", short: "nav.tasksShort", icon: <TaskAltOutlined /> };
+const TEAM_NAV = { href: "/echipa", label: "nav.team", short: "nav.teamShort", icon: <GroupsOutlined /> };
 
 const WIDTH_OPEN = 248;
 const WIDTH_CLOSED = 76;
@@ -84,7 +89,11 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
   const collapsed = !open;
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   // /super-admin is intentionally not in the menu: reachable only by URL (and only for platform admins)
-  const NAV = BASE_NAV;
+  const NAV = [
+    ...BASE_NAV,
+    ...(viewer.kind === "user" && viewer.uat ? [TASKS_NAV] : []),
+    ...(viewer.kind === "user" && viewer.role === "uat_admin" ? [TEAM_NAV] : []),
+  ];
 
   if (isMobile) {
     return (

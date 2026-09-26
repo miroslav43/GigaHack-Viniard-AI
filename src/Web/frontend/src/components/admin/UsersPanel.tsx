@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
@@ -13,7 +13,6 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -29,7 +28,6 @@ import KeyOutlined from "@mui/icons-material/KeyOutlined";
 import BlockOutlined from "@mui/icons-material/BlockOutlined";
 import CheckCircleOutline from "@mui/icons-material/CheckCircleOutlined";
 import DeleteOutline from "@mui/icons-material/DeleteOutlined";
-import AutorenewOutlined from "@mui/icons-material/AutorenewOutlined";
 import { useFormat } from "@/lib/useFormat";
 import {
   createUser,
@@ -39,41 +37,10 @@ import {
   updateUserAccess,
 } from "@/app/[locale]/(admin)/super-admin/actions";
 import { ConfirmDialog, useAdminAction } from "./common";
+import { PasswordField, generatePassword } from "@/components/common/PasswordField";
 import { ROLES, type AdminUser, type Role } from "./types";
 
 type UatOption = { key: string; name: string };
-
-/** 16 random characters from an unambiguous alphabet (crypto RNG). */
-function generatePassword() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_";
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
-}
-
-function PasswordField({ value, onChange, label, generateLabel }: { value: string; onChange: (v: string) => void; label: string; generateLabel: string }) {
-  return (
-    <TextField
-      label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      fullWidth
-      slotProps={{
-        input: {
-          sx: { fontFamily: "monospace" },
-          endAdornment: (
-            <InputAdornment position="end">
-              <Tooltip title={generateLabel}>
-                <IconButton edge="end" onClick={() => onChange(generatePassword())} aria-label={generateLabel}>
-                  <AutorenewOutlined />
-                </IconButton>
-              </Tooltip>
-            </InputAdornment>
-          ),
-        },
-      }}
-    />
-  );
-}
 
 function AccessFields({
   uats,
@@ -114,7 +81,20 @@ function AccessFields({
   );
 }
 
-export function UsersPanel({ users, uats, adminApi, meId }: { users: AdminUser[]; uats: UatOption[]; adminApi: boolean; meId: string | null }) {
+export function UsersPanel({
+  users,
+  uats,
+  adminApi,
+  meId,
+  preset,
+}: {
+  users: AdminUser[];
+  uats: UatOption[];
+  adminApi: boolean;
+  meId: string | null;
+  /** opened from a municipality row: create an account for that UAT with this role */
+  preset?: { uat: string; role: Role } | null;
+}) {
   const t = useTranslations("superAdmin");
   const tr = useTranslations("auth.roles");
   const f = useFormat();
@@ -124,6 +104,18 @@ export function UsersPanel({ users, uats, adminApi, meId }: { users: AdminUser[]
   const [resetting, setResetting] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
   const [draft, setDraft] = useState({ email: "", fullName: "", password: "", uat: null as string | null, role: "uat_admin" as Role });
+  // opened from a municipality row (?new=uat_admin&uat=…): open the create dialog prefilled, once
+  const presetOpened = useRef(false);
+  useEffect(() => {
+    if (!preset || presetOpened.current || !adminApi) return;
+    // mark as opened only when it really opens: in dev (StrictMode) the first effect run is cleaned up at once
+    const frame = requestAnimationFrame(() => {
+      presetOpened.current = true;
+      setDraft({ email: "", fullName: "", password: generatePassword(), uat: preset.uat, role: preset.role });
+      setCreating(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [preset, adminApi]);
   const uatName = (key: string | null) => uats.find((u) => u.key === key)?.name ?? key;
 
   if (!adminApi) {
@@ -140,10 +132,11 @@ export function UsersPanel({ users, uats, adminApi, meId }: { users: AdminUser[]
     );
   }
 
-  const openCreate = () => {
-    setDraft({ email: "", fullName: "", password: generatePassword(), uat: uats[0]?.key ?? null, role: "uat_admin" });
+  const openCreate = (p?: { uat: string; role: Role } | null) => {
+    setDraft({ email: "", fullName: "", password: generatePassword(), uat: p?.uat ?? uats[0]?.key ?? null, role: p?.role ?? "uat_admin" });
     setCreating(true);
   };
+
   const openEdit = (u: AdminUser) => {
     setDraft({ email: u.email, fullName: u.name ?? "", password: "", uat: u.uat, role: u.role ?? "viewer" });
     setEditing(u);
@@ -157,7 +150,7 @@ export function UsersPanel({ users, uats, adminApi, meId }: { users: AdminUser[]
     <Card>
       <Box sx={{ px: 5, py: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 3, flexWrap: "wrap" }}>
         <Typography variant="h3">{t("users.count", { n: users.length })}</Typography>
-        <Button variant="contained" startIcon={<PersonAddOutlined />} onClick={openCreate}>
+        <Button variant="contained" startIcon={<PersonAddOutlined />} onClick={() => openCreate()}>
           {t("users.create")}
         </Button>
       </Box>

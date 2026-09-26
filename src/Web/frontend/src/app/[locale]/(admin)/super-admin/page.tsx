@@ -41,7 +41,8 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
   if (!isPlatformAdmin(viewer)) return <AccessDenied />;
 
   const t = await getTranslations("superAdmin");
-  const raw = (await searchParams).tab;
+  const sp = await searchParams;
+  const raw = sp.tab;
   const tab: AdminTab = ADMIN_TABS.includes(raw as AdminTab) ? (raw as AdminTab) : "overview";
   const supabase = await createClient();
 
@@ -111,7 +112,17 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
         banned: Boolean(u.banned_until && new Date(u.banned_until) > new Date()),
       }))
       .sort((a, b) => a.email.localeCompare(b.email));
-    panel = <UsersPanel users={list} uats={uatRows ?? []} adminApi={ADMIN_API_ENABLED} meId={viewer.userId} />;
+    const presetRole = typeof sp.new === "string" && ["uat_admin", "inspector", "viewer"].includes(sp.new) ? (sp.new as Role) : null;
+    const presetUat = typeof sp.uat === "string" && (uatRows ?? []).some((u) => u.key === sp.uat) ? sp.uat : null;
+    panel = (
+      <UsersPanel
+        users={list}
+        uats={uatRows ?? []}
+        adminApi={ADMIN_API_ENABLED}
+        meId={viewer.userId}
+        preset={presetRole && presetUat ? { uat: presetUat, role: presetRole } : null}
+      />
+    );
   }
 
   if (tab === "surveys") {

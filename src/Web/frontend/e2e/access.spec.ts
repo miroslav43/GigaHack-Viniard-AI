@@ -22,3 +22,15 @@ test("demo visitor gets 403 and the menu has no super-admin link", async ({ page
   await page.goto("/");
   await expect(page.locator('a[href*="super-admin"]')).toHaveCount(0);
 });
+
+test("team page is municipality-admin only: demo gets 403", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "solemtrix_demo", value: "1", url: baseURL! }]);
+  const res = await page.goto("/echipa");
+  expect(res?.status()).toBe(403);
+});
+
+test("tasks page asks the demo visitor for a municipality account", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "solemtrix_demo", value: "1", url: baseURL! }]);
+  await page.goto("/sarcini");
+  await expect(page.getByText("Sarcinile sunt disponibile doar cu un cont de primărie.")).toBeVisible();
+});

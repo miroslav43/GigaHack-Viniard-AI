@@ -18,6 +18,8 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddLocationAltOutlined from "@mui/icons-material/AddLocationAltOutlined";
 import DeleteOutline from "@mui/icons-material/DeleteOutlined";
+import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
+import { Link as NextIntlLink } from "@/i18n/routing";
 import { BoundaryMap } from "@/components/map/BoundaryMap";
 import { useFormat } from "@/lib/useFormat";
 import { deleteUat, setUatActive } from "@/app/[locale]/(admin)/super-admin/actions";
@@ -95,7 +97,12 @@ export function UatPanel({ uats }: { uats: AdminUat[] }) {
                     <Switch size="small" checked={u.active} disabled={pending} onChange={(e) => run(() => setUatActive(u.key, e.target.checked))} />
                   </TableCell>
                   <TableCell>{f.date(u.created_at)}</TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                    <Tooltip title={t("uat.addAdmin")}>
+                      <IconButton size="small" component={NextIntlLink} href={`/super-admin?tab=users&new=uat_admin&uat=${u.key}`}>
+                        <PersonAddOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title={t("common.delete")}>
                       <IconButton size="small" color="error" onClick={() => setToDelete(u)} disabled={pending}>
                         <DeleteOutline fontSize="small" />
