@@ -66,7 +66,7 @@ MEASUREMENTS_FILE: Final = "measurements.csv"
 LAYER_FILES: Final[Mapping[str, str]] = MappingProxyType({
     "blocks": "blocks.geojson", "rows": "rows.geojson", "canopies": "canopies.geojsonl",
     "interrows": "interrows.geojson", "waste": "waste.geojson", "targets": "targets.geojson",
-    "route": "route.geojson", "tiles": "tiles.geojson",
+    "route": "route.geojson", "tiles": "tiles.geojson", "cross_paths": "cross_paths.geojson",
 })
 # Layers describing the grid rather than the survey's objects: left out of the manifest bbox.
 GRID_LAYERS: Final = frozenset({"tiles"})
@@ -136,6 +136,7 @@ class WebInputs:
     tile_status: pd.DataFrame | None = None  # the model run's layers/tile_status (veg_frac, review_priority)
     cache_dir: Path | None = None  # tile_prep cache: veg/<tile>.png masks, stats/<tile>.json
     tile_review: Mapping[str, TileReview] = MappingProxyType({})  # web.tile_review
+    cross_paths: gpd.GeoDataFrame | None = None  # passable `cross_paths` (tracks across the rows)
 
 
 @dataclass(frozen=True)
@@ -210,7 +211,22 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
     return {"blocks": block_features(inputs, params.block_buffer_m), "rows": rows,
             "canopies": canopy_features(ann.canopies),
             "interrows": interrow_features(pieces, ann.row_pieces, link_tol_m=params.row_link_tol_m),
-            "waste": waste, "targets": targets, "route": route}
+            "waste": waste, "targets": targets, "route": route,
+            "cross_paths": cross_path_features(inputs.cross_paths)}
+
+
+CROSS_PATH_PROPERTIES: Final = ("id", "vineyard_id", "n_rows", "width_m", "length_m")
+
+
+def cross_path_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
+    """cross_paths.geojson: one strip polygon per track across the rows (None when the run has no layer)."""
+    if frame is None:
+        return None
+    ordered = frame.sort_values("path_id", kind="stable")
+    data = {"id": [str(v) for v in ordered["path_id"]], "vineyard_id": [str(v) for v in ordered["vineyard_id"]],
+            "n_rows": [int(v) for v in ordered["n_rows"]], "width_m": [float(v) for v in ordered["width_m"]],
+            "length_m": [float(v) for v in ordered["length_m"]]}
+    return gpd.GeoDataFrame(data, geometry=list(ordered.geometry), crs=ordered.crs)
 
 
 def tiles_with_objects(layers: Mapping[str, gpd.GeoDataFrame | None]) -> int:

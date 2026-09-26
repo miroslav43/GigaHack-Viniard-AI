@@ -64,6 +64,7 @@ class EdgeKind(StrEnum):
     PASSAGE_CENTERLINE = "passage_centerline"
     CONNECTOR = "connector"
     TARGET_SPUR = "target_spur"
+    CROSS_PATH = "cross_path"
 
 
 class GeomKind(StrEnum):

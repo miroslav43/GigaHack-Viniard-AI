@@ -42,6 +42,7 @@ from vineyard.config.sections_perception import (
     RowStructureConfig,
 )
 from vineyard.config.sections_post import (
+    CrossPathsConfig,
     DeriveConfig,
     Gdal2TilesConfig,
     MeasureConfig,
@@ -68,7 +69,8 @@ from vineyard.config.sections_waste import (
 
 __all__ = [
     "DEFAULT_CONFIG", "ENV_DATA_ROOT", "ENV_WORK_DIR", "PROJECT_ROOT",
-    "AblationConfig", "AppConfig", "BlocksConfig", "CanopyConfig", "CvatExportConfig", "DeriveConfig",
+    "AblationConfig", "AppConfig", "BlocksConfig", "CanopyConfig", "CrossPathsConfig", "CvatExportConfig",
+    "DeriveConfig",
     "DropNoisyConfig", "EvalConfig", "EvalGatesConfig", "ExportConfig", "Gdal2TilesConfig", "GridConfig",
     "ImportConfig", "InterrowConfig", "LoggingConfig", "MeasureConfig", "NnConfig", "NodataConfig",
     "OrchardConfig", "PathsConfig", "ProbeConfig", "ProbeNegativesConfig", "ProbePositivesConfig",

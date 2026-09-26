@@ -33,6 +33,8 @@ Root used below: `$AI = /Users/maleticimiroslav/Vin Gigahack/src/AI`. Doc citati
 | `$AI/vineyard/route/graph_types.py` | `WalkGraph`, `CandidateSet`, `Reach` frozen types. **Committed first** so the route package can code against it. | 110 |
 | `$AI/vineyard/route/graph.py` | Builds `WalkGraph`: KD-tree node snapping, edge splitting, `simplify(0.25)` guarded by `covered_by`, connected components. | 330 |
 | `$AI/vineyard/route/connectors.py` | Row-end connectors, seam/snap joins, START link, target spurs; outside length and cost. | 230 |
+| `$AI/vineyard/route/cross_paths.py` | Cross-paths (tracks / tractor lanes across the rows of a block, §3.5.1): detection from the row-gap engine's gaps, gap subtraction for targets, `cross_paths` layer frame. | 330 |
+| `$AI/vineyard/pipeline/stages/_cross_paths_io.py` | Detection on a post run (same gap engine + coverage as `targets`), `cross_paths` / `cross_path_lines` layers, `metrics/cross_paths.json`, read-back for `targets` / `web_bundle`. | 110 |
 | `$AI/vineyard/route/graph_io.py` | `WalkGraph` ↔ `walk_nodes` / `walk_edges` layers. | 120 |
 | `$AI/vineyard/route/candidates.py` | `augment_with_targets`: projection nodes per side, spurs, final reachability. | 240 |
 | `$AI/vineyard/route/distances.py` | CSR graph, chunked multi-source `scipy.sparse.csgraph.dijkstra`, path extraction. | 150 |
@@ -216,11 +218,11 @@ def build_web_bundle(run_dir: Path, out_dir: Path, tile_index: gpd.GeoDataFrame,
 |---|---|---|
 | `import_marcaj` / `import_reference` | CVAT XML/ZIP, `tile_index` (reference: grid fallback), `tile_valid` (optional) | **CONTRACT** `annset/{canopies,row_pieces,interrow_pieces,waste}.parquet` + `annset.json` (C§2.5.7–10, source = marcaj/reference); `qa/issues_import.parquet` |
 | `derive` | AnnSet, `tile_valid`, `in_passages`, `in_forbidden` | **CONTRACT** `layers/rows`, `layers/blocks`, `layers/interrows` (C§2.5.5/6/9); **REQ** `layers/interrow_pieces_linked` (piece columns + `interrow_id/row_left_id/row_right_id` filled; no cross-block overlap: `perception/block_overlap.py` gives each contested area to one block, qa `interrow_block_overlap`; cut parts below `export.min_interrow_piece_m2` or nowhere `derive.interrow_overlap_min_width_m` wide are dropped); `qa/issues_derive.parquet` |
-| `passable` | AnnSet (`interrow_pieces`, `canopies`), `rows`, `interrow_pieces_linked`, `in_passages`, `in_forbidden`, `in_start` | **CONTRACT** `passable_parts`, `passable_domain` (stores `raw`, `erosion_m=0`), `walk_nodes`, `walk_edges` (C§2.5.12) |
-| `targets` | AnnSet, derive layers, `passable_domain` (**REQ** DAG edge passable→targets), `tile_valid`, `in_forbidden` | **CONTRACT** `targets` (C§2.5.11 + extra columns `reason`, `route_role`, `along_m`), `target_extents` |
+| `passable` | AnnSet (`interrow_pieces`, `canopies`), `rows`, `interrow_pieces_linked`, `in_passages`, `in_forbidden`, `in_start` | **CONTRACT** `passable_parts`, `passable_domain` (stores `raw`, `erosion_m=0`), `walk_nodes`, `walk_edges` (C§2.5.12); **REQ** `layers/cross_paths` (strip polygons: `path_id, vineyard_id, n_rows, width_m, length_m, residual_m, row_ids`), `layers/cross_path_lines` (centrelines: `path_id, vineyard_id, length_m`), `metrics/cross_paths.json`; `passable_report.json` gains `cross_paths` (edges, length, outside metres) |
+| `targets` | AnnSet, derive layers, `passable_domain` + `cross_paths` (**REQ** DAG edge passable→targets), `tile_valid`, `in_forbidden` | **CONTRACT** `targets` (C§2.5.11 + extra columns `reason`, `route_role`, `along_m`), `target_extents` |
 | `route` | `walk_*`, `passable_domain`, `targets`, `in_start` | **CONTRACT** `route`, `route_stops` (C§2.5.13), `metrics/route_validation.json` (C§10); **REQ** `layers/target_visits` (`target_id, reachable_final, reach_note, n_candidates, covered, visit_dist_m, route_role`); `metrics/route_baseline.json`; `exports/route.geojson` |
 | `measure` | AnnSet, `rows`, `interrow_pieces_linked` (interrow areas: block lines add up to the survey line, checked by `block_interrow_sum`), `targets` (**REQ** DAG edge targets→measure, for `n_targets`); the derive layers come from this run, else from the newest post run of the same AnnSet; without any, the AnnSet's pieces lose their cross-block overlap in `measure` (warning `measure.interrow_overlap_removed_here`) | `exports/measurements.csv` (**CONTRACT** C§5.2), `exports/measurements.json` |
-| `web_bundle` | all of the above, `tile_index`, tiles | `web.out_dir/**` (**CONTRACT** C§7 manifest/layers) |
+| `web_bundle` | all of the above (incl. `cross_paths`), `tile_index`, tiles | `web.out_dir/**` (**CONTRACT** C§7 manifest/layers; `cross_paths.geojson`, §3.10) |
 | `publish` | `exports/route.geojson`, `exports/measurements.csv`, `passable_domain` | repo-root `route.geojson`, `measurements.csv` (**CONTRACT** C§5.1/5.2); `metrics/publish_report.json` |
 
 ## 3. Algorithm notes
@@ -335,6 +337,43 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
 - **Dedupe:** targets within `dedupe_m` merge and keep the best priority.
 - **Preliminary reachability:** `false` if the target is in forbidden (`in_forbidden`) or farther than `candidate_radius_m` from `domain.inner`. The final graph-based reachability is decided in `route`.
 
+### 3.5.1 Cross-paths: tracks across the rows (cfg `cross_paths`, module `route/cross_paths.py`)
+
+A track or tractor lane through a block leaves a gap in every row it crosses, at nearly the same place. Row by
+row those gaps are `row_gap` / `missing_plant` targets lined up across the block (chains of dots on the map),
+and the walk graph has no way through them, so the route goes round the block. `passable` detects them once:
+
+1. Gaps from the same engine as `targets` (`row_contexts`, 1-px canopy profile, unknown spans cut out). Per
+   block a frame u = length-weighted mean row direction, v = its normal; each interior gap with
+   `min_gap_m` (1.5) ≤ length ≤ `max_gap_m` (15) becomes an interval [s0, s1] on u at the offset t of its centre.
+2. Two gaps are linked when they are one physical row apart, `link_min_m` (1.2) ≤ Δt ≤ `link_max_m` (4.5),
+   and their u-intervals overlap (± `overlap_tol_m`). Distance, not `row_index`: fragmented blocks (V12)
+   interleave short and long row ids, and a row mis-placed by a fragment puts neighbours up to ~1.5
+   spacings apart. The links form a DAG in t order; the longest chain (ties: least total |Δs|) is taken, its
+   gaps removed, repeated while chains have ≥ `min_rows` (6) gaps.
+3. Straightness: Douglas–Peucker on the centres (t, s) with `max_residual_m` (1.5). Tracks bend, so a path
+   can be a polyline, but every straight piece must cross ≥ `min_segment_rows` (4) rows; shorter wiggles
+   split the chain and each remaining piece needs `min_rows`. A median crossing gap above `max_width_m` (8)
+   is a patch of missing vines (V01, 10 m), not a lane.
+4. Geometry: the DP polyline extended `end_extend_spacing` (0.75) spacings past the outer crossings (so it
+   meets the outer interrow centerlines), buffered with flat caps by half the median gap measured across
+   the path (gap length / √(1 + slope²)). Ids `XP001…` by (vineyard_id, first crossing): deterministic.
+
+Uses (each behind a flag):
+- `drop_targets`: `targets` cuts the strip's stretch out of every interior gap (`subtract_paths`); what is
+  left of a longer gap stays a gap, so missing vines next to a track are still reported. `targets.json`
+  gains `cross_path_<kind>` (drafts removed per kind, before dedupe / edge filtering), `cross_path_rows`,
+  `cross_path_gap_cm`. Rows keep their `row_structure` (annotation rules unchanged: the rules call a ≥ 5 m
+  gap `disrupted` whatever its cause).
+- `route`: each centreline is an `EdgeKind.CROSS_PATH` draft, cut (attachment on both lines) wherever it
+  meets an interrow centerline or a passage skeleton branch, so the planner can walk across the block along
+  the track. Its outside length against `domain.inner` is costed like a connector's; headland strategies
+  and outside policies restrict it like a connector.
+- `passable` (default **false**): add the strips to the walking domain. The brief's allowed area is
+  "passable inter-row areas and authorised passages"; a strip is neither, except where the organizers'
+  passages already cover it (they digitised the V12 tracks: 3–67% of each strip). With the default the
+  validator counts the strip's stretch outside interrows ∪ passages as outside, exactly like the brief.
+
 ### 3.6 Domain (A§4.11.1 + C§2.5.12)
 
 1. `union_all(interrow_pieces ∪ passages, grid_size=0.001)`.
@@ -427,6 +466,10 @@ The prototype rasterized canopies and binned whole pixels along a 2-point axis. 
     2. `cv2.imencode(".jpg", BGR, q80)`;
     3. write `ortho_index.json` with `{tile_id, file, corners: [TL, TR, BR, BL]}`, the order MapLibre's `image` source expects.
   - The manifest's `ortho.mode` tells the frontend which layout exists.
+  - **`cross_paths.geojson`** (bundle v4, only when the post run has a `cross_paths` layer): EPSG:32635
+    FeatureCollection with the `crs` member, one Polygon per track across the rows (§3.5.1), properties
+    `id` (`XP001…`), `vineyard_id`, `n_rows` (rows crossed), `width_m`, `length_m`; sorted by `id`. The
+    manifest's `counts.cross_paths` gives the number of features (0 when the file is absent).
 
 ## 4. Config keys I own
 
@@ -455,6 +498,10 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `targets.long_gap_m` | 20.0 | A§4.10 |
 | `targets.gap_step_m` | 15.0 | A§3.6 |
 | `targets.gap_sample_step_m` | 3.0 | C§9 (extents reporting only) |
+| `cross_paths.enabled` / `drop_targets` / `route` / `passable` | true / true / true / false | new (§3.5.1; `passable=false` = the brief's allowed area) |
+| `cross_paths.min_gap_m` / `max_gap_m` / `max_width_m` | 1.5 / 15.0 / 8.0 | new (§3.5.1) |
+| `cross_paths.min_rows` / `min_segment_rows` | 6 / 4 | new (§3.5.1) |
+| `cross_paths.link_min_m` / `link_max_m` / `overlap_tol_m` / `max_residual_m` / `end_extend_spacing` | 1.2 / 4.5 / 0.3 / 1.5 / 0.75 | new (§3.5.1; spacing 2.3–3.0 m) |
 | `targets.missing_min_m` | 2.0 | A§3.6 |
 | `targets.include_missing` | true | A§3.6 (Slack Q3) |
 | `targets.include_sparse` | true | A§4.10 |
