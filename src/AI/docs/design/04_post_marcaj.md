@@ -215,11 +215,11 @@ def build_web_bundle(run_dir: Path, out_dir: Path, tile_index: gpd.GeoDataFrame,
 | Stage | Reads | Writes |
 |---|---|---|
 | `import_marcaj` / `import_reference` | CVAT XML/ZIP, `tile_index` (reference: grid fallback), `tile_valid` (optional) | **CONTRACT** `annset/{canopies,row_pieces,interrow_pieces,waste}.parquet` + `annset.json` (C§2.5.7–10, source = marcaj/reference); `qa/issues_import.parquet` |
-| `derive` | AnnSet, `tile_valid`, `in_passages`, `in_forbidden` | **CONTRACT** `layers/rows`, `layers/blocks`, `layers/interrows` (C§2.5.5/6/9); **REQ** `layers/interrow_pieces_linked` (piece columns + `interrow_id/row_left_id/row_right_id` filled); `qa/issues_derive.parquet` |
+| `derive` | AnnSet, `tile_valid`, `in_passages`, `in_forbidden` | **CONTRACT** `layers/rows`, `layers/blocks`, `layers/interrows` (C§2.5.5/6/9); **REQ** `layers/interrow_pieces_linked` (piece columns + `interrow_id/row_left_id/row_right_id` filled; no cross-block overlap: `perception/block_overlap.py` gives each contested area to one block, qa `interrow_block_overlap`); `qa/issues_derive.parquet` |
 | `passable` | AnnSet (`interrow_pieces`, `canopies`), `rows`, `interrow_pieces_linked`, `in_passages`, `in_forbidden`, `in_start` | **CONTRACT** `passable_parts`, `passable_domain` (stores `raw`, `erosion_m=0`), `walk_nodes`, `walk_edges` (C§2.5.12) |
 | `targets` | AnnSet, derive layers, `passable_domain` (**REQ** DAG edge passable→targets), `tile_valid`, `in_forbidden` | **CONTRACT** `targets` (C§2.5.11 + extra columns `reason`, `route_role`, `along_m`), `target_extents` |
 | `route` | `walk_*`, `passable_domain`, `targets`, `in_start` | **CONTRACT** `route`, `route_stops` (C§2.5.13), `metrics/route_validation.json` (C§10); **REQ** `layers/target_visits` (`target_id, reachable_final, reach_note, n_candidates, covered, visit_dist_m, route_role`); `metrics/route_baseline.json`; `exports/route.geojson` |
-| `measure` | AnnSet, `rows`, `targets` (**REQ** DAG edge targets→measure, for `n_targets`) | `exports/measurements.csv` (**CONTRACT** C§5.2), `exports/measurements.json` |
+| `measure` | AnnSet, `rows`, `interrow_pieces_linked` (interrow areas: block lines add up to the survey line), `targets` (**REQ** DAG edge targets→measure, for `n_targets`) | `exports/measurements.csv` (**CONTRACT** C§5.2), `exports/measurements.json` |
 | `web_bundle` | all of the above, `tile_index`, tiles | `web.out_dir/**` (**CONTRACT** C§7 manifest/layers) |
 | `publish` | `exports/route.geojson`, `exports/measurements.csv`, `passable_domain` | repo-root `route.geojson`, `measurements.csv` (**CONTRACT** C§5.1/5.2); `metrics/publish_report.json` |
 

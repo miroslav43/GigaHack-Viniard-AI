@@ -224,13 +224,16 @@ def manifest_extras(inputs: WebInputs, layers: Mapping[str, gpd.GeoDataFrame | N
 
 
 def measurements_bytes(inputs: WebInputs, params: WebParams) -> bytes:
-    """measure's CSV when given (copied verbatim), else computed by the same `vineyard.measure` writer;
-    either way it must pass the checks `publish` applies (SchemaError otherwise)."""
+    """measure's CSV when given (copied verbatim), else computed by the same `vineyard.measure` writer (on
+    derive's overlap-free interrow pieces when given, like `measure`); either way it must pass the checks
+    `publish` applies (SchemaError otherwise)."""
     data = inputs.measurements_csv
     if data is None:
         ann = inputs.annset
+        linked = inputs.interrows
+        pieces = linked if linked is not None and not linked.empty else ann.interrow_pieces
         m = compute_measurements(MeasureInputs(canopies=ann.canopies, row_pieces=ann.row_pieces,
-                                               interrow_pieces=ann.interrow_pieces, waste=ann.waste))
+                                               interrow_pieces=pieces, waste=ann.waste))
         text = format_measurements_csv(m.records(), m_decimals=params.m_decimals, ha_decimals=params.ha_decimals)
         data = text.encode("utf-8")
     failed = check_measurements_bytes(data, sum_tol_m=params.sum_tol_m)

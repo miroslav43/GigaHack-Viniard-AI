@@ -161,6 +161,34 @@ def test_input_annset_is_not_mutated(params) -> None:
     assert all(annset.layer(name).equals(frame) for name, frame in before.items())
 
 
+def _block_sums(canopies, row_pieces, pieces) -> tuple[float, float]:
+    from vineyard.measure.measurements import MeasureInputs, compute_measurements
+
+    m = compute_measurements(MeasureInputs(canopies=canopies, row_pieces=row_pieces, interrow_pieces=pieces))
+    return float(sum(b.interrow_area_m2 for b in m.blocks)), float(m.survey.interrow_area_m2)
+
+
+def test_cross_block_interrow_overlap_is_removed(params) -> None:
+    from tests.post.factories import DEFAULT_ORIGIN
+
+    crossing = BlockSpec(vineyard_id="V02", n_rows=4, angle_deg=8.0,
+                         origin_xy=(DEFAULT_ORIGIN[0] + 10.0, DEFAULT_ORIGIN[1] + 1.0))
+    annset = make_annset(BlockSpec(n_rows=4), crossing)
+    blocks_before, survey_before = _block_sums(annset.canopies, annset.row_pieces, annset.interrow_pieces)
+    assert blocks_before > survey_before + 1.0  # the fixture really double counts
+    result = derive(DeriveInputs(annset, build_coverage(annset.meta.tile_ids)), params, run_id=RUN_ID)
+    linked = result.interrow_pieces_linked
+    blocks_after, survey_after = _block_sums(annset.canopies, annset.row_pieces, linked)
+    assert blocks_after == pytest.approx(survey_after, abs=1e-6)
+    metrics = result.metrics()
+    assert survey_before - metrics["interrow_overlap_dropped_m2"] - 1e-6 <= survey_after <= survey_before + 1e-6
+    assert float(result.blocks["interrow_area_m2"].sum()) == pytest.approx(survey_after, abs=1e-6)
+    n_warned = [i.code for i in result.issues].count("interrow_block_overlap")
+    assert n_warned == metrics["n_interrow_overlap_cut"] + metrics["n_interrow_overlap_dropped"] > 0
+    assert metrics["interrow_overlap_moved_m2"] == pytest.approx(blocks_before - survey_before, abs=1e-6)
+    assert annset.interrow_pieces.geometry.is_valid.all() and linked.geometry.is_valid.all()
+
+
 def test_model_source_ids_validate_strictly(params) -> None:
     from tests.post.factories import Prov
 
