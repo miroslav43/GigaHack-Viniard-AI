@@ -48,6 +48,99 @@ exclude_areas:          # false rows found by the cadastre shape check + visual 
   - id: X013
     note: "RC8 V02: rows on the road edge west of the RC7 V01 vineyard (visual review)"
     wkt: "MULTIPOLYGON (((629095.9 5220781.7, 629095.2 5220780.7, 629094.1 5220780.5, 629093.2 5220781.1, 629072.5 5220812, 629072.3 5220813.1, 629072.9 5220814, 629074 5220814.3, 629075 5220813.6, 629095.7 5220782.7, 629095.9 5220781.7)), ((629083 5220813.9, 629083.8 5220814.3, 629084.6 5220814.2, 629085.2 5220813.7, 629086.3 5220814.3, 629087.4 5220813.9, 629095.2 5220802, 629095.9 5220800.3, 629095.1 5220799.1, 629095.8 5220798.1, 629095.9 5220797.2, 629095.1 5220796.2, 629094.8 5220797, 629094.2 5220797.1, 629093.9 5220796.7, 629094.1 5220796, 629093.9 5220796.1, 629095.8 5220792, 629095.2 5220791.3, 629094.5 5220792.6, 629093.9 5220792.2, 629094.3 5220791.1, 629093.2 5220791.6, 629079.5 5220812.5, 629079.7 5220813.6, 629080.7 5220814.3, 629081.8 5220814, 629082.6 5220813.1, 629083 5220813.9)))"
-delete_rows: []         # e.g. [{id: D001, wkt: "POINT (629500 5220250)", note: "hedge"}]
+  - id: M001
+    note: "manual review siret3_r014_c007: tillage - Pipeline drew a full vineyard block 'V08' (6 row axes + 31 canopies) in the bottom-right corner over bare, freshly plowed/tilled soil with clear plow furrows."
+    wkt: "POLYGON ((629399.2 5220497.6, 629401.6 5220497.6, 629401.6 5220454.4, 629386.2 5220454.4, 629399.2 5220497.6))"
+  - id: M002
+    note: "manual review siret3_r025_c017: shrubs - Rows V12/V11 block 'V11' (V11-R001, V11-R002, V11-R003) are drawn across a patch of scattered wild shrubs/scrub, not a vineyard: full-res crops (x1300-2048,y0-"
+    wkt: "POLYGON ((629913.6 5219942.4, 629913.6 5219919.2, 629895.2 5219942.4, 629913.6 5219942.4))"
+  - id: M003
+    note: "manual review siret3_r030_c029: hedge - The whole annotated block V18 (rows V18-R001/V18-R002/V18-R003, 17 canopies, interrow) is NOT a vineyard: it is a scattered line of shrubs/small trees (some bus"
+    wkt: "POLYGON ((630527.8 5219686.2, 630528 5219677.2, 630490.1 5219666.3, 630485.8 5219674.3, 630527.8 5219686.2))"
+  - id: M004
+    note: "manual review siret3_r032_c021: trees - Dense solid forest patch in the NE corner of the tile. The far tips of vineyard rows V27-R007/R008/R009 (block V27) and V28-R001/R002 (block V28) are drawn with"
+    wkt: "POLYGON ((630118.4 5219580.3, 630118.4 5219567, 630107.7 5219567, 630107.7 5219580.3, 630118.4 5219580.3))"
+  - id: M005
+    note: "manual review siret3_r032_c028: grass - Short annotated rows V26-R001..R003 sit on the same homogeneous weedy scrubland as the rest of the tile - sparse low weed/grass tufts with no vine trunks, stake"
+    wkt: "POLYGON ((630476.8 5219582.5, 630476.8 5219575.3, 630471.9 5219575.3, 630471.9 5219582.5, 630476.8 5219582.5))"
+  - id: M006
+    note: "manual review siret3_r032_c028: grass - Annotated rows V26-R004..R008 (spanning almost the full tile width) and their 41 canopies lie on fallow/pasture scrubland, not a vineyard. Full-resolution crops"
+    wkt: "POLYGON ((630476.8 5219572.5, 630476.8 5219560.5, 630425.6 5219560.5, 630425.6 5219572.5, 630476.8 5219572.5))"
+  - id: V001
+    note: "verification siret3_r026_c017: V16-R037 (RC9) on non-vine ground"
+    wkt: "POLYGON ((629886.7 5219878.1, 629886.1 5219877.3, 629885 5219877, 629884.1 5219877.4, 629873.8 5219890.4, 629873.5 5219891.4, 629874 5219892.3, 629875 5219892.7, 629876.1 5219892.2, 629886.5 5219879.3, 629886.7 5219878.1))"
+  - id: V002
+    note: "verification siret3_r026_c017: V16-R044 (RC9) on non-vine ground"
+    wkt: "POLYGON ((629888.2 5219869.5, 629887.7 5219868.5, 629886.7 5219868.2, 629885.6 5219868.6, 629868.3 5219890.3, 629868 5219891.4, 629868.5 5219892.3, 629869.5 5219892.7, 629870.6 5219892.2, 629888 5219870.5, 629888.2 5219869.5))"
+  - id: V003
+    note: "verification siret3_r027_c017: V16-R049 (RC9) on non-vine ground"
+    wkt: "POLYGON ((629913.7 5219825.3, 629912.4 5219825.9, 629901.8 5219839.2, 629901.5 5219840.2, 629902.1 5219841.2, 629903.2 5219841.5, 629904.2 5219840.9, 629904.6 5219840.4, 629904.6 5219839.7, 629914.8 5219826, 629913.7 5219825.3))"
+  - id: V004
+    note: "verification siret3_r028_c018: V16-R049 (RC9) on non-vine ground"
+    wkt: "POLYGON ((629966.2 5219762.5, 629965 5219764, 629964.6 5219764, 629964.3 5219763.6, 629965.6 5219761.8, 629964.5 5219761.6, 629963.6 5219762.1, 629942.9 5219788, 629942.7 5219789.3, 629943.6 5219788.3, 629944.3 5219788.7, 629943.4 5219790.1, 629944.4 5219790.3, 629945.3 5219789.7, 629966.1 5219763.9, 629966.2 5219762.5))"
+  - id: V005
+    note: "verification siret3_r007_c002: V02-R001 (RC9) on non-vine ground"
+    wkt: "POLYGON ((629113.9 5220812.2, 629113.2 5220811.5, 629112.2 5220811.3, 629111.4 5220811.7, 629109.7 5220816.2, 629110.1 5220817, 629111.2 5220817.4, 629112.3 5220817, 629113.9 5220813.2, 629113.9 5220812.2))"
+  - id: V006
+    note: "verification siret3_r030_c029: whole block V20 (RC9) is a hedge / tree line"
+    wkt: "MULTIPOLYGON (((630519.2 5219687.7, 630519.9 5219686.8, 630519.8 5219685.7, 630518.9 5219685, 630485 5219675.7, 630483.9 5219675.8, 630483.2 5219676.8, 630483.3 5219677.9, 630484.2 5219678.6, 630518.1 5219687.8, 630519.2 5219687.7)), ((630504.9 5219687.8, 630505.7 5219687, 630505.6 5219685.8, 630504.8 5219685, 630483.4 5219678.9, 630482.4 5219679, 630481.7 5219679.8, 630481.7 5219680.9, 630482.5 5219681.7, 630503.8 5219687.8, 630504.9 5219687.8)), ((630486.9 5219674.2, 630487.7 5219673.8, 630488.1 5219672.9, 630487.8 5219671.8, 630488.7 5219671.6, 630489.3 5219671, 630489.3 5219669.9, 630488.6 5219669, 630487 5219668.7, 630486 5219669.5, 630485.9 5219670.4, 630486.2 5219671.2, 630485.2 5219671.7, 630484.8 5219672.7, 630485.2 5219673.7, 630486.2 5219674.2, 630486.9 5219674.2)))"
+delete_rows:
+  - id: MD001
+    note: "manual review siret3_r007_c002 V01-R115: This short row (17.8 m) is drawn along a farm access track/road bordering a farmyard (parked tractor, wood/junk pile) on the west edge of the block, following "
+    wkt: "POINT (629102.475 5220841.85)"
+  - id: MD002
+    note: "manual review siret3_r009_c002 V02-R001: This row's axis (and its canopy/interrow strip) runs along and across the bare gravel farm road that cuts diagonally through the tile (confirmed at full resolu"
+    wkt: "POINT (629141.4 5220749.1)"
+  - id: MD003
+    note: "manual review siret3_r009_c003 V01-R114: Runs the length of a continuous grassy shoulder along the gravel access road that borders the tile's west edge (y~700 to 2048). At full-resolution zoom this st"
+    wkt: "POINT (629147.775 5220739.1)"
+  - id: MD004
+    note: "manual review siret3_r009_c003 V01-R117: Same continuous roadside-grass strip as V01-R114, further down the same road edge; no tillage or individual vine plants visible, just uniform grass bordering t"
+    wkt: "POINT (629149.85 5220721.6)"
+  - id: MD006
+    note: "manual review siret3_r018_c012 V10-R001: This row runs along the grassy verge beside the gravel road/driveway (top-right of tile), not on tilled vine ground - no real vine plants under it in the raw c"
+    wkt: "POINT (629644.55 5220290.8)"
+  - id: MD007
+    note: "manual review siret3_r019_c010 V10-R076: Tiny 1.8 m isolated row segment sits on plain bare tilled turnaround soil; no vine plant visible at full resolution, no neighbouring row nearby."
+    wkt: "POINT (629504.55 5220231.449999999)"
+  - id: MD008
+    note: "manual review siret3_r023_c017 V12-R003: Lone 4 m row sits on dry brown grass/weed patch near the bottom-left corner; no visible individual vine plants, no white tubes, no plant spacing pattern. Rest "
+    wkt: "POINT (629863.6 5219995.2)"
+  - id: MD009
+    note: "manual review siret3_r024_c017 V12-R006: Row axis, inter-row and canopy are drawn along a bare dirt farm track bordered only by grass/weeds, leading into a dense shrub/tree at the south end; zoomed at"
+    wkt: "POINT (629893.65 5219947.1)"
+  - id: MD010
+    note: "manual review siret3_r028_c019 V13-R001: Short row fragment on a residential yard/fence corner (top-right, x~1965-2048,y~0-107), not on grapevines; part of a 3-row false block (V13) with R002 and R003"
+    wkt: "POINT (630014.9500000001 5219787.475)"
+  - id: MD011
+    note: "manual review siret3_r028_c019 V13-R002: Row axis runs along a wire perimeter fence (visible fence posts) and straight across a parked car in the yard/driveway next to the vineyard; confirmed in full-"
+    wkt: "POINT (630010.925 5219786.45)"
+  - id: MD012
+    note: "manual review siret3_r028_c019 V13-R003: Second, near-parallel false row over the same fence/yard area as R002 (duplicate fence detection), continuing past the car down to a water trough/pipe near the"
+    wkt: "POINT (630010.1000000001 5219781.3)"
+  - id: MD013
+    note: "manual review siret3_r029_c016 V15-R001: Whole row (and the V15-R001..R004 family) is drawn across an open grass/weed field, not a vineyard. Zoomed raw crops along its full length (e.g. x1200-1850 y0-"
+    wkt: "POINT (629854.95 5219727.024999999)"
+  - id: MD014
+    note: "manual review siret3_r029_c016 V15-R002: Same false family as V15-R001: axis runs through grass/weed field with no row structure, no cultivated strip, no vine plants at any zoom level checked."
+    wkt: "POINT (629852.725 5219723.824999999)"
+  - id: MD015
+    note: "manual review siret3_r029_c016 V15-R003: Checked at full res (x1050-1650,y400-1000 and x1700-2048,y700-1536): only random weed clumps and one large shrub, no linear vine planting, no bare cultivated s"
+    wkt: "POINT (629848.1 5219717.274999999)"
+  - id: MD016
+    note: "manual review siret3_r029_c016 V15-R004: Same false family; axis and its canopy/interrow annotations sit entirely on the grass/weed field, not on any vine row. Real vineyard in this tile is only the s"
+    wkt: "POINT (629845.825 5219714)"
+  - id: MD017
+    note: "manual review siret3_r037_c023 V42-R001: Row sits on a bare tilled/fallow field with dense plough furrows and only isolated old wooden stakes; no vine shoots or leaf clusters visible along the axis at"
+    wkt: "POINT (630202.025 5219318.25)"
+  - id: MD018
+    note: "manual review siret3_r037_c023 V42-R002: Same fallow/tilled area as V42-R001 - furrows and scattered weeds only, no vine canopy along the axis."
+    wkt: "POINT (630205.75 5219310.35)"
+  - id: MD019
+    note: "manual review siret3_r037_c023 V42-R003: Same fallow/tilled area - isolated stakes with no adjacent green shoots, unlike confirmed vine rows elsewhere in this tile."
+    wkt: "POINT (630198.275 5219313.25)"
+  - id: MD020
+    note: "manual review siret3_r037_c023 V42-R004: Same fallow/tilled area as the other V42 rows - no vine plants found along the axis at full resolution."
+    wkt: "POINT (630197.075 5219308.8)"
 extend_rows: []         # e.g. [{id: E001, row_hint_wkt: "POINT (...)", to_wkt: "POINT (...)"}]
 add_rows: []            # e.g. [{id: A001, wkt: "LINESTRING (...)", note: "missed row"}]

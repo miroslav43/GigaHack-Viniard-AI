@@ -2,3 +2,13 @@ tile_id,xtl,ytl,xbr,ybr,decision,category,reviewer,note
 siret3_r023_c016,592.3,584.4,607.7,597.6,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.75; probe 0.87; 0.6 m from V14
 siret3_r009_c005,801.2,292.9,818.8,316.1,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.46; probe 0.83; 7.2 m from V01
 siret3_r008_c000,625.8,1636.3,696.2,1651.7,accept,debris,sam3-auto (team approved 2026-09-26),SAM3 0.41; probe 0.52; 9.7 m from V03
+siret3_r012_c004,1320.0,1695.0,1390.0,1760.0,add,tyre,claude-review,single tire lying in grass near a farm yard
+siret3_r012_c004,1745.0,1765.0,1855.0,1875.0,add,tyre,claude-review,cluster/stack of tires near a fence by a shed
+siret3_r013_c004,1595.0,0.0,1710.0,95.0,add,tyre,claude-review,small pile of tires stacked along the yard fence
+siret3_r013_c004,1585.0,365.0,1910.0,470.0,add,tyre,claude-review,cluster of several tires plus a barrel and bagged material next to the shed
+siret3_r015_c011,1190.0,1580.0,1460.0,1810.0,add,debris,claude-review,large construction/demolition rubble pile in the yard between two roofed buildin
+siret3_r015_c011,1268.0,458.0,1358.0,558.0,add,unknown,claude-review,blue plastic tarp/sheet lying on the ground next to the metal shed
+siret3_r022_c016,205.0,1685.0,495.0,1910.0,add,debris,claude-review,large pile of demolition/construction debris (broken wood planks and rubble) bes
+siret3_r023_c016,1195.0,270.0,1420.0,460.0,add,debris,claude-review,"pile of broken boards, rubble and scattered construction debris beside the farm "
+siret3_r026_c019,800.0,450.0,1040.0,670.0,add,heap,claude-review,large pile of broken stone/concrete rubble with scattered wooden boards/pallets 
+siret3_r027_c027,1300.0,1380.0,1760.0,2048.0,add,heap,claude-review,"Large construction/demolition debris heap (broken concrete slabs, bricks, red-br"
