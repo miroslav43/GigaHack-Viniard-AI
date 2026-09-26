@@ -2,6 +2,7 @@
 // Measurements come from the measurements.csv survey / block lines (§6.5); counts come from the layers.
 import { TILE_M, TILES_TOTAL } from "./contract.mjs";
 import { isNum, naturalCompare, polygonArea, r2, r4 } from "./geo.mjs";
+import { tilesSummary } from "./tiles.mjs";
 
 // same Sireți block as the mock (build-data.mjs); area_ha comes from public/data/uats.json
 export const UAT = { name: "Primăria Sireți", district: "raionul Strășeni", country: "Republica Moldova", osm_relation_id: 19100171 };
@@ -106,7 +107,10 @@ const blockSummaries = (bundle, csvBlocks) => {
   }));
 };
 
-/** summary.json; targetCount = targets written (all, or only routed ones with --targets route). */
+/**
+ * summary.json; targetCount = targets written (all, or only routed ones with --targets route).
+ * "tiles" ({ total, vineyard, no_vineyard, to_complete }) only when the bundle ships tiles.geojson.
+ */
 export const buildSummary = ({ bundle, targetCount, uatAreaHa }) => {
   const lines = bundle.csv.lines;
   return {
@@ -117,6 +121,7 @@ export const buildSummary = ({ bundle, targetCount, uatAreaHa }) => {
     cover_counts: coverCounts(bundle.interrows),
     route: routeSummary(bundle.route.features[0].properties),
     blocks: blockSummaries(bundle, lines.filter((l) => l.level === "block")),
+    ...(bundle.tiles ? { tiles: tilesSummary(bundle.tiles) } : {}),
   };
 };
 

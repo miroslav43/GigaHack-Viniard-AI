@@ -3,7 +3,8 @@ import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 // Demo-flow e2e against the production build (`pnpm build` first). Data: `pnpm data:fast` (siret3-mock).
-const PORT = 3100;
+// E2E_PORT: run next to another build (a second worktree) without reusing its server
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 // The specs pick their survey from NEXT_PUBLIC_SURVEY_ID, which `next build` inlined from the shell or a .env file
 // (the demo laptop sets it in .env.local). Load the same files, in Next's order for a production build; a file never

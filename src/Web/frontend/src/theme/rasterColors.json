@@ -1,0 +1,4 @@
+{
+  "$comment": "Colours baked into generated raster files by scripts/survey/masks.mjs (Node reads JSON without a TS toolchain). tokens.ts re-exports them, so the map legend and the PNGs cannot drift. Edit here only.",
+  "vegMask": { "color": "#D946EF", "alpha": 0.55 }
+}

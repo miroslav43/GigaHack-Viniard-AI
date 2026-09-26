@@ -1,4 +1,4 @@
-import type { InterrowCover, RowStructure } from "@/theme/mapPalette";
+import type { InterrowCover, RowStructure, TileStatus } from "@/theme/mapPalette";
 
 export interface BlockSummary {
   vineyard_id: string;
@@ -52,6 +52,40 @@ export interface SurveySummary {
   cover_counts: Partial<Record<InterrowCover, number>>;
   route: { mock: boolean; length_m: number; duration_min: number; baseline_length_m: number; speed_kmh: number };
   blocks: BlockSummary[];
+  /** the survey tiles (tiles.geojson of an AI bundle, src/Web/CLAUDE.md §6.3); absent on the mock and older bundles */
+  tiles?: TilesSummary;
+}
+
+export interface TilesSummary {
+  total: number;
+  vineyard: number;
+  no_vineyard: number;
+  /** tiles listed in src/AI/configs/tile_review.csv: to complete in Marcaj (any status) */
+  to_complete: number;
+}
+
+export type TileReviewStatus = "missed" | "partial" | "verify";
+
+/** A feature of tiles.geojson (the survey tile footprints, src/Web/CLAUDE.md §6.3). */
+export interface TileProps {
+  tile: string;
+  status: TileStatus;
+  n_rows: number;
+  n_canopies: number;
+  n_interrows: number;
+  n_waste: number;
+  veg_frac: number | null;
+  nodata_frac: number | null;
+  review_priority: number | null;
+  review_note: string | null;
+  review_status: TileReviewStatus | null;
+  has_mask: boolean;
+}
+
+/** Optional files of a published survey (web bundle v3): what the map may offer as extra layers. */
+export interface OverlayFiles {
+  tiles: boolean;
+  masks: boolean;
 }
 
 export interface RowRecord {

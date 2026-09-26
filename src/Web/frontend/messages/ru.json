@@ -81,7 +81,8 @@
     "interrows": "Междурядье",
     "targets": "Цель осмотра",
     "waste": "Мусор",
-    "blocks": "Квартал"
+    "blocks": "Квартал",
+    "tiles": "Тайл"
   },
   "dashboard": {
     "subtitle": "Инвентаризация виноградников в границах коммуны · {source}",
@@ -119,7 +120,9 @@
     "colInterrow": "Междурядья",
     "colDisrupted": "С разрывами",
     "structureDist": "Структура рядов",
-    "coverDist": "Покрытие междурядий"
+    "coverDist": "Покрытие междурядий",
+    "tiles": "Проанализированные тайлы",
+    "tilesHint": "{vineyard} с виноградником · {noVineyard} без · {toComplete} дополнить в Marcaj"
   },
   "map": {
     "title": "Карта",
@@ -191,6 +194,34 @@
       "canopyArea": "Площадь крон",
       "interrowArea": "Площадь междурядий",
       "disrupted": "Ряды с разрывами"
+    },
+    "layerTiles": "Тайлы",
+    "layerVegMask": "Маска растительности",
+    "overlayUnavailable": "недоступно для этой съёмки",
+    "overlayLoadError": "не удалось загрузить ({detail})",
+    "legendTileVineyard": "Тайл с виноградником",
+    "legendTileNoVineyard": "Тайл без виноградника",
+    "legendTileToComplete": "Тайл дополнить в Marcaj",
+    "legendVegMask": "Растительность (маска конвейера)",
+    "tile": {
+      "id": "Тайл",
+      "status": "Статус",
+      "vineyard": "виноградник",
+      "noVineyard": "без виноградника",
+      "review": "В Marcaj",
+      "reviewStatus": {
+        "missed": "виноградник пропущен",
+        "partial": "найден частично",
+        "verify": "проверить"
+      },
+      "priority": "Приоритет проверки",
+      "rows": "Части рядов",
+      "canopies": "Кроны",
+      "interrows": "Междурядья",
+      "waste": "Отходы",
+      "vegetation": "Растительность",
+      "nodata": "Нет данных",
+      "note": "Примечание: {note}"
     }
   },
   "blocks": {

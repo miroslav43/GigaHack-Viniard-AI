@@ -19,6 +19,7 @@ import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import { mapPalette } from "@/theme/mapPalette";
 import { useTranslations } from "next-intl";
 import { useFormat } from "@/lib/useFormat";
+import type { ReactNode } from "react";
 import type { RowRecord } from "@/lib/types";
 
 export type LayerKey = "ortho" | "geofence" | "blocks" | "canopies" | "rows" | "interrows" | "waste" | "route" | "reference";
@@ -84,6 +85,8 @@ export function LayerPanel({
   onPickRow,
   onPickBlock,
   onFitAll,
+  extraLayers,
+  extraLegend,
 }: {
   open: boolean;
   onToggleOpen: () => void;
@@ -94,6 +97,9 @@ export function LayerPanel({
   onPickRow: (id: string) => void;
   onPickBlock: (id: string) => void;
   onFitAll: () => void;
+  /** optional switches after the built-in layers (the survey overlays) and their legend entries */
+  extraLayers?: ReactNode;
+  extraLegend?: ReactNode;
 }) {
   const t = useTranslations("map");
   const tc = useTranslations();
@@ -182,6 +188,7 @@ export function LayerPanel({
             }
           />
         ))}
+        {extraLayers}
         <Divider sx={{ my: 3 }} />
         <Typography variant="overline" color="text.secondary">
           {t("legend")}
@@ -199,6 +206,7 @@ export function LayerPanel({
           <LegendItem label={t("legendTarget")} color={mapPalette.target} />
           <LegendItem label={t("legendTargetOffRoute")} color={mapPalette.targetOffRoute} />
           <LegendItem label={t("legendGeofence")} color={mapPalette.geofence} line dashed />
+          {extraLegend}
         </Box>
       </Box>
     </Paper>

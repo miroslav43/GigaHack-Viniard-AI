@@ -12,13 +12,14 @@ import Close from "@mui/icons-material/Close";
 import { mapPalette, type InterrowCover, type RowStructure } from "@/theme/mapPalette";
 import { useFormat } from "@/lib/useFormat";
 import type { SurveySummary } from "@/lib/types";
+import { TileAttributes, tileTitle } from "./overlays/TileAttributes";
 
 export type Selection = {
-  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks";
+  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks" | "tiles";
   props: Record<string, unknown>;
 };
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Box sx={{ display: "flex", justifyContent: "space-between", gap: 3, py: 1.25 }}>
       <Typography variant="body2" color="text.secondary">
@@ -31,7 +32,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function ColorChip({ label, color }: { label: string; color: string }) {
+export function ColorChip({ label, color }: { label: string; color: string }) {
   return <Chip size="small" label={label} sx={{ bgcolor: color, color: "grey.900", fontWeight: 600 }} />;
 }
 
@@ -163,6 +164,10 @@ export function AttributePanel({
       );
       break;
     }
+    case "tiles":
+      title = tileTitle(p);
+      body = <TileAttributes props={p} />;
+      break;
   }
 
   return (

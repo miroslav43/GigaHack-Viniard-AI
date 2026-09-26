@@ -12,20 +12,29 @@ const build = (dir, opts = OPTS) => {
 const ids = (fc, key) => fc.features.map((f) => f.properties[key]);
 const isRounded7 = (v) => Math.abs(v * 1e7 - Math.round(v * 1e7)) < 1e-6;
 
+// [minLon, minLat, maxLon, maxLat]: the fixture objects sit around START; the tile footprints cover the whole survey
+const NEAR_START = [28.70, 47.12, 28.72, 47.13];
+const SURVEY = [28.69, 47.10, 28.73, 47.14];
+
 test("every layer is a 4326 FeatureCollection with numeric ids 1..n, 7-decimal coordinates and no crs member", () => {
   const { files } = build(MINI_BUNDLE);
-  assert.deepEqual(Object.keys(files).sort(),
-    ["blocks.geojson", "canopies.geojson", "interrows.geojson", "route.geojson", "rows.geojson", "targets.geojson", "waste.geojson"]);
+  assert.deepEqual(Object.keys(files).sort(), ["blocks.geojson", "canopies.geojson", "interrows.geojson", "route.geojson",
+    "rows.geojson", "targets.geojson", "tiles.geojson", "waste.geojson"]);
   for (const [name, fc] of Object.entries(files)) {
     assert.equal(fc.type, "FeatureCollection", name);
     assert.equal(fc.crs, undefined, name);
     assert.deepEqual(fc.features.map((f) => f.id), fc.features.map((_, i) => i + 1), name);
+    const [w, s, e, n] = name === "tiles.geojson" ? SURVEY : NEAR_START;
     for (const [lon, lat] of fc.features.flatMap((f) => positions(f.geometry))) {
-      assert.ok(lon > 28.70 && lon < 28.72 && lat > 47.12 && lat < 47.13, `${name}: ${lon},${lat}`);
+      assert.ok(lon > w && lon < e && lat > s && lat < n, `${name}: ${lon},${lat}`);
       assert.ok(isRounded7(lon) && isRounded7(lat), `${name}: ${lon},${lat}`);
     }
   }
   assert.deepEqual(files["route.geojson"].features[0].geometry.coordinates[0], ll([629504.7, 5220250.75]));
+});
+
+test("an older bundle without tiles.geojson gets no tile layer", (t) => {
+  assert.equal(build(copyBundle(t, { tiles: false })).files["tiles.geojson"], undefined);
 });
 
 test("rows keep their bundle properties; length_m is the CSV row figure", () => {

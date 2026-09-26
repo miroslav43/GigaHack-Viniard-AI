@@ -1,5 +1,7 @@
 // The only place colours, radii, shadows and fonts are defined (src/Web/CLAUDE.md §7).
 // Components read them through the MUI theme or mapPalette — never hardcode colours elsewhere.
+// Colours that scripts bake into raster files live in rasterColors.json (same folder) and are re-exported here.
+import rasterColors from "./rasterColors.json";
 
 export const font = {
   family: '"Inter Variable", Inter, -apple-system, "Segoe UI", sans-serif',
@@ -35,6 +37,11 @@ export const color = {
     interrowVegetation: "#3DA99F",
     background: "#E9E7E1",
     mask: "#202020",
+    // survey tile footprints: a tile the model left for completion in Marcaj (review_status set)
+    tileToComplete: "#F97316",
+    // pipeline vegetation mask (magenta: the complement of the green it marks, visible on vines and grass alike)
+    vegMask: rasterColors.vegMask.color,
+    vegMaskAlpha: rasterColors.vegMask.alpha,
   },
 };
 

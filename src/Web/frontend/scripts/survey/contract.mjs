@@ -54,3 +54,25 @@ export const LAYERS = {
 
 // map-performance guard: past this point canopies need a per-tile split or PMTiles (docs/DECISIONS.md ADR-006)
 export const CANOPY_GUARD = { features: 40_000, bytes: 25 * 1024 * 1024 };
+
+// ---------- optional: survey tiles and their vegetation masks (web bundle v3; older bundles have neither) ----------
+export const TILE_STATUSES = ["vineyard", "no_vineyard"];
+// src/AI/configs/tile_review.csv: a tile listed there needs completion in Marcaj
+export const REVIEW_STATUSES = ["missed", "partial", "verify"];
+export const TILE_ID_RE = /^siret3_r(\d{3})_c(\d{3})$/;
+// tile origin (north-west corner) in EPSG:32635 (§6.6): x = 628992 + c·51.2, y = 5220966.4 − (r−5)·51.2
+export const TILE_GRID = { x0: 628992, y0: 5220966.4, r0: 5 };
+// footprint vs grid: the bundle writes coordinates at 3 decimals
+export const FOOTPRINT_TOL_M = 0.002;
+export const TILE_COUNTS = ["n_rows", "n_canopies", "n_interrows", "n_waste"];
+export const TILE_FRACTIONS = ["veg_frac", "nodata_frac"];
+export const TILES = {
+  file: "tiles.geojson",
+  geometry: ["Polygon"],
+  required: ["tile", "status"],
+  nullable: [...TILE_FRACTIONS, "review_priority", "review_note", "review_status"],
+  unique: "tile",
+  enums: { status: TILE_STATUSES, review_status: REVIEW_STATUSES },
+};
+export const MASKS_DIR = "masks";
+export const MASK_PX = 1024;

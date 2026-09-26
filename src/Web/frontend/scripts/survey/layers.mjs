@@ -7,7 +7,8 @@ export const TARGET_MODES = ["all", "route"];
 
 const feature = (properties, geometry, i) => ({ type: "Feature", id: i + 1, properties, geometry: toWgs84(geometry) });
 const fc = (features) => ({ type: "FeatureCollection", features });
-const reproject = (layer, props = (p) => p) =>
+/** A bundle layer in EPSG:4326: 7 decimals, properties kept (or mapped by `props`), numeric id = i + 1. */
+export const reproject = (layer, props = (p) => p) =>
   fc(layer.features.map((f, i) => feature(props(f.properties ?? {}, f), f.geometry, i)));
 
 /** Row properties; length_m is the CSV row figure (2 decimals), so the map, the tables and the CSV agree. */
@@ -103,6 +104,8 @@ export const buildLayers = (bundle, { interrowTol, targets = "all" }) => {
       "waste.geojson": reproject(bundle.waste),
       "targets.geojson": targetsLayer(bundle.targets, targets),
       "route.geojson": reproject(bundle.route, (p) => ({ ...p, mock: false })),
+      // optional (web bundle v3): the survey tile footprints
+      ...(bundle.tiles ? { "tiles.geojson": reproject(bundle.tiles) } : {}),
     },
     stats: { interrows: interrows.stats },
   };

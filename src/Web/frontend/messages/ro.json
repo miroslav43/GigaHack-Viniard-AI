@@ -81,7 +81,8 @@
     "interrows": "Inter-rând",
     "targets": "Țintă de inspecție",
     "waste": "Deșeu",
-    "blocks": "Bloc"
+    "blocks": "Bloc",
+    "tiles": "Tile"
   },
   "dashboard": {
     "subtitle": "Inventar viticol în limita comunei · {source}",
@@ -119,7 +120,9 @@
     "colInterrow": "Inter-rânduri",
     "colDisrupted": "Întrerupte",
     "structureDist": "Structura rândurilor",
-    "coverDist": "Acoperirea inter-rândurilor"
+    "coverDist": "Acoperirea inter-rândurilor",
+    "tiles": "Tile-uri analizate",
+    "tilesHint": "{vineyard} cu vie · {noVineyard} fără vie · {toComplete} de completat în Marcaj"
   },
   "map": {
     "title": "Hartă",
@@ -191,6 +194,34 @@
       "canopyArea": "Aria coroanelor",
       "interrowArea": "Aria inter-rândurilor",
       "disrupted": "Rânduri întrerupte"
+    },
+    "layerTiles": "Tile-uri",
+    "layerVegMask": "Mască vegetație",
+    "overlayUnavailable": "indisponibil pentru acest survey",
+    "overlayLoadError": "nu s-a putut încărca ({detail})",
+    "legendTileVineyard": "Tile cu vie",
+    "legendTileNoVineyard": "Tile fără vie",
+    "legendTileToComplete": "Tile de completat în Marcaj",
+    "legendVegMask": "Vegetație (masca pipeline-ului)",
+    "tile": {
+      "id": "Tile",
+      "status": "Stare",
+      "vineyard": "cu vie",
+      "noVineyard": "fără vie",
+      "review": "În Marcaj",
+      "reviewStatus": {
+        "missed": "vie neidentificată",
+        "partial": "detectată parțial",
+        "verify": "de verificat"
+      },
+      "priority": "Prioritate revizuire",
+      "rows": "Piese de rând",
+      "canopies": "Coroane",
+      "interrows": "Inter-rânduri",
+      "waste": "Deșeuri",
+      "vegetation": "Vegetație",
+      "nodata": "Fără date",
+      "note": "Notă: {note}"
     }
   },
   "blocks": {

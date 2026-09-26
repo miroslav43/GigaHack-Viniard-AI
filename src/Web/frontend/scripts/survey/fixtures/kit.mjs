@@ -19,16 +19,36 @@ export const tempDir = (t, prefix = "build-survey-") => {
   return dir;
 };
 
-/** Copy of the fixture bundle, optionally in the new schema. */
-export const copyBundle = (t, { schema = "old" } = {}) => {
+/**
+ * Copy of the fixture bundle, optionally in the new schema. tiles: false strips the web bundle v3 extras
+ * (tiles.geojson, masks/, manifest counts.tiles and masks), giving a bundle as older pipelines wrote it.
+ */
+export const copyBundle = (t, { schema = "old", tiles = true } = {}) => {
   const dir = path.join(tempDir(t), "pipeline");
   fs.cpSync(MINI_BUNDLE, dir, { recursive: true });
   if (schema === "new") enrich(dir);
+  if (!tiles) stripTiles(dir);
   return dir;
 };
 
 export const readJson = (dir, file) => JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
 export const editJson = (dir, file, fn) => fs.writeFileSync(path.join(dir, file), JSON.stringify(fn(readJson(dir, file))));
+
+// the fixture tiles (make-mini-bundle.mjs): A and B hold the objects and have masks, B and C are to complete in Marcaj
+export const TILE_A = "siret3_r018_c010", TILE_B = "siret3_r018_c011", TILE_C = "siret3_r018_c012";
+
+/** Removes tiles.geojson, masks/ and their manifest entries. */
+export const stripTiles = (dir) => {
+  fs.rmSync(path.join(dir, "tiles.geojson"));
+  fs.rmSync(path.join(dir, "masks"), { recursive: true });
+  const without = (o, key) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== key));
+  editJson(dir, "manifest.json", (m) => ({ ...without(m, "masks"), counts: without(m.counts, "tiles") }));
+};
+
+/** Rewrites the properties of the tiles.geojson feature of `tile`. */
+export const editTile = (dir, tile, fn) => editJson(dir, "tiles.geojson", (fc) => ({
+  ...fc, features: fc.features.map((f) => (f.properties.tile === tile ? { ...f, properties: fn(f.properties) } : f)),
+}));
 export const editText = (dir, file, fn) => fs.writeFileSync(path.join(dir, file), fn(fs.readFileSync(path.join(dir, file), "utf8")));
 const mapFeatures = (fc, fn) => ({ ...fc, features: fc.features.map((f, i) => ({ ...f, properties: fn(f.properties, i) })) });
 

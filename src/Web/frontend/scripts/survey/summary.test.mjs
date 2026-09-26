@@ -22,9 +22,11 @@ test("summary.totals equal the measurements.csv survey line; counts come from th
   });
 });
 
-test("summary has exactly the SurveySummary shape (src/lib/types.ts)", () => {
+test("summary has exactly the SurveySummary shape (src/lib/types.ts); tiles only with tiles.geojson", (t) => {
   const { summary } = summarize(MINI_BUNDLE);
-  assert.deepEqual(Object.keys(summary), ["survey", "uat", "totals", "structure_counts", "cover_counts", "route", "blocks"]);
+  assert.deepEqual(Object.keys(summary), ["survey", "uat", "totals", "structure_counts", "cover_counts", "route", "blocks", "tiles"]);
+  assert.deepEqual(summary.tiles, { total: 311, vineyard: 2, no_vineyard: 309, to_complete: 2 });
+  assert.equal(summarize(copyBundle(t, { tiles: false })).summary.tiles, undefined);
   assert.deepEqual(Object.keys(summary.route), ["mock", "length_m", "duration_min", "baseline_length_m", "speed_kmh"]);
   assert.deepEqual(Object.keys(summary.blocks[0]), ["vineyard_id", "outline_area_m2", "row_count", "row_length_m", "canopy_count",
     "canopy_area_m2", "interrow_area_m2", "plant_count", "disrupted_rows"]);
