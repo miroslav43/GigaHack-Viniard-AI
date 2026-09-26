@@ -1,8 +1,10 @@
 // Loads an AI survey bundle (src/Web/data/surveys/<id>/pipeline, src/Web/CLAUDE.md §6.2–6.4, EPSG:32635)
-// and validates it. Every problem names the bundle file it comes from.
+// and validates it. Every problem names the bundle file it comes from. tiles.geojson is optional (web bundle v3);
+// its masks/ PNGs are checked by masks.mjs (async, headers only).
 import fs from "node:fs";
 import path from "node:path";
-import { CANOPY_FILES, CSV_FILE, CSV_HEADER, LAYERS, MANIFEST_FILE } from "./contract.mjs";
+import { CANOPY_FILES, CSV_FILE, CSV_HEADER, LAYERS, MANIFEST_FILE, TILES, TILES_TOTAL } from "./contract.mjs";
+import { validateTiles } from "./tiles.mjs";
 import { validateBundle } from "./validate.mjs";
 
 const LAYER_FILES = Object.fromEntries(
@@ -81,6 +83,9 @@ const asCollection = (geojson) =>
     ? { type: "FeatureCollection", crs: geojson.crs, features: [Object.fromEntries(Object.entries(geojson).filter(([k]) => k !== "crs"))] }
     : geojson;
 
+// optional files (web bundle v3): absent in older bundles, so absence is not a problem
+const readOptionalJson = (dir, file) => (fs.existsSync(path.join(dir, file)) ? readJson(dir, file) : { value: null });
+
 /** Reads every bundle file; returns { bundle, problems } (problems = missing or unparseable files). */
 export const loadBundle = (dir) => {
   const reads = {
@@ -88,6 +93,7 @@ export const loadBundle = (dir) => {
     ...Object.fromEntries(Object.entries(LAYER_FILES).map(([key, file]) => [key, readJson(dir, file)])),
     canopies: readCanopies(dir),
     csv: readText(dir, CSV_FILE),
+    tiles: readOptionalJson(dir, TILES.file),
   };
   const problems = Object.values(reads).flatMap((r) => (r.problem ? [r.problem] : []));
   const layers = Object.fromEntries(Object.keys(LAYER_FILES).map((key) => [key, reads[key].value ?? null]));
@@ -99,8 +105,17 @@ export const loadBundle = (dir) => {
     canopies: reads.canopies.value ?? null,
     canopyFile: reads.canopies.file ?? CANOPY_FILES[0],
     csv: reads.csv.text === undefined ? null : parseMeasurements(reads.csv.text),
+    // null = an older bundle without the tile layer
+    tiles: reads.tiles.value ?? null,
   };
   return { bundle, problems };
+};
+
+/** tiles.geojson checks, when the bundle ships one (one feature per supplied tile: manifest.tiles, else 311). */
+const tileChecks = (bundle) => {
+  if (!bundle.tiles) return { errors: [], warnings: [] };
+  const expected = Number.isInteger(bundle.manifest?.tiles) ? bundle.manifest.tiles : TILES_TOTAL;
+  return validateTiles(bundle.tiles, expected);
 };
 
 /**
@@ -111,7 +126,9 @@ export const readBundle = (dir, opts) => {
   if (!fs.existsSync(dir)) throw new BundleError(dir, [{ file: ".", message: "bundle directory does not exist" }]);
   const { bundle, problems } = loadBundle(dir);
   if (problems.length) throw new BundleError(dir, problems);
-  const { errors, warnings } = validateBundle(bundle, opts);
+  const layers = validateBundle(bundle, opts);
+  const tiles = tileChecks(bundle);
+  const errors = [...layers.errors, ...tiles.errors];
   if (errors.length) throw new BundleError(dir, errors);
-  return { bundle, warnings };
+  return { bundle, warnings: [...layers.warnings, ...tiles.warnings] };
 };

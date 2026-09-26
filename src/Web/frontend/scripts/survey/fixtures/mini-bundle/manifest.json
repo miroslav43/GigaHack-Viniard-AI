@@ -9,12 +9,19 @@
     "route": 1,
     "rows": 3,
     "targets": 5,
-    "waste": 1
+    "waste": 1,
+    "tiles": 311
   },
   "crs": "EPSG:32635",
   "generated_at": "2026-09-26T04:37:13+03:00",
   "gsd_m": 0.025,
   "license": "CC BY 4.0",
+  "masks": {
+    "dir": "masks",
+    "px": 1024,
+    "n": 2,
+    "source": "tile_prep vegetation mask (Lab a*)"
+  },
   "name": "Sireț3",
   "pipeline_version": "0000000000000000000000000000000000000000",
   "run_id": "post-mini",

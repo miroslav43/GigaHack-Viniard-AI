@@ -33,11 +33,11 @@ Ce rulează acum (din `src/Web/frontend/`):
 | `pnpm data:fast` | la fel, fără regenerarea ortofoto |
 | `pnpm data:survey --survey siret3` | `scripts/build-survey.mjs`: bundle-ul AI real din `src/Web/data/surveys/siret3/pipeline/` (EPSG:32635) → `public/data/siret3/` (EPSG:4326, același format ca mock-ul); validează contractul §6 și iese cu 1 la erori. `--check` doar validează; `--emit-seed` scrie `supabase/seed/survey_siret3.sql`. Apoi `NEXT_PUBLIC_SURVEY_ID=siret3 pnpm build` (variabila se fixează la build) |
 | `pnpm data:terrain --survey siret3` | `scripts/build-terrain.mjs`: relieful sintetic al vederii 3D din `public/data/<id>/canopies.geojson` → `public/data/<id>/terrain/{z}/{x}/{y}.png` (raster-dem terrarium, z14–z19) + `terrain.json`; opțiuni `--height 1.1 --blur 0.45`. `pnpm data`/`data:fast` îl rulează pentru mock; după `data:survey` se rulează din nou (ADR-025). Fără el, butonul 3D e dezactivat |
-| `pnpm test:scripts` | teste `node:test` pentru convertor (fixture mini-bundle) și pentru relieful 3D |
+| `pnpm test:scripts` | teste `node:test` pentru convertor (fixture mini-bundle, cu `tiles.geojson` + 2 măști; `node scripts/survey/fixtures/make-mini-bundle.mjs` îl regenerează) și pentru relieful 3D |
 | `pnpm dev` | `http://localhost:3000` (copiază întâi worker-ul MapLibre în `public/maplibre/`) |
 | `pnpm build` · `pnpm start` | build de producție și server |
 | `pnpm lint` · `pnpm typecheck` | ESLint, TypeScript |
-| `pnpm e2e` | Playwright pe build-ul de producție (port 3100): KPI, deep link, rută, CSV, tabel, schimbarea limbii |
+| `pnpm e2e` | Playwright pe build-ul de producție (port 3100, sau `E2E_PORT`): KPI, deep link, rută, CSV, tabel, schimbarea limbii, straturile opționale tile-uri / mască (`e2e/overlays.spec.ts`) |
 
 Abateri față de plan, deliberate, pentru viteză:
 - fișierele statice stau în `frontend/public/` (generate, ignorate de git), nu în `src/Web/data/` servite de o rută `/data`;
@@ -208,6 +208,10 @@ src/Web/
 | `targets.geojson` | Point | **`target_id`** (`T001`…), **`type`** (`gap` \| `missing` \| `waste`), **`vineyard_id`**, **`row_id`** (sau `null`), `waste_id`, **`route_order`** (int sau `null` dacă e neatins), **`reachable`** (bool), `gap_length_m`, `note` |
 | `route.geojson` | un Feature LineString (bare sau într-un FeatureCollection) | **`length_m`**, `duration_min` (la 4 km/h), `baseline_length_m` (ruta de referință pentru economii), `outside_share` (fracția din lungime în afara zonei permise) |
 | `measurements.csv` | — | vezi §6.4 |
+| `tiles.geojson` *(opțional, web bundle v3)* | Polygon, **exact un Feature per tile furnizat** (311): pătratul de 51,2 m al grilei §6.6, CCW, 3 zecimale | **`tile`** (`siret3_rNNN_cNNN`), **`status`** (`vineyard` dacă tile-ul are vreo piesă de rând sau coroană în AnnSet, altfel `no_vineyard`), **`n_rows`**, **`n_canopies`**, **`n_interrows`**, **`n_waste`** (int), **`veg_frac`**, **`nodata_frac`** (0–1, 3 zecimale, sau `null`), **`review_priority`** (int sau `null`, din coada de QA), **`review_note`**, **`review_status`** (`null` sau `missed` \| `partial` \| `verify`, din `src/AI/configs/tile_review.csv`: tile-ul trebuie completat în Marcaj), **`has_mask`** (bool). Chei nullable prezente mereu |
+| `masks/<tile>.png` *(opțional)* | raster | masca de vegetație a pipeline-ului (`tile_prep`, Lab a*), 1024×1024 px, un canal, ≠ 0 = vegetație, pixel (0,0) = colțul NV al tile-ului (aceeași amprentă ca în `tiles.geojson`). Există exact pentru tile-urile cu `has_mask: true`; `manifest.json` are atunci `counts.tiles` și `"masks": {"dir": "masks", "px": 1024, "n": <nr>, "source": "tile_prep vegetation mask (Lab a*)"}` |
+
+Un bundle fără `tiles.geojson` (mock-ul, bundle-urile mai vechi) e valid: convertorul nu scrie nimic pentru ele, iar comutatoarele „Tile-uri” și „Mască vegetație” din hartă apar dezactivate, cu o explicație scurtă. Verificări (`scripts/survey/tiles.mjs`, `masks.mjs`): ID-uri, enum-uri, contoare, fracții, amprenta = pătratul din grilă (±2 mm), PNG lizibil de 1024 px pentru fiecare `has_mask`; număr de tile-uri ≠ `manifest.tiles`, `status` în dezacord cu contoarele, `masks.n` greșit sau PNG-uri în plus sunt doar avertizări.
 
 ### 6.4 `measurements.csv`
 
@@ -234,6 +238,12 @@ Semantica măsurătorilor (identică la pipeline, API și static):
 - `blocks|rows|interrows|waste|targets|route|passages|forbidden|study_area|start.geojson`, în **EPSG:4326** (RFC 7946, 7 zecimale). Proprietățile de măsurare sunt precalculate în UTM, deci frontend-ul nu calculează nimic.
 - `canopies.pmtiles`: vector tiles (tippecanoe, z15–z21, strat `canopy`).
 - `measurements.csv`.
+
+Implementarea curentă (`scripts/build-survey.mjs` → `frontend/public/data/<survey>/`), pentru straturile opționale din §6.3:
+- `tiles.geojson` în EPSG:4326 (7 zecimale, `id` numeric = i+1, toate proprietățile păstrate); `summary.json` primește atunci blocul `tiles`: `{total, vineyard, no_vineyard, to_complete}` (`to_complete` = tile-uri cu `review_status` setat). Panoul general afișează „311 tile-uri: X cu vie · Y fără vie · Z de completat în Marcaj”.
+- `masks/<tile>.png`: PNG 1 bit cu paletă de 2 intrări (index 0 complet transparent, index 1 = `vegMask` din `src/theme/rasterColors.json`, cu alfa parțial), 1024 px, scris de `scripts/survey/png.mjs` (octeți exacți, fără cuantizarea sharp); `masks/index.json` = `{tile: [[lon,lat] × 4]}` în ordinea sursei imagine MapLibre (TL, TR, BR, BL).
+- Culoarea măștii e „coaptă” în PNG-uri de un script Node, deci nu poate citi `tokens.ts`: stă în `src/theme/rasterColors.json` (tot în `src/theme/`, singura sursă a culorilor), pe care `tokens.ts` îl re-exportă (`color.map.vegMask`, `vegMaskAlpha`) pentru legendă. Schimbi culoarea într-un singur loc, apoi rulezi din nou `pnpm data:survey`.
+- Hartă: comutatoarele „Tile-uri” (contur + umplere pe status: cu vie / fără vie / de completat în Marcaj; click → tile, status, contoare, % vegetație, nota de revizuire) și „Mască vegetație” (surse imagine doar pentru tile-urile din cadru, la zoom ≥ `ZOOM.orthoDetail`, plafonate ca ortofoto de detaliu), ambele oprite implicit și descărcate doar la prima pornire (`src/components/map/overlays/`).
 
 ### 6.6 Fapte de control (sunt teste, nu presupuneri)
 
@@ -297,6 +307,8 @@ Paleta hărții **nu se schimbă cu tema**: fundalul e mereu ortofoto. În dark 
 | START/FINISH | grey-900 `#101010` | marker pătrat 18 px, contur alb, eticheta „S/F” |
 | Pasaje autorizate | grey-400 `#B3B3B3` | fill 30% |
 | Zone interzise | error.50 `#FEF2F2` 35% + hașură error.main | contur error.main 1 px |
+| Tile `vineyard` · `no_vineyard` · de completat în Marcaj | success.main `#0D9488` · grey-400 `#B3B3B3` · `#F97316` (`map.tileToComplete`) | fill 14% · 5% · 24%, contur 1,5 · 0,75 · 3 px; „de completat” (`review_status` setat) are prioritate față de status |
+| Mască vegetație (pipeline) | `#D946EF` 55% (`rasterColors.json` → `map.vegMask`) | copt în PNG-urile `masks/`, raster sub toate straturile vectoriale |
 
 Culorile noi (`#2DD4BF`, `#F59E0B`, cele trei culori de inter-rând) intră în `tokens.ts`, în grupul `map`, nu în componente. Validare: `scripts/check_palette.py` calculează contrastul fiecărei culori față de culoarea medie a solului și a vegetației din cele 2 tile-uri exemplu și cere un raport ≥ 3:1 (cu casing).
 

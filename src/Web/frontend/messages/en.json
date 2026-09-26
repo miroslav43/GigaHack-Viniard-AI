@@ -83,7 +83,8 @@
     "interrows": "Inter-row",
     "targets": "Inspection target",
     "waste": "Waste",
-    "blocks": "Block"
+    "blocks": "Block",
+    "tiles": "Tile"
   },
   "dashboard": {
     "subtitle": "Vineyard inventory within the commune boundary · {source}",
@@ -121,7 +122,9 @@
     "colInterrow": "Inter-rows",
     "colDisrupted": "Disrupted",
     "structureDist": "Row structure",
-    "coverDist": "Inter-row cover"
+    "coverDist": "Inter-row cover",
+    "tiles": "Analysed tiles",
+    "tilesHint": "{vineyard} with vineyard · {noVineyard} without · {toComplete} to complete in Marcaj"
   },
   "map": {
     "title": "Map",
@@ -205,6 +208,34 @@
       "canopyArea": "Canopy area",
       "interrowArea": "Inter-row area",
       "disrupted": "Disrupted rows"
+    },
+    "layerTiles": "Tiles",
+    "layerVegMask": "Vegetation mask",
+    "overlayUnavailable": "not available for this survey",
+    "overlayLoadError": "could not be loaded ({detail})",
+    "legendTileVineyard": "Tile with vineyard",
+    "legendTileNoVineyard": "Tile without vineyard",
+    "legendTileToComplete": "Tile to complete in Marcaj",
+    "legendVegMask": "Vegetation (pipeline mask)",
+    "tile": {
+      "id": "Tile",
+      "status": "Status",
+      "vineyard": "vineyard",
+      "noVineyard": "no vineyard",
+      "review": "In Marcaj",
+      "reviewStatus": {
+        "missed": "vineyard missed",
+        "partial": "partly detected",
+        "verify": "to verify"
+      },
+      "priority": "Review priority",
+      "rows": "Row pieces",
+      "canopies": "Canopies",
+      "interrows": "Inter-rows",
+      "waste": "Waste",
+      "vegetation": "Vegetation",
+      "nodata": "No data",
+      "note": "Note: {note}"
     }
   },
   "blocks": {

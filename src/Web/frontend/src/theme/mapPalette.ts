@@ -36,7 +36,16 @@ export const mapPalette = {
     highlight: color.map.reliefHighlight,
     accent: color.grey[800],
   },
+  // survey tile footprints, by status; toComplete wins over the status (tiles.geojson review_status)
+  tile: {
+    vineyard: color.success.main,
+    no_vineyard: color.grey[400],
+    toComplete: color.map.tileToComplete,
+  },
+  vegMask: color.map.vegMask,
 } as const;
+
+export type TileStatus = "vineyard" | "no_vineyard";
 
 export type RowStructure = keyof typeof mapPalette.row;
 export type InterrowCover = keyof typeof mapPalette.interrow;

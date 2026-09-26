@@ -59,6 +59,13 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
           hint={t("surveyedAreaHint", { pct: f.pct(coverage), tiles: s.survey.tiles_total })}
         />
         <KpiCard label={t("gsd")} value={`${f.num(s.survey.gsd_m * 100, 1)} ${f.units.cmpx}`} hint={s.survey.source} />
+        {s.tiles && (
+          <KpiCard
+            label={t("tiles")}
+            value={f.int(s.tiles.total)}
+            hint={t("tilesHint", { vineyard: f.int(s.tiles.vineyard), noVineyard: f.int(s.tiles.no_vineyard), toComplete: f.int(s.tiles.to_complete) })}
+          />
+        )}
       </KpiGrid>
 
       <Section title={t("sectionPlantings")} />

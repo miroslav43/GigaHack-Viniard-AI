@@ -1,17 +1,24 @@
 // Regenerates fixtures/mini-bundle/: a synthetic 2-tile AI bundle in the contract format (src/Web/CLAUDE.md §6.2–6.4,
-// EPSG:32635) around START, tiles siret3_r018_c010 (A) and siret3_r018_c011 (B). It uses the OLD schema, as the
-// first real bundle did: no canopy area_m2, float route_order, no speed_kmh / priority / interrow_total_m2.
+// EPSG:32635) around START, tiles siret3_r018_c010 (A) and siret3_r018_c011 (B). Its layers use the OLD schema, as
+// the first real bundle did: no canopy area_m2, float route_order, no speed_kmh / priority / interrow_total_m2.
 // It also has two shapes the pipeline produces: an inter-row cut twice in one tile (piece_id "…#2") whose pieces
 // overlap, and a waste object more than 10 m from every block (vineyard_id null on the waste and on its target).
 // measurements.csv is computed from the geometries below, so the fixture stays self-consistent.
+// Web bundle v3 extras (optional; kit.copyBundle({ tiles: false }) strips them to get an older bundle):
+// tiles.geojson with the 311 supplied tiles (data/tiles_index.json; A and B vineyard, two tiles to complete in
+// Marcaj) and 1-bit 1024 px vegetation masks for A and B (stripes along their rows), manifest counts.tiles + masks.
 // Usage: node scripts/survey/fixtures/make-mini-bundle.mjs
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CRS_URN, CSV_HEADER } from "../contract.mjs";
+import { CRS_URN, CSV_HEADER, MASK_PX, MASKS_DIR, TILE_M } from "../contract.mjs";
 import { polygonArea } from "../geo.mjs";
+import { encodeBitPng } from "../png.mjs";
+import { gridSquare } from "../tiles.mjs";
 
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "mini-bundle");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const OUT = path.join(HERE, "mini-bundle");
+const TILE_IDS = JSON.parse(fs.readFileSync(path.resolve(HERE, "../../../data/tiles_index.json"), "utf8")).tiles;
 const A = "siret3_r018_c010", B = "siret3_r018_c011";
 const START = [629504.7, 5220250.75];
 const r3 = (v) => Math.round(v * 1000) / 1000;
@@ -114,16 +121,62 @@ const csv = [
     `row,${p.vineyard_id},${p.row_id},,,${ROW_LENGTHS[p.row_id].toFixed(2)},,,,,${p.plant_count},${p.row_structure}`),
 ].join("\n") + "\n";
 
+// ---------- tiles.geojson + masks (web bundle v3) ----------
+const MASK_M = TILE_M / MASK_PX; // 5 cm per mask pixel
+const STRIPE_M = 0.4; // half-width of the vegetation stripe along a row
+/** 1 byte per pixel: 1 within STRIPE_M of a row piece that crosses the tile (pixel (0,0) = north-west corner). */
+const drawMask = (tile) => {
+  const [x0, , , y1] = gridSquare(tile);
+  const pieces = rows.flatMap((f) => (f.geometry.type === "LineString" ? [f.geometry.coordinates] : f.geometry.coordinates));
+  const bits = new Uint8Array(MASK_PX * MASK_PX);
+  for (const [[ax, ay], [bx]] of pieces) {
+    const [c0, c1] = [ax, bx].map((x) => Math.round((x - x0) / MASK_M)).sort((p, q) => p - q);
+    const [r0, r1] = [ay + STRIPE_M, ay - STRIPE_M].map((y) => Math.round((y1 - y) / MASK_M));
+    for (let r = Math.max(0, r0); r < Math.min(MASK_PX, r1); r++)
+      for (let c = Math.max(0, c0); c < Math.min(MASK_PX, c1); c++) bits[r * MASK_PX + c] = 1;
+  }
+  return bits;
+};
+const MASKS = { [A]: drawMask(A), [B]: drawMask(B) };
+const vegFrac = (bits) => Math.round((bits.reduce((s, v) => s + v, 0) / bits.length) * 1000) / 1000;
+
+const countIn = (tile) => ({
+  n_rows: rows.filter((f) => tile in f.properties.tile_structures).length,
+  n_canopies: canopies.filter((f) => f.properties.tile === tile).length,
+  n_interrows: interrows.filter((f) => f.properties.tile === tile).length,
+  n_waste: waste.filter((f) => f.properties.tile === tile).length,
+});
+// tile_review.csv: B has more of V02 to the east; its neighbour r018_c012 is a whole vineyard the model missed
+const REVIEW = {
+  [B]: { review_priority: 2, review_status: "partial", review_note: "V02 continues east of the detected rows" },
+  siret3_r018_c012: { review_priority: 1, review_status: "missed", review_note: "vineyard not detected" },
+};
+const tileFeature = (tile) => {
+  const [x0, y0, x1, y1] = gridSquare(tile);
+  const counts = countIn(tile);
+  const mask = MASKS[tile];
+  return feature({
+    tile, status: counts.n_rows + counts.n_canopies > 0 ? "vineyard" : "no_vineyard", ...counts,
+    veg_frac: mask ? vegFrac(mask) : null, nodata_frac: mask ? 0 : null,
+    review_priority: null, review_note: null, review_status: null, ...REVIEW[tile], has_mask: Boolean(mask),
+  }, "Polygon", [rect(x0, y0, x1, y1).map((p) => p.map(r3))]);
+};
+const tiles = TILE_IDS.map(tileFeature);
+
 const manifest = {
   annset_run_id: "mini", annset_source: "model", captured_at: "2025-05-20",
-  counts: { blocks: 2, canopies: 4, interrows: interrows.length, route: 1, rows: 3, targets: 5, waste: 1 },
-  crs: "EPSG:32635", generated_at: "2026-09-26T04:37:13+03:00", gsd_m: 0.025, license: "CC BY 4.0", name: "Sireț3",
-  pipeline_version: "0000000000000000000000000000000000000000", run_id: "post-mini", source: "3DATA COLLECT / OpenAerialMap",
-  stage: "model", survey_id: "siret3", tiles: 311,
+  counts: { blocks: 2, canopies: 4, interrows: interrows.length, route: 1, rows: 3, targets: 5, waste: 1, tiles: tiles.length },
+  crs: "EPSG:32635", generated_at: "2026-09-26T04:37:13+03:00", gsd_m: 0.025, license: "CC BY 4.0",
+  masks: { dir: MASKS_DIR, px: MASK_PX, n: Object.keys(MASKS).length, source: "tile_prep vegetation mask (Lab a*)" },
+  name: "Sireț3", pipeline_version: "0000000000000000000000000000000000000000", run_id: "post-mini",
+  source: "3DATA COLLECT / OpenAerialMap", stage: "model", survey_id: "siret3", tiles: 311,
 };
 
 const write = (name, text) => fs.writeFileSync(path.join(OUT, name), text);
-fs.mkdirSync(OUT, { recursive: true });
+fs.rmSync(path.join(OUT, MASKS_DIR), { recursive: true, force: true });
+fs.mkdirSync(path.join(OUT, MASKS_DIR), { recursive: true });
+write("tiles.geojson", JSON.stringify(fc("tiles", tiles)));
+for (const [tile, bits] of Object.entries(MASKS)) write(`${MASKS_DIR}/${tile}.png`, encodeBitPng(bits, MASK_PX, MASK_PX));
 write("manifest.json", JSON.stringify(manifest, null, 2) + "\n");
 write("blocks.geojson", JSON.stringify(fc("blocks", blocks)));
 write("rows.geojson", JSON.stringify(fc("rows", rows)));
@@ -134,4 +187,4 @@ write("waste.geojson", JSON.stringify(fc("waste", waste)));
 write("targets.geojson", JSON.stringify(fc("targets", targets)).replace(/"route_order":(\d+)/g, '"route_order":$1.0'));
 write("route.geojson", JSON.stringify(fc("route", route)));
 write("measurements.csv", csv);
-console.log(`wrote ${path.relative(process.cwd(), OUT)}/ (${fs.readdirSync(OUT).length} files)`);
+console.log(`wrote ${path.relative(process.cwd(), OUT)}/ (${fs.readdirSync(OUT).length} entries, ${Object.keys(MASKS).length} masks)`);

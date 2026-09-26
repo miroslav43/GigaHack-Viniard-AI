@@ -141,10 +141,17 @@ test("loadBundle reports every missing file at once and accepts a bare route Fea
 });
 
 test("warns (does not fail) on manifest tiles and counts that differ", (t) => {
-  const dir = copyBundle(t);
+  const dir = copyBundle(t, { tiles: false });
   editJson(dir, "manifest.json", (m) => ({ ...m, tiles: 145, counts: { ...m.counts, canopies: 5 } }));
   const { warnings } = load(dir);
   assert.deepEqual(warnings.map((w) => w.message), ["tiles is 145, expected 311", "counts.canopies is 5 but the layer has 4 features"]);
+});
+
+test("tiles.geojson is optional: an older bundle without it (nor masks/) loads without warnings", (t) => {
+  const { bundle, warnings } = load(copyBundle(t, { tiles: false }));
+  assert.equal(bundle.tiles, null);
+  assert.deepEqual(warnings, []);
+  assert.equal(load(MINI_BUNDLE).bundle.tiles.features.length, 311);
 });
 
 test("optional manifest fields may be null (a bundle without geometries has no bbox, a manual AnnSet no model)", (t) => {

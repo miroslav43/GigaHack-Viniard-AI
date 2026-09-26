@@ -33,6 +33,10 @@ import { useRelief } from "./useRelief";
 import { ROUTE_ARROW, routeArrowImage } from "./arrowImage";
 import type { LonLat } from "@/lib/utm";
 import type { TerrainMeta } from "@/lib/terrain";
+import type { OverlayFiles } from "@/lib/types";
+import { useSurveyOverlays } from "./overlays/useSurveyOverlays";
+import { SurveyOverlayLayers, TILE_FILL } from "./overlays/SurveyOverlayLayers";
+import { OverlayLegend, OverlayToggles } from "./overlays/OverlayControls";
 
 interface TileIndex {
   overview: { url: string; corners: [number, number][] };
@@ -57,6 +61,7 @@ export function MapExplorer({
   dataBase,
   geofence: geofenceGeometry,
   terrain = null,
+  overlayFiles,
 }: {
   summary: SurveySummary;
   rows: RowRecord[];
@@ -64,6 +69,8 @@ export function MapExplorer({
   geofence: Geometry;
   /** synthetic canopy relief for the oblique 3D view (null: not generated, the view stays 2D) */
   terrain?: TerrainMeta | null;
+  /** optional tile footprints / vegetation masks of the survey (absent on the mock and older bundles) */
+  overlayFiles?: OverlayFiles;
 }) {
   const t = useTranslations();
   const theme = useTheme();
@@ -98,6 +105,8 @@ export function MapExplorer({
   const [arrowReady, setArrowReady] = useState(false);
   // arrowReady is set in onLoad: the style is loaded, so the relief can add its sources and set the terrain
   const relief = useRelief(mapRef, terrain, dataBase, arrowReady);
+  const overlays = useSurveyOverlays(dataBase, overlayFiles);
+  const interactiveLayerIds = useMemo(() => (overlays.available.tiles ? [...INTERACTIVE, TILE_FILL] : INTERACTIVE), [overlays.available.tiles]);
 
   useEffect(() => {
     // `absent`: an optional layer a bundle may not ship (no waste.geojson before the waste model runs) — used only on 404
@@ -254,7 +263,7 @@ export function MapExplorer({
           ref={mapRef}
           initialViewState={{ longitude: 28.707, latitude: 47.125, zoom: 15 }}
           mapStyle={baseStyle}
-          interactiveLayerIds={INTERACTIVE}
+          interactiveLayerIds={interactiveLayerIds}
           onClick={onClick}
           onDblClick={() => measuring && setMeasuring(false)}
           doubleClickZoom={!measuring}
@@ -274,6 +283,12 @@ export function MapExplorer({
           <Source id="ortho-anchor-src" type="geojson" data={EMPTY}>
             <Layer id={ORTHO_ANCHOR} type="line" paint={{ "line-opacity": 0 }} />
           </Source>
+          {/* ---- optional survey overlays: vegetation masks + tile footprints, under every vector layer ---- */}
+          <SurveyOverlayLayers
+            overlays={overlays}
+            detailTiles={detailTiles}
+            selectedTile={selection?.layer === "tiles" ? String(selection.props.tile) : null}
+          />
 
           {/* ---- vectors ---- */}
           {mask && (
@@ -454,6 +469,8 @@ export function MapExplorer({
           onPickRow={selectRow}
           onPickBlock={selectBlock}
           onFitAll={() => fit(studyBbox, 17)}
+          extraLayers={<OverlayToggles overlays={overlays} />}
+          extraLegend={<OverlayLegend overlays={overlays} />}
         />
         <MeasureTool
           active={measuring}
