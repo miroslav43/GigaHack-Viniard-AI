@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -27,6 +29,7 @@ import TranslateOutlined from "@mui/icons-material/TranslateOutlined";
 import CheckCircleOutline from "@mui/icons-material/CheckCircleOutlineOutlined";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import { DemoButton } from "@/components/landing/DemoButton";
+import { HeroVideo } from "@/components/landing/HeroVideo";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { LeadForm } from "@/components/landing/LeadForm";
 import { LogoMark } from "@/components/shell/Logo";
@@ -49,6 +52,10 @@ const SOURCES = [
 ];
 
 const MAX = 1200;
+/** Optional hero background clip: local only (git-ignored) until the rights to publish it are confirmed. */
+const HERO_VIDEO = "/marketing/hero-drone.mp4";
+const HERO_POSTER = "/marketing/hero-drone.webp";
+const heroVideo = existsSync(path.join(process.cwd(), "public", HERO_VIDEO));
 const Section = ({ id, children, dark = false, muted = false }: { id?: string; children: ReactNode; dark?: boolean; muted?: boolean }) => (
   <Box
     component="section"
@@ -146,6 +153,7 @@ export default async function PresentationPage({ params }: PageProps<"/[locale]/
         {/* hero */}
         <Box
           sx={{
+            position: "relative",
             color: "common.white",
             bgcolor: "var(--solemtrix-night)",
             backgroundImage:
@@ -153,8 +161,26 @@ export default async function PresentationPage({ params }: PageProps<"/[locale]/
             overflow: "hidden",
           }}
         >
+          {heroVideo && (
+            <>
+              <HeroVideo src={HERO_VIDEO} poster={HERO_POSTER} />
+              {/* keeps the text readable over the footage: solid on the text side, lighter towards the image */}
+              <Box
+                aria-hidden
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  background: {
+                    xs: "color-mix(in srgb, var(--solemtrix-night) 78%, transparent)",
+                    md: "linear-gradient(90deg, color-mix(in srgb, var(--solemtrix-night) 92%, transparent) 0%, color-mix(in srgb, var(--solemtrix-night) 72%, transparent) 50%, color-mix(in srgb, var(--solemtrix-night) 40%, transparent) 100%)",
+                  },
+                }}
+              />
+            </>
+          )}
           <Box
             sx={{
+              position: "relative",
               maxWidth: MAX,
               mx: "auto",
               px: { xs: 4, md: 6 },
