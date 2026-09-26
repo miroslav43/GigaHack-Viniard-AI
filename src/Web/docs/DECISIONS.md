@@ -261,3 +261,16 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - sarcini doar în interfață (fără RLS): inspectorul ar putea modifica orice prin API.
 - **Consecințe:** fără `SUPABASE_SECRET_KEY` pagina Echipă și atribuirea arată un avertisment; notificările (email / push) către inspectori vin după configurarea SMTP.
 
+
+### ADR-025 — Vedere 3D oblică: relief sintetic din coroane (terrain MapLibre), nu extrudare
+- **Context:** tile-urile ortofoto sunt doar RGB (fără altitudine, fără DSM), dar juriul și primăria înțeleg mai repede rândurile de vie într-o vedere oblică, cu plantele „ridicate” din sol.
+- **Decizie:**
+  - `scripts/build-terrain.mjs` rasterizează poligoanele `canopies.geojson` (EPSG:4326) în tile-uri XYZ raster-dem (256 px, z14–z19, ~0,2 m/px la z19, codare **terrarium**, pas 1/256 m): acoperire exactă pe pixel → blur gaussian σ 0,45 m → profil smoothstep cu vârf plat, înălțime 1,1 m; zoom-urile mici sunt media copiilor. Se scrie **fiecare** tile din `bounds` (cele fără coroane: un PNG plat comun), deci MapLibre nu primește niciun 404; `terrain.json` descrie setul. Sireț3: 11 153 coroane → 1 460 tile-uri (245 cu relief), 3,6 MB, ~5 s;
+  - `/harta` citește `terrain.json` pe server; lipsă sau invalid → butonul 3D e dezactivat, cu tooltip. Harta 2D rămâne neschimbată: sursele se adaugă abia la prima comutare pe „Vedere oblică”;
+  - în 3D: `setTerrain` (exagerarea = înălțimea din slider / 1,1 m, 0–2 m; „Plat” = fără terrain, doar înclinare), pitch 60°, ortofoto și vectorii drapați peste relief, plus un hillshade `igor` (sursă separată, culori din `mapPalette.relief`) care umbrește doar flancurile, solul plat păstrează culorile ortofoto;
+  - nota „Relief sintetic: tile-urile au doar RGB, fără altitudine; înălțimea vine din adnotări (coroane)” e afișată lângă controale.
+- **Respins:**
+  - `fill-extrusion` pe coroane: prisme colorate cu vârf plat care acoperă chiar ortofoto-ul coroanei (extrudarea nu se texturează) și desenează 11–12 k poligoane ca geometrie 3D;
+  - codarea `mapbox` (pas 0,1 m): ~11 trepte vizibile pe 1,1 m;
+  - tile-uri doar unde sunt coroane: MapLibre ar cere și restul din `bounds` → 404 în consolă.
+- **Consecințe:** `build-survey.mjs` înlocuiește tot folderul survey-ului, deci după `pnpm data:survey` se rulează din nou `pnpm data:terrain --survey <id>`; `pnpm data` / `data:fast` generează relieful mock-ului (inclusiv în CI). Performanță măsurată pe siret3 (M3 Pro, Chromium): 60 fps la pan în 2D și în 3D, 3D gata în ~4 s cu ~45 tile-uri de relief. Fără dependențe noi (`sharp` exista deja).

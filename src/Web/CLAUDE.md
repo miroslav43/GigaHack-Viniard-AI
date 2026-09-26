@@ -4,7 +4,7 @@ Documentul-sursă al părții web. Planul complet: `docs/PLAN.md`. Deciziile: `d
 
 **Stare (25.09, seara): site-ul există în `frontend/`**, pe date statice (`siret3-mock`), cu login Supabase. API-ul FastAPI și datele în PostGIS nu sunt încă implementate; restul documentului rămâne planul.
 
-Implementat: panou general, hartă (ortofoto 311 tile-uri, straturi, atribute, căutare, deep link-uri, rută cu săgeți de direcție, unealtă de măsurare în UTM 35N), blocuri și rânduri (DataGrid, filtre, export CSV), rută (GPX, GeoJSON EPSG:32635), **RO / EN / RU** (next-intl, RO implicit fără prefix, fără detectare din browser), e2e Playwright (desktop + mobil), CI `.github/workflows/web.yml`.
+Implementat: panou general, hartă (ortofoto 311 tile-uri, straturi, atribute, căutare, deep link-uri, rută cu săgeți de direcție, unealtă de măsurare în UTM 35N, vedere oblică 3D cu relief sintetic din coroane), blocuri și rânduri (DataGrid, filtre, export CSV), rută (GPX, GeoJSON EPSG:32635), **RO / EN / RU** (next-intl, RO implicit fără prefix, fără detectare din browser), e2e Playwright (desktop + mobil), CI `.github/workflows/web.yml`.
 
 **Login (Supabase Auth, proiect `htdnuwmnztenevnfahie`, eu-west-1):**
 - email + parolă, `@supabase/ssr`; `src/proxy.ts` = next-intl + reîmprospătarea sesiunii (`getClaims`) + protecția paginilor; „Demo fără cont” = cookie `solemtrix_demo` (date publice, doar vizualizare);
@@ -32,7 +32,8 @@ Ce rulează acum (din `src/Web/frontend/`):
 | `pnpm data` | `scripts/build-data.mjs`: ortofoto din cele 311 GeoTIFF (`public/ortho/`, ~33 s) + survey-ul `siret3-mock` din exemplele CVAT (`public/data/`), măsurat în EPSG:32635. Fără GeoTIFF-uri (CI) folosește `data/tiles_index.json` și sare peste ortofoto; cifrele rămân identice |
 | `pnpm data:fast` | la fel, fără regenerarea ortofoto |
 | `pnpm data:survey --survey siret3` | `scripts/build-survey.mjs`: bundle-ul AI real din `src/Web/data/surveys/siret3/pipeline/` (EPSG:32635) → `public/data/siret3/` (EPSG:4326, același format ca mock-ul); validează contractul §6 și iese cu 1 la erori. `--check` doar validează; `--emit-seed` scrie `supabase/seed/survey_siret3.sql`. Apoi `NEXT_PUBLIC_SURVEY_ID=siret3 pnpm build` (variabila se fixează la build) |
-| `pnpm test:scripts` | teste `node:test` pentru convertor (fixture mini-bundle) |
+| `pnpm data:terrain --survey siret3` | `scripts/build-terrain.mjs`: relieful sintetic al vederii 3D din `public/data/<id>/canopies.geojson` → `public/data/<id>/terrain/{z}/{x}/{y}.png` (raster-dem terrarium, z14–z19) + `terrain.json`; opțiuni `--height 1.1 --blur 0.45`. `pnpm data`/`data:fast` îl rulează pentru mock; după `data:survey` se rulează din nou (ADR-025). Fără el, butonul 3D e dezactivat |
+| `pnpm test:scripts` | teste `node:test` pentru convertor (fixture mini-bundle) și pentru relieful 3D |
 | `pnpm dev` | `http://localhost:3000` (copiază întâi worker-ul MapLibre în `public/maplibre/`) |
 | `pnpm build` · `pnpm start` | build de producție și server |
 | `pnpm lint` · `pnpm typecheck` | ESLint, TypeScript |

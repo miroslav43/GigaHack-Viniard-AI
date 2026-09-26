@@ -162,6 +162,18 @@
     "measureDistance": "Distanță",
     "measureArea": "Arie",
     "measureClear": "Șterge",
+    "relief": {
+      "view": "Vedere",
+      "oblique": "Vedere oblică",
+      "top": "De sus (2D)",
+      "unavailable": "Relieful 3D nu e generat pentru acest zbor (pnpm data:terrain)",
+      "heightSource": "Sursa înălțimii",
+      "sourceAnnotations": "Adnotări",
+      "sourceFlat": "Plat",
+      "height": "Înălțimea coroanelor",
+      "note": "Relief sintetic: tile-urile au doar RGB, fără altitudine; înălțimea vine din adnotări (coroane).",
+      "hint": "Click dreapta + trage (sau Ctrl + trage) rotește și înclină vederea."
+    },
     "fields": {
       "structure": "Structură",
       "length": "Lungime",

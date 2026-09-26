@@ -10,10 +10,11 @@
     "typecheck": "next typegen && tsc --noEmit",
     "predev": "node scripts/copy-maplibre-worker.mjs",
     "prebuild": "node scripts/copy-maplibre-worker.mjs",
-    "data": "node scripts/build-data.mjs",
-    "data:fast": "node scripts/build-data.mjs --skip-ortho",
+    "data": "node scripts/build-data.mjs && node scripts/build-terrain.mjs --survey siret3-mock",
+    "data:fast": "node scripts/build-data.mjs --skip-ortho && node scripts/build-terrain.mjs --survey siret3-mock",
     "data:survey": "node scripts/build-survey.mjs",
-    "test:scripts": "node --test scripts/survey/*.test.mjs",
+    "data:terrain": "node scripts/build-terrain.mjs",
+    "test:scripts": "node --test scripts/survey/*.test.mjs scripts/terrain/*.test.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

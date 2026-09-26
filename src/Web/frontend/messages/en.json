@@ -162,6 +162,18 @@
     "measureDistance": "Distance",
     "measureArea": "Area",
     "measureClear": "Clear",
+    "relief": {
+      "view": "View",
+      "oblique": "Oblique view",
+      "top": "From above (2D)",
+      "unavailable": "The 3D relief has not been generated for this survey (pnpm data:terrain)",
+      "heightSource": "Height source",
+      "sourceAnnotations": "Annotations",
+      "sourceFlat": "Flat",
+      "height": "Canopy height",
+      "note": "Synthetic relief: the tiles are RGB only, with no altitude; the height comes from the annotations (canopies).",
+      "hint": "Right-drag (or Ctrl + drag) rotates and tilts the view."
+    },
     "fields": {
       "structure": "Structure",
       "length": "Length",

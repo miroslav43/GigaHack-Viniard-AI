@@ -30,6 +30,12 @@ export const mapPalette = {
   passage: color.grey[400],
   forbidden: color.error.main,
   selected: color.error.light,
+  // hillshade of the synthetic canopy relief (3D view): neutral light and shade over the orthophoto
+  relief: {
+    shadow: color.grey[900],
+    highlight: color.map.reliefHighlight,
+    accent: color.grey[800],
+  },
 } as const;
 
 export type RowStructure = keyof typeof mapPalette.row;

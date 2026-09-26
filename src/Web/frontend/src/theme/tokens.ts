@@ -35,6 +35,8 @@ export const color = {
     interrowVegetation: "#3DA99F",
     background: "#E9E7E1",
     mask: "#202020",
+    // hillshade light side of the synthetic canopy relief (3D view): translucent, so the orthophoto shows through
+    reliefHighlight: "rgba(255,255,255,0.35)",
   },
 };
 
