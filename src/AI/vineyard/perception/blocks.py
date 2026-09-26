@@ -44,6 +44,7 @@ from vineyard.perception.blocks_graph import (
     split_at_bands,
     transverse_bands,
 )
+from vineyard.perception.road_split import RoadCut, RoadSplitOptions, road_cuts
 from vineyard.perception.row_regularize import (
     ACTION_UNDERSHOOT,
     FLAG_OFF_LATTICE,
@@ -69,6 +70,8 @@ REASON_TOO_FEW: Final = "block_too_few_rows"
 REASON_ORCHARD: Final = "orchard_rejected"
 CODE_MISSING_ROW: Final = "missing_row_suspect"
 CODE_BAND_CUT: Final = "transverse_band_cut"
+CODE_ROAD_CUT: Final = "row_split_at_road"
+STUB_TOUCH_M: Final = 0.5  # a piece this close to a road cut is on its edge
 FULL_CONFIDENCE: Final = 1.0
 
 
@@ -95,6 +98,7 @@ class BlockSettings:
     orchard: OrchardRule
     too_few_issue_min_rows: int
     regularize: RegularizeOptions | None = None
+    road_split: RoadSplitOptions | None = None
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> BlockSettings:
@@ -110,6 +114,7 @@ class BlockSettings:
                                 orc.along_duty_max, orc.block_majority_frac),
             too_few_issue_min_rows=blk.too_few_rows_issue_min,
             regularize=RegularizeOptions.from_config(blk.regularize),
+            road_split=RoadSplitOptions.from_config(blk.road_split),
         )
 
 
@@ -129,6 +134,8 @@ class _Graph:
     edges: pd.DataFrame
     comps: tuple[tuple[int, ...], ...]
     bands: tuple[Band, ...]
+    cut: BaseGeometry | None = None  # passages + the barriers of the road cuts: no edge crosses it
+    road_cuts: tuple[RoadCut, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -157,18 +164,47 @@ def _edges(units: Sequence[RowUnit], cut: BaseGeometry | None, s: BlockSettings)
     return neighbour_pairs([u.line for u in units], s.graph, cut)
 
 
-def build_graph(units: Sequence[RowUnit], cut: BaseGeometry | None, s: BlockSettings) -> _Graph:
-    """Edges -> components -> full-width bands (rows split) -> edges again -> optional spacing cut."""
+def _road_cuts(units: Sequence[RowUnit], edges0: pd.DataFrame, roads: Sequence[LineString],
+               evidence: Evidence | None, s: BlockSettings) -> tuple[RoadCut, ...]:
+    o = s.road_split
+    if o is None or not o.enabled or evidence is None or not roads:
+        return ()
+    lines = [u.line for u in units]
+    return tuple(c for comp in components(len(units), edges0) for c in road_cuts(lines, comp, roads, evidence, o))
+
+
+def _with_barriers(cut: BaseGeometry | None, road: Sequence[RoadCut]) -> BaseGeometry | None:
+    parts = ([cut] if cut is not None else []) + [c.barrier for c in road]
+    return shapely.union_all(parts) if parts else None
+
+
+def drop_road_stubs(units: Sequence[RowUnit], road: Sequence[RoadCut], min_side_m: float) -> tuple[RowUnit, ...]:
+    """Without the pieces a road cut leaves shorter than `min_side_m` next to it: rows that overshot a road
+    (into a yard, a field) end at the road instead of becoming a block of stubs on its far side."""
+    if not road or min_side_m <= 0:
+        return tuple(units)
+    zone = shapely.union_all([c.polygon for c in road]).buffer(STUB_TOUCH_M)
+    shapely.prepare(zone)
+    return tuple(u for u in units if not (u.band_cut and u.line.length < min_side_m and zone.intersects(u.line)))
+
+
+def build_graph(units: Sequence[RowUnit], cut: BaseGeometry | None, s: BlockSettings,
+                roads: Sequence[LineString] = (), evidence: Evidence | None = None) -> _Graph:
+    """Edges -> components -> full-width bands + road cuts (rows split) -> edges again -> optional spacing cut."""
     edges0 = _edges(units, cut, s)
     lines0, gaps0 = [u.line for u in units], [u.gaps for u in units]
     bands = tuple(b for comp in components(len(units), edges0) for b in transverse_bands(lines0, gaps0, comp, s.graph))
-    split = tuple(split_at_bands(units, bands, s.min_piece_m)) if bands else tuple(units)
-    edges = _edges(split, cut, s) if bands else edges0
+    road = _road_cuts(units, edges0, roads, evidence, s)
+    cut = _with_barriers(cut, road)
+    splits = bands + tuple(Band(0.0, 0.0, c.rows, c.polygon) for c in road)
+    split = tuple(split_at_bands(units, splits, s.min_piece_m)) if splits else tuple(units)
+    split = drop_road_stubs(split, road, s.road_split.min_side_m if s.road_split else 0.0)
+    edges = _edges(split, cut, s) if splits else edges0
     if s.spacing_cut.enabled:
         lines = [u.line for u in split]
         for comp in components(len(split), edges):
             edges = spacing_cut_edges(lines, edges, comp, s.spacing_cut)
-    return _Graph(tuple(units), split, edges, components(len(split), edges), bands)
+    return _Graph(tuple(units), split, edges, components(len(split), edges), bands, cut, road)
 
 
 def distinct_rows(members: Sequence[int], edges: pd.DataFrame) -> int:
@@ -426,7 +462,19 @@ def regularized_graph(g: _Graph, blocks: Sequence[_Block], cut: BaseGeometry | N
         lines = [u.line for u in units]
         for comp in components(len(units), edges):
             edges = spacing_cut_edges(lines, edges, comp, s.spacing_cut)
-    return _Graph(g.base, units, edges, components(len(units), edges), g.bands), tuple(issues)
+    return _Graph(g.base, units, edges, components(len(units), edges), g.bands, cut, g.road_cuts), tuple(issues)
+
+
+def road_issues(g: _Graph, chains: gpd.GeoDataFrame) -> tuple[QaIssue, ...]:
+    """One info issue per road cut: the road crossing, how many rows it cut out of how many crossing it."""
+    out = []
+    for c in g.road_cuts:
+        at = c.polygon.representative_point()
+        ref = str(chains.chain_id.iloc[g.base[c.rows[0]].src])
+        out.append(_issue(Severity.INFO, CODE_ROAD_CUT, ref,
+                          f"road {c.road_index}: {len(c.rows)}/{c.n_crossing} crossing rows cut (vine-free stretch)",
+                          at))
+    return tuple(out)
 
 
 def _sorted_chains(rows_raw: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -435,18 +483,19 @@ def _sorted_chains(rows_raw: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 def build_blocks(rows_raw: gpd.GeoDataFrame, passages: BaseGeometry | None, clips: Mapping[str, BaseGeometry],
                  s: BlockSettings, *, run_id: str = "", model_version: str = "",
-                 evidence: Evidence | None = None) -> BlockResult:
+                 evidence: Evidence | None = None, roads: Sequence[LineString] = ()) -> BlockResult:
     """rows_raw (UTM chains) -> rows / blocks / row_pairs / rows_rejected + QA issues (deterministic).
 
     With `evidence` and blocks.regularize.enabled, the kept blocks are regularised in the row frame and the
     graph is rebuilt from the changed rows (blocks re-selected and re-numbered)."""
     chains = _sorted_chains(rows_raw)
     cut = eroded(passages, s.passage_erode_m) if s.cut_by_passages else None
-    g = build_graph(_units(chains), cut, s)
+    g = build_graph(_units(chains), cut, s, roads, evidence)
     blocks, rejected = select_blocks(g, chains, s)
-    reg_issues: tuple[QaIssue, ...] = ()
+    reg_issues: tuple[QaIssue, ...] = road_issues(g, chains)
     if evidence is not None and s.regularize is not None and s.regularize.enabled and blocks:
-        g, reg_issues = regularized_graph(g, blocks, cut, s, evidence, chains)
+        g, more = regularized_graph(g, blocks, g.cut, s, evidence, chains)
+        reg_issues += more
         blocks, rejected = select_blocks(g, chains, s)
     prov = _Prov(run_id, model_version)
     adj = adjacent_pairs(g.edges)

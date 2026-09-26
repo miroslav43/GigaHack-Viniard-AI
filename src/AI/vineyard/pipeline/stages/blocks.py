@@ -4,12 +4,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
+from shapely.geometry import LineString
+
 from vineyard.errors import StageError
+from vineyard.farms.osm import read_highways
 from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.perception.blocks import BlockResult, BlockSettings, build_blocks
 from vineyard.perception.overrides import apply_row_overrides
+from vineyard.perception.road_split import road_lines
 from vineyard.perception.row_evidence import VegEvidence
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult
@@ -27,20 +32,31 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "blocks"
-VERSION: Final = "2"  # 2: row-frame regularisation (blocks.regularize: headlands, lattice, strays)
+VERSION: Final = "3"  # 2: row-frame regularisation (blocks.regularize: headlands, lattice, strays)
+# 3: rows cut where an OSM road / track crosses them on a vine-free stretch (blocks.road_split)
 OUTPUT_LAYERS: Final = ("rows", "blocks", "row_pairs", "rows_rejected")
 CFG_KEYS: Final = (
     "blocks", "orchard", "rows.detect.spacing_min_m", "rows.link", "canopy.corridor_half_m",
-    "export.min_row_piece_m", "paths.overrides",
+    "export.min_row_piece_m", "paths.overrides", "farms.osm_highways",
 )
 
 
 def evidence_of(ctx: RunContext) -> VegEvidence | None:
-    """Veg-mask evidence for blocks.regularize (None when disabled)."""
+    """Veg-mask evidence for blocks.regularize / blocks.road_split (None when both are disabled)."""
     rc = ctx.cfg.blocks.regularize
-    if not rc.enabled:
+    if not rc.enabled and not ctx.cfg.blocks.road_split.enabled:
         return None
     return VegEvidence(ctx.paths.cache_dir, rc.evidence_band_m, rc.evidence_step_m, load_veg_mask, load_valid_mask)
+
+
+def load_roads(ctx: RunContext) -> tuple[LineString, ...]:
+    """The OSM snapshot's road lines for blocks.road_split (none when disabled or not configured)."""
+    path = ctx.cfg.farms.osm_highways
+    if not ctx.cfg.blocks.road_split.enabled or path is None:
+        return ()
+    if not Path(path).is_file():
+        raise StageError("OSM highway snapshot missing (blocks.road_split needs it)", stage=NAME, path=str(path))
+    return road_lines(list(read_highways(path).geometry), ctx.cfg.blocks.road_split.min_line_m)
 
 
 def blocks_stage(ctx: RunContext) -> tuple[BlockResult, tuple]:
@@ -51,7 +67,8 @@ def blocks_stage(ctx: RunContext) -> tuple[BlockResult, tuple]:
     ov = apply_row_overrides(read_layer(path, ROWS_RAW_LAYER), load_overrides_cfg(ctx),
                              default_tol_m=ctx.cfg.blocks.override_match_tol_m)
     res = build_blocks(ov.frame, load_passages(ctx), load_clips(ctx), BlockSettings.from_config(ctx.cfg),
-                       run_id=ctx.run_id, model_version=ctx.model_version(nn=nn_tag(ctx)), evidence=evidence_of(ctx))
+                       run_id=ctx.run_id, model_version=ctx.model_version(nn=nn_tag(ctx)), evidence=evidence_of(ctx),
+                       roads=load_roads(ctx))
     return res, ov.issues
 
 

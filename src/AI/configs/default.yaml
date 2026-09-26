@@ -270,6 +270,17 @@ blocks:
   spacing_cut_side_rows: 3
   too_few_rows_issue_min: 2
   override_match_tol_m: 1.0                # overrides.yaml entries: default `tol_m`
+  road_split:                              # RC8 perception.road_split: rules §6 "a road or a track always separates blocks"
+    enabled: true                          # roads = the OSM snapshot (farms.osm_highways), every highway class
+    min_rows: 3                            # a road must cross at least this many rows of one component
+    min_gap_frac: 0.6                      # ... and this share of them must show a vine-free stretch near it
+    search_m: 4.0                          # the stretch is searched this far along the row from the OSM crossing
+    window_half_m: 1.0                     # half-length of the evidence window
+    gap_share_max: 0.12                    # vine-free: veg share of the row band <= this ...
+    gap_rel_max: 0.35                      # ... or <= this share of the row's own veg share
+    max_cut_m: 12.0                        # the stretch grows while vine-free, up to this length
+    min_line_m: 10.0                       # OSM road pieces shorter than this are ignored
+    min_side_m: 10.0                       # pieces a cut leaves shorter than this next to the road are overshoots: dropped
   regularize:                              # RC8 perception.row_regularize: per block, in the row frame
     enabled: true
     min_block_rows: 5                      # lattice lines needed before a block is regularised

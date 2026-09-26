@@ -142,6 +142,21 @@ class OrchardConfig(Section):
     block_majority_frac: Frac
 
 
+class RoadSplitConfig(Section):
+    """blocks.road_split (RC8, perception.road_split): rows cut where a road / track crosses them."""
+
+    enabled: bool
+    min_rows: PosInt
+    min_gap_frac: Frac
+    search_m: NonNegFloat
+    window_half_m: PosFloat
+    gap_share_max: Frac
+    gap_rel_max: Frac
+    max_cut_m: PosFloat
+    min_line_m: NonNegFloat
+    min_side_m: NonNegFloat
+
+
 class RowRegularizeConfig(Section):
     """blocks.regularize (RC8, perception.row_regularize): row-frame headlands, lattice, strays."""
 
@@ -200,6 +215,7 @@ class BlocksConfig(Section):
     too_few_rows_issue_min: PosInt
     override_match_tol_m: PosFloat
     regularize: RowRegularizeConfig
+    road_split: RoadSplitConfig
 
 
 class CanopyConfig(Section):
