@@ -44,6 +44,9 @@ import { useCadastre } from "./overlays/useCadastre";
 import { CadastreAnchor, CadastreHighlight, CadastreRaster } from "./overlays/CadastreLayers";
 import { CadastreLegend, CadastreToggle } from "./overlays/CadastreControls";
 import { CADASTRE_MIN_ZOOM } from "@/lib/cadastre";
+import { useFarmRoute } from "./overlays/farmRoute/useFarmRoute";
+import { FarmRouteLayers, useFarmRouteStops } from "./overlays/farmRoute/FarmRouteLayers";
+import { FarmRoutePickBanner, FarmRouteSection } from "./overlays/farmRoute/FarmRouteSection";
 
 /** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
@@ -117,6 +120,12 @@ export function MapExplorer({
   const farmsRoads = useFarmsRoads(dataBase, overlayFiles, summary.roads);
   const cadastre = useCadastre();
   const [zoom, setZoom] = useState(15);
+  const [view, setView] = useState<BBox | null>(null);
+  const farmRoute = useFarmRoute({ farms: farmsRoads.farms, roads: farmsRoads.roads, rows: rowsFc, targets });
+  const farmRouteStops = useFarmRouteStops(farmRoute.state, targets);
+  const pickingStart = farmRoute.state.status === "picking";
+  // a planned farm route replaces the official route line and its numbers (the targets stay)
+  const farmRouteShown = farmRoute.state.status === "done";
   const { tiles: hasTiles } = overlays.available;
   const { farms: hasFarms, roads: hasRoads } = farmsRoads.available;
   const interactiveLayerIds = useMemo(
@@ -178,6 +187,7 @@ export function MapExplorer({
     const b = map.getBounds();
     const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
     setZoom(zoom);
+    setView(view);
     setDetailTiles(zoom < ZOOM.orthoDetail ? [] : tileBoxes.filter((t) => intersects(t.bbox, view)).slice(0, MAX_DETAIL_TILES));
     setTargetLabels(
       zoom < TARGET_LABEL_ZOOM
@@ -264,6 +274,10 @@ export function MapExplorer({
   }, [measurePts, measuring]);
 
   const onClick = (e: MapLayerMouseEvent) => {
+    if (pickingStart) {
+      farmRoute.pick([e.lngLat.lng, e.lngLat.lat]);
+      return;
+    }
     if (measuring) {
       // the second click of a double-click is ignored; onDblClick finishes the shape
       if (e.originalEvent.detail > 1) return;
@@ -307,7 +321,7 @@ export function MapExplorer({
           doubleClickZoom={!measuring}
           onMouseEnter={() => setCursor("pointer")}
           onMouseLeave={() => setCursor("grab")}
-          cursor={measuring ? "crosshair" : cursor}
+          cursor={measuring || pickingStart ? "crosshair" : cursor}
           onMoveEnd={refreshDetail}
           onLoad={onLoad}
           maxZoom={22}
@@ -410,14 +424,14 @@ export function MapExplorer({
           )}
           {route && (
             <Source id="route" type="geojson" data={route}>
-              <Layer id="route-halo" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 7, "line-opacity": 0.85 }} layout={{ ...vis(visible.route), "line-join": "round", "line-cap": "round" }} />
-              <Layer id="route-line" type="line" paint={{ "line-color": mapPalette.route, "line-width": 4 }} layout={{ ...vis(visible.route), "line-join": "round", "line-cap": "round" }} />
+              <Layer id="route-halo" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 7, "line-opacity": 0.85 }} layout={{ ...vis(visible.route && !farmRouteShown), "line-join": "round", "line-cap": "round" }} />
+              <Layer id="route-line" type="line" paint={{ "line-color": mapPalette.route, "line-width": 4 }} layout={{ ...vis(visible.route && !farmRouteShown), "line-join": "round", "line-cap": "round" }} />
               {arrowReady && (
                 <Layer
                   id="route-arrows"
                   type="symbol"
                   layout={{
-                    ...vis(visible.route),
+                    ...vis(visible.route && !farmRouteShown),
                     "symbol-placement": "line",
                     "symbol-spacing": 90,
                     "icon-image": ROUTE_ARROW,
@@ -457,6 +471,10 @@ export function MapExplorer({
           <CadastreHighlight
             parcel={selection?.layer === "cadastre" && cadastre.query.status === "found" ? cadastre.query.parcel : null}
           />
+          {/* mounted only while in use, so its layers go on top of the targets (mounted once their file loads) */}
+          {farmRoute.state.status !== "idle" && (
+            <FarmRouteLayers state={farmRoute.state} stops={farmRouteStops} arrowReady={arrowReady} zoom={zoom} view={view} />
+          )}
           <Source id="measure" type="geojson" data={measureFc}>
             <Layer id="measure-fill" type="fill" filter={["==", ["geometry-type"], "Polygon"]} paint={{ "fill-color": mapPalette.selected, "fill-opacity": 0.2 }} />
             <Layer id="measure-casing" type="line" filter={["==", ["geometry-type"], "LineString"]} paint={{ "line-color": mapPalette.casing, "line-width": 5 }} />
@@ -480,6 +498,7 @@ export function MapExplorer({
           {/* ---- markers: farm labels (medium zoom and closer), numbered route stops in view (refreshDetail) ---- */}
           <FarmLabels data={farmsRoads} zoom={zoom} onPick={(id) => selectFarm(id, false)} />
           {visible.route &&
+            !farmRouteShown &&
             targetLabels.map((f) => {
               const [lon, lat] = f.geometry.coordinates;
               const p = f.properties;
@@ -541,6 +560,7 @@ export function MapExplorer({
           points={measurePts}
           onToggle={() => {
             setSelection(null);
+            if (pickingStart) farmRoute.clear();
             if (!measuring) setMeasurePts([]);
             setMeasuring((v) => !v);
           }}
@@ -550,7 +570,8 @@ export function MapExplorer({
           }}
         />
         <ReliefControl available={relief.available} ready={relief.ready} settings={relief.settings} onChange={relief.update} />
-        {selection && (
+        {pickingStart && compact && <FarmRoutePickBanner onCancel={farmRoute.clear} />}
+        {selection && !(pickingStart && compact) && (
           <AttributePanel
             selection={selection}
             summary={summary}
@@ -562,6 +583,14 @@ export function MapExplorer({
             onPickBlock={selectBlock}
             onPickFarm={selectFarm}
             cadastreQuery={cadastre.query}
+            farmExtra={(farmId) => (
+              <FarmRouteSection
+                farmId={farmId}
+                targetCount={summary.farms?.find((x) => x.farm_id === farmId)?.target_count ?? 0}
+                route={farmRoute}
+                stops={farmRouteStops}
+              />
+            )}
           />
         )}
         {!rowsFc && (

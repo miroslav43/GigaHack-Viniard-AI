@@ -30,6 +30,11 @@ const COMMON = `
   «map.layerReference», «map.layerTiles», «map.layerVegMask») and the legend. Click any object to see its attributes
   (length, plants, gaps, areas). Bottom right: the ruler button «map.measure» (distance / area). Top right:
   «map.relief.oblique» (3D) and «map.relief.top».
+  Own route through one farm (real survey only): click a farm (outline or its label F01…) → in its panel
+  «map.farmRoute.title» → the button that plans the route through the farm's N targets → click the map where you want to start; the shortest round trip
+  through every target of that farm is drawn (violet, numbered stops) with length and duration, plus «map.farmRoute.newStart»,
+  GPX download and «map.farmRoute.clear». It follows roads and rows (rows are crossed only at their ends); it is
+  indicative, the official route stays on the route page.
   Deep links: /harta?bloc=V01 (zoom to a block), /harta?rand=V02-R16 (a row), /harta?tinta=T003 (an inspection target).
 - [«nav.blocks»](/blocuri) — work list of rows (sorted by largest gap) and blocks; tabs «blocks.tabRows» / «blocks.tabBlocks»,
   filters «blocks.filterBlock» and «blocks.filterStructure», button «blocks.export» (CSV).

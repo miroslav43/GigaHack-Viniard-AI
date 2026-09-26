@@ -14,7 +14,7 @@
     "data:fast": "node scripts/build-data.mjs --skip-ortho && node scripts/build-terrain.mjs --survey siret3-mock",
     "data:survey": "node scripts/build-survey.mjs",
     "data:terrain": "node scripts/build-terrain.mjs",
-    "test:scripts": "node --test scripts/survey/*.test.mjs scripts/terrain/*.test.mjs scripts/assistant/*.test.mjs",
+    "test:scripts": "node --test scripts/survey/*.test.mjs scripts/terrain/*.test.mjs scripts/assistant/*.test.mjs src/lib/farmRoute/*.test.ts",
     "e2e": "playwright test"
   },
   "dependencies": {

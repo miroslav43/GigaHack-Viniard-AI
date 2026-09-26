@@ -48,6 +48,7 @@ export function AttributePanel({
   onPickBlock,
   onPickFarm,
   cadastreQuery,
+  farmExtra,
 }: {
   selection: Selection;
   summary: SurveySummary;
@@ -57,6 +58,8 @@ export function AttributePanel({
   onPickFarm?: (farmId: string) => void;
   /** the live cadastre lookup of the last empty-map click (selection layer "cadastre") */
   cadastreQuery?: CadastreQuery;
+  /** extra tools in a farm's panel (the farm route) */
+  farmExtra?: (farmId: string) => ReactNode;
 }) {
   const t = useTranslations("map.fields");
   const tc = useTranslations();
@@ -188,7 +191,14 @@ export function AttributePanel({
       break;
     case "farms":
       title = tc("map.farm.title", { id: farmTitle(p) });
-      body = <FarmAttributes props={p} farm={summary.farms?.find((x) => x.farm_id === p.farm_id)} onPickBlock={onPickBlock} />;
+      body = (
+        <FarmAttributes
+          props={p}
+          farm={summary.farms?.find((x) => x.farm_id === p.farm_id)}
+          onPickBlock={onPickBlock}
+          extra={farmExtra?.(String(p.farm_id))}
+        />
+      );
       break;
     case "roads":
       title = roadTitle(p);

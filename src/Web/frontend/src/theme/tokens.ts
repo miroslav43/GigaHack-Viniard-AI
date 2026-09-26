@@ -55,6 +55,9 @@ export const color = {
     // outlined in cyan, apart from the red WMS lines, the pink farms and the indigo blocks
     cadastreParcel: "#E00000",
     cadastreHighlight: "#06B6D4",
+    // farm route drawn from a start picked on the map (ADR-028): violet, apart from the indigo official route, the
+    // orange roads and the pink farms
+    farmRoute: "#9333EA",
   },
 };
 

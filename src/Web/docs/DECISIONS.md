@@ -302,3 +302,25 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - text de ajutor scris de mână, separat de interfață: s-ar desincroniza de butoane (testul `scripts/assistant/labels.test.mjs` verifică fiecare etichetă în RO / EN / RU);
   - unelte (function calling) care execută acțiuni: asistentul doar explică și trimite la pagină; acțiunile rămân în UI, sub RLS.
 - **Consecințe:** fără `GEMINI_API_KEY` panoul spune că nu e configurat. Întrebările, rolul, numele primăriei și cifrele agregate ale zborului ajung la Google (Gemini API); nu se trimit emailuri, parole sau date personale ale altor utilizatori. O funcție nouă în aplicație trebuie descrisă și în `prompt.ts`.
+
+### ADR-028 — Traseu pe fermă calculat în browser, cu punct de plecare ales pe hartă
+- **Context:** pe teren, inspectorul nu pleacă mereu de la START-ul oficial și lucrează fermă cu fermă. Vrea să aleagă singur punctul de plecare (= sosire) și să primească cel mai scurt traseu închis prin toate țintele unei ferme. Ruta oficială (`route.geojson`) e una singură, precalculată de pipeline pentru tot survey-ul.
+- **Decizie:**
+  - pe hartă, în panoul fermei: „Traseu cel mai scurt” → „Calculează traseul prin N ținte” → click pe hartă pentru start. Pe ecranele mici, panoul se ascunde cât timp alegi punctul (banner cu „Renunță”);
+  - calculul rulează în browser, într-un Web Worker (`src/lib/farmRoute/`, TypeScript pur, fără dependențe noi):
+    - **graf de mers** (`graph.ts`): drumurile din `roads.geojson` (toate clasele, într-un bbox cu marjă de 500 m) și rândurile fermei, unite unde se ating (grilă de 0,5 m). Conectori scurți: capăt de rând → capetele rândurilor vecine (≤ 8 m, întoarcerea pe la capăt), capăt de rând → cel mai apropiat drum (≤ 120 m), capăt de drum → drumul de lângă (≤ 5 m). Rândurile se traversează doar pe la capete;
+    - **terminale:** startul și țintele sunt inserate pe segmentul cel mai apropiat (ținta, întâi pe rândul ei). O componentă deconectată care conține un terminal se leagă de restul cu cel mai scurt segment drept; aceste bucăți se raportează separat („din care X m în linie dreaptă”);
+    - **distanțe:** Dijkstra (heap binar) din fiecare terminal (`dijkstra.ts`);
+    - **tur:** exact (Held–Karp) până la 10 ținte; peste, nearest neighbour + 2-opt + Or-opt, cu buget de 1,5 s (`tour.ts`);
+  - calcul plan în UTM 35N cu proj4, ca unealta de măsurare (ADR-010). Rezultatul e **orientativ**: lungimea nu e o cifră oficială și nu înlocuiește ruta pipeline-ului;
+  - afișare: linie violet (`map.farmRoute`) cu săgeți, opriri numerotate (toate până la 40, altfel doar în cadru de la zoom 18), marker S/F. Cât timp e afișat traseul fermei, linia rutei oficiale și numerele ei se ascund; țintele rămân. Export GPX (track + waypoint-uri în ordinea vizitei).
+- **Performanță** (siret3, Node, M3 Pro): 12–292 ms pe fermă; F01 are 355 de ținte (292 ms, 11,2 km).
+- **Respins:**
+  - endpoint în Python cu solver-ul pipeline-ului (`src/AI/vineyard/route/`, OR-Tools): API-ul nu există încă, iar site-ul trebuie să meargă static și offline;
+  - graful de mers al pipeline-ului (`walk_nodes/edges.parquet`): nu e exportat în web și e construit pentru START-ul oficial;
+  - turf / graphology: pentru un graf de câteva mii de noduri, o implementare de ~300 de linii ajunge.
+- **Consecințe:**
+  - fără `farms.geojson` + `roads.geojson` (mock-ul), unealta nu apare;
+  - `forbidden.geojson` nu e încă ocolit;
+  - testele unitare (`src/lib/farmRoute/farmRoute.test.ts`) rulează cu `node --test` direct pe TypeScript (Node ≥ 22.18 elimină tipurile), deci `tsconfig` are `allowImportingTsExtensions`, iar modulele din `src/lib/farmRoute/` se importă între ele cu extensia `.ts`;
+  - e2e: `e2e/farm-route.spec.ts`.

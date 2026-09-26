@@ -8,6 +8,7 @@ const toUtm = proj4("EPSG:4326", UTM35N);
 export type LonLat = [number, number];
 
 export const projectUtm = (p: LonLat) => toUtm.forward(p) as [number, number];
+export const unprojectUtm = (p: readonly [number, number]) => toUtm.inverse([p[0], p[1]]) as LonLat;
 
 export function lengthM(points: LonLat[]): number {
   const u = points.map(projectUtm);

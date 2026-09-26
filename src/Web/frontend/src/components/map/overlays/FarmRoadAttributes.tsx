@@ -1,6 +1,7 @@
 "use client";
 
 // Attribute-panel bodies of a farm (farms.geojson + its summary.json "farms" entry) and of a road (roads.geojson).
+import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
@@ -28,11 +29,14 @@ export function FarmAttributes({
   props,
   farm,
   onPickBlock,
+  extra,
 }: {
   props: Record<string, unknown>;
   /** the farm's summary.json entry (sums of its blocks) */
   farm: FarmSummary | undefined;
   onPickBlock?: (vineyardId: string) => void;
+  /** tools of the farm, under its figures (the farm route) */
+  extra?: ReactNode;
 }) {
   const t = useTranslations("map.farm");
   const f = useFormat();
@@ -71,6 +75,7 @@ export function FarmAttributes({
           </Typography>
         </>
       )}
+      {extra}
     </Box>
   );
 }

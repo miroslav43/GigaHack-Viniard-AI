@@ -57,6 +57,11 @@ export const mapPalette = {
     label: color.map.farmLabel,
     halo: color.white,
   },
+  // farm route (start picked on the map → every target of one farm → back): line on a white halo, numbered stops
+  farmRoute: {
+    line: color.map.farmRoute,
+    casing: color.white,
+  },
   // live cadastre: the WMS parcel lines (drawn by the server, legend only) and the parcel picked by a click
   cadastre: {
     parcel: color.map.cadastreParcel,

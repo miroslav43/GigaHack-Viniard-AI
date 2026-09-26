@@ -308,6 +308,22 @@
       "area": "Suprafață",
       "property": "Tip proprietate",
       "zoomIn": "Apropie harta (zoom {zoom}+) ca să vezi parcelele."
+    },
+    "farmRoute": {
+      "title": "Traseu cel mai scurt",
+      "compute": "Calculează traseul prin {n, plural, one {# țintă} few {# ținte} other {# de ținte}}",
+      "pickHint": "Click pe hartă pentru punctul de plecare. Traseul pleacă de acolo, trece pe la toate țintele fermei și se întoarce în același punct.",
+      "cancel": "Renunță",
+      "computing": "Se calculează traseul prin {n, plural, one {# țintă} few {# ținte} other {# de ținte}}…",
+      "stops": "Ținte vizitate",
+      "length": "Lungime traseu",
+      "duration": "Durată estimată (4 km/h)",
+      "offNetwork": "Din care {length} în linie dreaptă, în afara drumurilor și rândurilor cunoscute (până la punctul de plecare sau între zone neconectate).",
+      "newStart": "Alt punct de plecare",
+      "clear": "Șterge traseul",
+      "error": "Traseul nu a putut fi calculat: {detail}",
+      "noTargets": "Ferma nu are ținte de inspecție.",
+      "note": "Pe drumuri și de-a lungul rândurilor; rândurile se traversează doar pe la capete. Calcul plan în UTM 35N, orientativ (ruta oficială e în pagina Rută)."
     }
   },
   "blocks": {
