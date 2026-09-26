@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 from zoneinfo import ZoneInfo
 
+from vineyard.config.sections_post import SURVEY_ID_PATTERN, SURVEY_NAME_MAX_LEN, SURVEY_NAME_MIN_LEN
 from vineyard.contracts.enums import Source
 from vineyard.errors import SchemaError
 
@@ -27,7 +28,7 @@ MANIFEST_STAGES: Final = (STAGE_MODEL, STAGE_CORRECTED)
 STAGE_OF_SOURCE: Final[Mapping[Source, str]] = MappingProxyType(
     {Source.MODEL: STAGE_MODEL, Source.MARCAJ: STAGE_CORRECTED, Source.REFERENCE: STAGE_CORRECTED}
 )
-_SURVEY_ID_RE: Final = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_SURVEY_ID_RE: Final = re.compile(SURVEY_ID_PATTERN)
 _RUN_STAMP_RE: Final = re.compile(r"^(\d{8}T\d{4})-")
 _RUN_STAMP_FORMAT: Final = "%Y%m%dT%H%M"
 
@@ -44,8 +45,12 @@ class SurveyInfo:
     tiles: int
 
     def __post_init__(self) -> None:
-        if not _SURVEY_ID_RE.match(self.survey_id):
-            raise SchemaError("survey_id must be lowercase letters, digits, '_' or '-'", survey_id=self.survey_id)
+        if not _SURVEY_ID_RE.fullmatch(self.survey_id):  # fullmatch: `$` alone would accept a trailing newline
+            raise SchemaError("survey_id must be 2-40 lowercase letters, digits or '-', not starting with '-'",
+                              survey_id=self.survey_id, pattern=SURVEY_ID_PATTERN)
+        if not SURVEY_NAME_MIN_LEN <= len(self.name) <= SURVEY_NAME_MAX_LEN:
+            raise SchemaError(f"survey name must be {SURVEY_NAME_MIN_LEN}-{SURVEY_NAME_MAX_LEN} characters",
+                              name=self.name)
         try:
             date.fromisoformat(self.captured_at)
         except ValueError:

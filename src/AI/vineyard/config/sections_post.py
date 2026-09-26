@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 from pydantic import AfterValidator, Field, model_validator
 
@@ -11,6 +11,12 @@ from vineyard.config.sections_core import Frac, NonNegFloat, NonNegInt, PosFloat
 
 # The values of vineyard.contracts.enums.TargetKind (config stays free of contract imports; a test pins both).
 TargetKindName = Literal["row_gap", "row_end_short", "missing_row", "missing_plant", "sparse", "waste", "other"]
+
+# Survey identity the web platform can register: the public.survey CHECKs (src/Web/supabase/migrations/
+# 20260926000100_platform_admin.sql) and the super-admin KEY_RE. Shared by WebConfig and web.manifest.SurveyInfo.
+SURVEY_ID_PATTERN: Final = r"^[a-z0-9][a-z0-9-]{1,39}$"
+SURVEY_NAME_MIN_LEN: Final = 2
+SURVEY_NAME_MAX_LEN: Final = 160
 
 
 def _unique(kinds: tuple[str, ...]) -> tuple[str, ...]:
@@ -155,8 +161,8 @@ class Gdal2TilesConfig(Section):
 class WebConfig(Section):
     out_dir: Path
     # Bundle directory name and manifest identity (`surveys/<survey_id>/pipeline/`, web contract §6.1).
-    survey_id: Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_-]*$")]
-    survey_name: Annotated[str, Field(min_length=1)]
+    survey_id: Annotated[str, Field(pattern=SURVEY_ID_PATTERN)]
+    survey_name: Annotated[str, Field(min_length=SURVEY_NAME_MIN_LEN, max_length=SURVEY_NAME_MAX_LEN)]
     geojson_decimals_4326: Annotated[int, Field(ge=0, le=9)]
     utm_decimals: Annotated[int, Field(ge=0, le=6)]
     ortho_mode: Literal["auto", "xyz", "tiles_jpeg"]

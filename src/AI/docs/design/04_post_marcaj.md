@@ -515,7 +515,7 @@ These are single-YAML sections with pydantic `extra="forbid"` and `frozen`. `imp
 | `publish.require_source` | null (Makefile `final` sets marcaj) | new |
 | `publish.sum_check_tol_m` | 0.05 | new |
 | `web.out_dir` | ../Web/data | user decision |
-| `web.survey_id` / `survey_name` | siret3 / Sireț3 (bundle dir `surveys/<survey_id>/pipeline/`) | C§6.1 |
+| `web.survey_id` / `survey_name` | siret3 / Sireț3 (bundle dir `surveys/<survey_id>/pipeline/`; id `^[a-z0-9][a-z0-9-]{1,39}$`, name 2-160 chars, as the web's `public.survey`) | C§6.1 |
 | `web.geojson_decimals_4326` | 7 | C§9 |
 | `web.utm_decimals` | 3 | C§1.8 |
 | `web.ortho_mode` | auto | A§4.14 + C§7 |

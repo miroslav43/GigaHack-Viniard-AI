@@ -9,7 +9,7 @@ import math
 import sys
 import types
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Final
 
@@ -112,6 +112,15 @@ def test_survey_identity_comes_from_the_web_config() -> None:
     info = survey_info(cfg)
     assert (info.survey_id, info.name) == ("siret3-nn1", "Sireț3 NN1")
     assert web_params(cfg).survey == info
+
+
+@pytest.mark.parametrize(("survey_id", "name"), [("siret3_nn1", "Sireț3"), ("x", "Sireț3"), ("a" * 41, "Sireț3"),
+                                                 ("siret3\n", "Sireț3"), ("siret3", "Y"), ("siret3", "N" * 161)])
+def test_survey_info_rejects_what_the_web_cannot_register(survey_id: str, name: str) -> None:
+    info = survey_info(load_config(environ={}))
+    assert replace(info, survey_id="s3", name="N" * 160).survey_id == "s3"
+    with pytest.raises(SchemaError):
+        replace(info, survey_id=survey_id, name=name)
 
 
 def test_stage_and_generated_at() -> None:
