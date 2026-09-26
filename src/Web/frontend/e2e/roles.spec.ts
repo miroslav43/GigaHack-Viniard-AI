@@ -64,27 +64,38 @@ test("assigning a task notifies the inspector live; the notification opens the t
   await admin.auth.signInWithPassword({ email: "primar@sireti.demo", password: PASSWORD! });
   const { data: me } = await inspector.auth.signInWithPassword({ email: "inspector@sireti.demo", password: PASSWORD! });
   const inspectorId = me.user!.id;
-  const { data: tasks } = await admin.from("task").select("id, assignee, assignee_email").neq("assignee", inspectorId).limit(1);
-  test.skip(!tasks?.length, "needs a Sireți task not assigned to the inspector");
-  const task = tasks![0];
 
   await login(page, "inspector@sireti.demo");
   await page.goto("/blocuri");
   const bell = page.getByRole("button", { name: /^Notificări/ });
   await expect(bell).toBeVisible();
   await page.waitForTimeout(2000); // realtime channel joined
+  const unread = async () => Number((await bell.getAttribute("aria-label"))?.match(/(\d+)/)?.[1] ?? 0);
+  const before = await unread();
+  // a throwaway task of the served survey, created already assigned (the trigger fires on insert)
+  const { data: task, error } = await admin
+    .from("task")
+    .insert({
+      uat_key: "sireti",
+      survey_id: process.env.NEXT_PUBLIC_SURVEY_ID ?? "siret3-mock",
+      kind: "other",
+      title: "E2E: notificare",
+      assignee: inspectorId,
+      assignee_email: "inspector@sireti.demo",
+    })
+    .select("id")
+    .single();
+  expect(error).toBeNull();
   try {
-    const { error } = await admin.from("task").update({ assignee: inspectorId, assignee_email: "inspector@sireti.demo" }).eq("id", task.id);
-    expect(error).toBeNull();
-    await expect(page.getByRole("alert").filter({ hasText: "V-a fost alocată o sarcină" })).toBeVisible({ timeout: 15_000 });
-    await expect(bell).toHaveAccessibleName(/1 necitită/);
-    await bell.click();
-    await page.getByRole("dialog", { name: "Notificări" }).getByRole("button", { name: /Sarcină nouă alocată/ }).first().click();
-    await expect(page).toHaveURL(new RegExp(`/sarcini\\?sarcina=${task.id}$`));
-    await expect(page.locator(`#task-${task.id}`)).toBeVisible();
-    await expect(bell).toHaveAccessibleName("Notificări");
+    const toast = page.getByRole("alert").filter({ hasText: "V-a fost alocată o sarcină" });
+    await expect(toast).toBeVisible({ timeout: 15_000 });
+    await expect.poll(unread).toBe(before + 1);
+    await toast.getByRole("button", { name: "Deschide" }).click();
+    await expect(page).toHaveURL(new RegExp(`/sarcini\\?sarcina=${task!.id}$`));
+    await expect(page.locator(`#task-${task!.id}`)).toBeVisible();
+    await expect.poll(unread).toBe(before);
   } finally {
-    await admin.from("task").update({ assignee: task.assignee, assignee_email: task.assignee_email }).eq("id", task.id);
-    await inspector.from("notification").delete().eq("task_id", task.id);
+    // deleting the task also deletes its notification (on delete cascade)
+    await admin.from("task").delete().eq("id", task!.id);
   }
 });

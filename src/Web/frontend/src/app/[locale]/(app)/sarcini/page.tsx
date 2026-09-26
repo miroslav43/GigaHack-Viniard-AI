@@ -6,7 +6,7 @@ import { AccessDenied } from "@/components/common/AccessDenied";
 import { TasksPanel, type Assignable, type TaskRole } from "@/components/tasks/TasksPanel";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
-import { readTargets, type TaskRow } from "@/lib/tasks";
+import { ACTIVE_SURVEY_FILTER, activeSurveys, readTargets, type TaskRow } from "@/lib/tasks";
 import { listUatUsers } from "@/lib/team";
 import { getViewer } from "@/lib/viewer";
 
@@ -39,8 +39,8 @@ export default async function TasksPage({ params, searchParams }: PageProps<"/[l
   if (!viewer.uat || !["uat_admin", "inspector", "viewer"].includes(role)) return <AccessDenied />;
 
   const supabase = await createClient();
-  // RLS: only this municipality's tasks come back
-  const { data } = await supabase.from("task_public").select("*").order("status").order("priority").order("created_at", { ascending: false });
+  // RLS: only this municipality's tasks come back; only those of the survey the app serves
+  const { data } = await supabase.from("task_public").select("*").or(ACTIVE_SURVEY_FILTER).order("status").order("priority").order("created_at", { ascending: false });
   const tasks = (data ?? []) as TaskRow[];
 
   let targets: Awaited<ReturnType<typeof readTargets>> = [];
@@ -49,7 +49,7 @@ export default async function TasksPage({ params, searchParams }: PageProps<"/[l
     const taken = new Set(tasks.map((x) => `${x.survey_id}/${x.target_id}`));
     // route order first; targets the route does not visit (route_order null) go last
     const order = (x: { route_order: number | null }) => x.route_order ?? Number.MAX_SAFE_INTEGER;
-    targets = (await readTargets(viewer.uat.surveys)).filter((x) => !taken.has(`${x.survey_id}/${x.target_id}`)).sort((a, b) => order(a) - order(b));
+    targets = (await readTargets(activeSurveys(viewer.uat.surveys))).filter((x) => !taken.has(`${x.survey_id}/${x.target_id}`)).sort((a, b) => order(a) - order(b));
     if (ADMIN_API_ENABLED) {
       const users = await listUatUsers(createAdminClient(), viewer.uat.key);
       members = users

@@ -724,7 +724,8 @@
     "deleteConfirm": "Ștergeți {n} sarcini?",
     "readOnly": "Cont de vizualizare: puteți consulta sarcinile, fără să le modificați.",
     "noKey": "Atribuirea către membri necesită SUPABASE_SECRET_KEY pe server.",
-    "demo": "Sarcinile sunt disponibile doar cu un cont de primărie."
+    "demo": "Sarcinile sunt disponibile doar cu un cont de primărie.",
+    "focusMissing": "Sarcina din notificare nu mai există sau ține de alt zbor decât cel afișat."
   },
   "team": {
     "title": "Echipa",

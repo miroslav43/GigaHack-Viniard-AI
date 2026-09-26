@@ -3,6 +3,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { FeatureCollection, Point } from "geojson";
+import { SURVEY_ID } from "./data";
 import type { TargetProps } from "./types";
 
 export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
@@ -46,6 +47,15 @@ export interface Target {
 }
 
 const KINDS: TaskKind[] = ["gap", "missing", "waste"];
+
+/**
+ * The survey the app serves (NEXT_PUBLIC_SURVEY_ID) if the municipality has it, else none. Tasks and targets
+ * follow it: a municipality with several surveys (e.g. siret3-mock and siret3) never mixes their targets.
+ */
+export const activeSurveys = (uatSurveys: string[]) => (uatSurveys.includes(SURVEY_ID) ? [SURVEY_ID] : []);
+
+/** PostgREST filter: tasks of the active survey, plus tasks not tied to any survey. */
+export const ACTIVE_SURVEY_FILTER = `survey_id.eq.${SURVEY_ID},survey_id.is.null`;
 
 /** Inspection targets of the given surveys (targets.geojson of each static bundle). */
 export async function readTargets(surveyIds: string[]): Promise<Target[]> {

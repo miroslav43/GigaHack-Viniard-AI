@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/viewer";
-import { readTargets, taskTitle, type TaskStatus } from "@/lib/tasks";
+import { activeSurveys, readTargets, taskTitle, type TaskStatus } from "@/lib/tasks";
 import { requireUatAdmin } from "@/lib/team";
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string };
@@ -48,7 +48,7 @@ export async function createTasksFromTargets(input: {
     const priority = [1, 2, 3].includes(input.priority) ? input.priority : 2;
     const who = await checkAssignee(input.assignee);
     const wanted = new Set(input.targetIds);
-    const targets = (await readTargets(viewer.uat.surveys)).filter((t) => wanted.has(`${t.survey_id}/${t.target_id}`));
+    const targets = (await readTargets(activeSurveys(viewer.uat.surveys))).filter((t) => wanted.has(`${t.survey_id}/${t.target_id}`));
     if (targets.length === 0) return 0;
     const supabase = await createClient();
     const rows = targets.map((t) => ({

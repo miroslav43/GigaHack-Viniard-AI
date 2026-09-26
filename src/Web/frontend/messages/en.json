@@ -724,7 +724,8 @@
     "deleteConfirm": "Delete {n} tasks?",
     "readOnly": "Viewer account: you can read the tasks but not change them.",
     "noKey": "Assigning to members requires SUPABASE_SECRET_KEY on the server.",
-    "demo": "Tasks are available only with a municipality account."
+    "demo": "Tasks are available only with a municipality account.",
+    "focusMissing": "The task from the notification no longer exists or belongs to another flight than the one shown."
   },
   "team": {
     "title": "Team",

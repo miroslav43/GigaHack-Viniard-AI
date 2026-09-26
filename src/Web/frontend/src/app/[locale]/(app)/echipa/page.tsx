@@ -7,7 +7,7 @@ import { TeamPanel, type TeamRow } from "@/components/team/TeamPanel";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
 import { listUatUsers, toMember } from "@/lib/team";
-import type { TaskRow } from "@/lib/tasks";
+import { ACTIVE_SURVEY_FILTER, type TaskRow } from "@/lib/tasks";
 import { getViewer } from "@/lib/viewer";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/echipa">
   const supabase = await createClient();
   const [users, { data: taskData }] = await Promise.all([
     listUatUsers(createAdminClient(), viewer.uat.key),
-    supabase.from("task_public").select("assignee, status, completed_at"),
+    supabase.from("task_public").select("assignee, status, completed_at").or(ACTIVE_SURVEY_FILTER),
   ]);
   const tasks = (taskData ?? []) as Pick<TaskRow, "assignee" | "status" | "completed_at">[];
 

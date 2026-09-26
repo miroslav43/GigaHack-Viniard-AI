@@ -167,6 +167,7 @@ export function TasksPanel({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      {focusId !== null && !focused && <Alert severity="info">{t("focusMissing")}</Alert>}
       <KpiGrid min={170}>
         <KpiCard label={t("kpiOpen")} value={f.int(counts.open)} tone="warning" />
         <KpiCard label={t("kpiInProgress")} value={f.int(counts.in_progress)} tone="primary" />
