@@ -13,7 +13,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Final
 
-import cv2
 import geopandas as gpd
 import numpy as np
 import shapely
@@ -27,7 +26,7 @@ from vineyard.geo.tiling import CRS_EPSG, tile_ref
 from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.logging_setup import get_logger, log_event
 from vineyard.perception.types import BoolMask, TileStats
-from vineyard.perception.vegmask import compute_tile_masks
+from vineyard.perception.vegmask import compute_tile_masks, erode_mask
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.context import RunContext
@@ -69,14 +68,6 @@ def tile_prep_outputs(cache_dir: Path, tile_id: str) -> dict[str, Path]:
 # ------------------------------------------------------------------ worker (top-level, picklable)
 
 
-def _erode(mask: BoolMask, radius_px: int) -> BoolMask:
-    if radius_px <= 0:
-        return mask.copy()
-    size = 2 * radius_px + 1
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
-    return cv2.erode(mask.astype(np.uint8), kernel) > 0  # default border: the tile edge does not erode
-
-
 def _valid(rgb: np.ndarray, cfg: AppConfig) -> BoolMask:
     nd = cfg.nodata
     min_area_px = nd.min_area_m2 / (cfg.grid.gsd_m * cfg.grid.gsd_m)
@@ -93,7 +84,7 @@ def prep_tile(task: TileTask) -> Mapping[str, Any]:
     if rgb.shape[:2] != expected:
         raise StageError("tile has the wrong size", stage=NAME, tile_id=task.tile_id, shape=rgb.shape[:2])
     valid = _valid(rgb, cfg)
-    masks = compute_tile_masks(rgb, _erode(valid, cfg.nodata.veg_erode_px), cfg.veg)
+    masks = compute_tile_masks(rgb, erode_mask(valid, cfg.nodata.veg_erode_px), cfg.veg)
     out = task.outputs
     write_mask_png(out["valid"], valid)
     write_mask_png(out["veg"], masks.veg)

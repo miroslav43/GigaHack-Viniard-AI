@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import geopandas as gpd
@@ -118,6 +118,43 @@ def test_two_orientations_are_both_found(params: DetectParams) -> None:
     kept = {o: sum(1 for c in det.candidates if c.orientation == o and c.rejected_reason is None)
             for o in range(len(det.orientations))}
     assert all(n >= 5 for n in kept.values())
+
+
+def _tree_belt_rows() -> np.ndarray:
+    """Rows at 53 deg (2.78 m) south of a solid 'tree belt': the histogram variance peaks at 0 deg."""
+    v = np.broadcast_to(np.arange(TILE_PX)[:, None], SHAPE)
+    return (striped_mask(SHAPE, angle_deg=53.0, spacing_px=111.0, width_px=16.0) & (v >= 1100)) | (v < 1040)
+
+
+def test_angle_fallback_recovers_rows_next_to_a_tree_belt(params: DetectParams) -> None:
+    detect = params.rows.detect
+    off = replace(params, rows=params.rows.model_copy(
+        update={"detect": detect.model_copy(update={"angle_fallback_enabled": False})}))
+    on = replace(params, rows=params.rows.model_copy(
+        update={"detect": detect.model_copy(update={"angle_fallback_enabled": True})}))
+    mask = _tree_belt_rows()
+    missed = detect_tile_rows(mask, FRAME, TILE_ID, off)
+    assert missed.status_hint == STATUS_NO_PERIODICITY
+    assert not [c for c in missed.candidates if c.rejected_reason is None]
+    found = detect_tile_rows(mask, FRAME, TILE_ID, on)
+    accepted = [c for c in found.candidates if c.rejected_reason is None]
+    assert found.status_hint == STATUS_OK and len(accepted) >= 15
+    assert abs(found.orientations[0].angle_px_deg - 53.0) <= 1.0
+    assert all(c.local_spacing_m == pytest.approx(2.78, abs=0.1) for c in accepted)
+
+
+def test_angle_fallback_keeps_tiles_that_already_work(params: DetectParams, stripes: TileDetection) -> None:
+    off = replace(params, rows=params.rows.model_copy(
+        update={"detect": params.rows.detect.model_copy(update={"angle_fallback_enabled": False})}))
+    veg = striped_mask(SHAPE, angle_deg=30.0, spacing_px=100.0, width_px=16.0)
+    plain = detect_tile_rows(veg, FRAME, TILE_ID, off)
+    assert [c.line_px.wkt for c in plain.candidates] == [c.line_px.wkt for c in stripes.candidates]
+    noise = np.random.default_rng(5).random(SHAPE) < 0.05  # nothing accepted, no periodic angle to retry with
+
+    def lines(p: DetectParams) -> list[tuple[str, str | None]]:
+        return [(c.line_px.wkt, c.rejected_reason) for c in detect_tile_rows(noise, FRAME, TILE_ID, p).candidates]
+
+    assert lines(params) == lines(off)
 
 
 def test_empty_mask_has_no_periodicity_and_no_candidates(params: DetectParams) -> None:
@@ -276,6 +313,18 @@ def test_example_is_deterministic(examples: dict[str, ExampleRun], cfg: AppConfi
 @pytest.mark.parametrize("tile_id", EXAMPLE_TILES)
 def test_example_runtime_per_tile(examples: dict[str, ExampleRun], tile_id: str) -> None:
     assert examples[tile_id].seconds <= MAX_SECONDS_PER_TILE
+
+
+def test_min_line_px_survives_the_utm_round_trip() -> None:
+    # r027_c024: a 2.0 px vertical line is 0.049999999813 m in UTM, under the 0.05 m contract minimum
+    from vineyard.contracts.schema_defs import MIN_LINE_LENGTH_M
+    from vineyard.perception.rows_detect import MIN_LINE_PX
+
+    tile = tile_ref("siret3_r027_c024")
+    two_px = LineString(px_to_utm(tile, np.array([[757.0, 1535.5], [757.0, 1537.5]])))
+    assert two_px.length < MIN_LINE_LENGTH_M and MIN_LINE_PX > 2.0
+    shortest = LineString(px_to_utm(tile, np.array([[757.0, 1535.5], [757.0, 1535.5 + MIN_LINE_PX]])))
+    assert shortest.length >= MIN_LINE_LENGTH_M
 
 
 def test_ref_to_px_roundtrip_helper() -> None:

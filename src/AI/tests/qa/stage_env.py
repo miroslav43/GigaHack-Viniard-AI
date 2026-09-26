@@ -23,6 +23,7 @@ from vineyard.geo.vector_io import write_layer
 from vineyard.perception.types import VIS_OK, TileStats
 from vineyard.pipeline.cache import write_key
 from vineyard.pipeline.context import RunContext, ensure_run_dirs, new_run_context
+from vineyard.pipeline.stages.canopy import empty_evidence, evidence_path, write_evidence
 from vineyard.pipeline.tile_cache import (
     stats_path,
     valid_mask_path,
@@ -127,6 +128,8 @@ def make_env(cfg: AppConfig | None = None) -> RunContext:
         write_geotiff(ctx.paths.tiles_dir / f"{tile_id}.tif", tile_id=tile_id, size=64)
     write_cache(ctx, "canopy", A, canopies_a(), "canopies")
     write_cache(ctx, "canopy", B, empty_layer("canopies"), "canopies")
+    for tile_id in TILES:
+        write_evidence(empty_evidence(f"EPSG:{CRS_EPSG}"), evidence_path(ctx.paths, tile_id))
     write_cache(ctx, "interrow", A, interrows_a(), "interrow_pieces")
     write_cache(ctx, "interrow", B, empty_layer("interrow_pieces"), "interrow_pieces")
     write_detect_summary(ctx, A, 12.0)

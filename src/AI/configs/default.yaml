@@ -35,7 +35,7 @@ runtime:
   workers_auto_reserve: 3
   workers_sweep: [5, 8, 10]
   chunksize: 2
-  maxtasksperchild: 50
+  maxtasksperchild: 100000                 # recycling workers hung the 311-tile pool after 100 tasks/worker
   seed: 0
   allow_failures: false
   thread_env:                              # documents vineyard._env.THREAD_ENV_DEFAULTS (A§4.1)
@@ -160,6 +160,11 @@ rows:                                      # D2 §4 (A names inside the C struct
     mask_forbidden: true
     snr_peak_rel_width: 0.1                # spectral SNR: +-10% band around 1/s
     snap_ray_max_factor: 3.0               # edge snap ray <= this x snap_to_edge_m
+    # tune-implement 2026-09-26: a tile with no accepted row retries from the angle with the most offset-
+    # histogram power at the row frequencies (the variance argmax can follow a tree belt / sand edge:
+    # r023_c014 and r007_c003 were missed). Kept only with >= min_rows accepted and more accepted length.
+    angle_fallback_enabled: false             # adds false rows on >= 6 non-vine tiles at 311 (verify report)
+    angle_fallback_min_rows: 3
   link:
     link_angle_max_deg: 3.0
     link_offset_max_m: 0.3
@@ -227,6 +232,25 @@ canopy:
   corridor_label_convention: index         # raw contour vertices stay inside the 0.30 m corridor
   clip_to_corridor: false                  # S1: vector clip only for the eval sweep
   interpolated_min_veg_frac: 0.15          # S4: corridor veg evidence on row_interpolated tiles
+  # tune-implement 2026-09-26: canopies come from ExG = 2G-R-B (absolute DN), not from the a* veg mask
+  # (rows, interrow cover, visibility and waste keep a*). a* keeps the dark cast shadow (SW side) and misses
+  # pale sunlit leaves (NE side); ExG after a sigma-2 px blur fixes both. Threshold 25 (~ ExG > 0.1 on RGB
+  # in [0, 1]) with the axis refinement: canopy r006 0.852 -> 0.894, r021 0.762 -> 0.847 on viz42 rows,
+  # canopy area bias +1.3% / -0.8% (24: +3.8% / +3.6%). "veg" = the tile_prep a* mask (previous behaviour).
+  mask_method: exg
+  exg_blur_sigma_px: 2.0
+  exg_threshold: 25.0
+  # local row pieces are moved sideways onto the ExG pixels of a +-band_m strip before the corridor labels
+  # (mean offset, iters, capped, skipped under min_px pixels); the published rows are unchanged. a*-fitted
+  # axes sit towards the shadow (r021: 4.3 cm, p90 11.7 cm). 0 = off.
+  axis_refine_band_m: 0.35
+  axis_refine_iters: 3
+  axis_refine_max_m: 0.10
+  axis_refine_min_px: 200
+  # row_attrs only: corridor components >= this (and < min_area_m2) count as plants when measuring gaps;
+  # they are never exported. 0 (or >= min_area_m2) = off. 51/51 reference labels for 0.10-0.13 (0.09 lets
+  # weed blobs close real r006 gaps, 0.14 misses the faint plant of r021 R16).
+  gap_evidence_min_area_m2: 0.11
 
 interrow:
   offset_m: 0.30

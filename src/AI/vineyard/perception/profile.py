@@ -7,6 +7,7 @@ angles measured from +u towards +v in [0, 180); the row normal is n = (-sin a, c
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
@@ -117,20 +118,53 @@ def _coarse_peaks(angles: F64, scores: F64, k: int) -> list[float]:
     return [float(angles[i]) for i in order[:k] if is_peak[i]] or [float(angles[int(np.argmax(scores))])]
 
 
-def dominant_angle_px(points: F32, *, coarse_step_deg: float, fine_step_deg: float, bin_px: float) -> float:
-    """Angle in [0, 180) maximizing the variance of the offset histogram (coarse grid, then fine refine)."""
-    if len(points) < 2:
-        raise ValueError(f"dominant_angle_px needs >= 2 points, got {len(points)}")
+def _row_band_power(points: F32, angle_px_deg: float, bin_px: float, spacing_min_m: float,
+                    spacing_max_m: float) -> float:
+    """Largest FFT power of the offset histogram at the row frequencies [1/spacing_max_m, 1/spacing_min_m]."""
+    off = _offsets(points, angle_px_deg)
+    counts = np.bincount(np.floor((off - off.min()) / bin_px).astype(np.int64)).astype(np.float64)
+    nfft = int(2 ** math.ceil(math.log2(max(len(counts), 2) * FFT_PAD_FACTOR)))
+    power = np.abs(np.fft.rfft(counts - counts.mean(), nfft)) ** 2
+    freq = np.fft.rfftfreq(nfft, d=bin_px * GSD_M)
+    band = (freq >= 1.0 / spacing_max_m) & (freq <= 1.0 / spacing_min_m)
+    return float(power[band].max()) if band.any() else 0.0
+
+
+def _best_angle(score: Callable[[float], float], coarse_step_deg: float, fine_step_deg: float) -> float:
+    """Angle in [0, 180) maximizing `score` (coarse grid, then the best coarse peaks refined at the fine step)."""
     coarse = np.arange(0.0, AXIAL_DEG, coarse_step_deg)
-    scores = np.array([_hist_variance(points, a, bin_px) for a in coarse])
+    scores = np.array([score(float(a)) for a in coarse])
     best_angle, best_score = 0.0, -np.inf
     for centre in _coarse_peaks(coarse, scores, COARSE_CANDIDATES):
         fine = centre + np.arange(-coarse_step_deg, coarse_step_deg + fine_step_deg / 2, fine_step_deg)
         for a in fine:
-            s = _hist_variance(points, float(a) % AXIAL_DEG, bin_px)
+            s = score(float(a) % AXIAL_DEG)
             if s > best_score:
                 best_angle, best_score = float(a) % AXIAL_DEG, s
     return best_angle
+
+
+def _need_points(points: F32, what: str) -> None:
+    if len(points) < 2:
+        raise ValueError(f"{what} needs >= 2 points, got {len(points)}")
+
+
+def dominant_angle_px(points: F32, *, coarse_step_deg: float, fine_step_deg: float, bin_px: float) -> float:
+    """Angle in [0, 180) maximizing the variance of the offset histogram (coarse grid, then fine refine)."""
+    _need_points(points, "dominant_angle_px")
+    return _best_angle(lambda a: _hist_variance(points, a, bin_px), coarse_step_deg, fine_step_deg)
+
+
+def periodic_angle_px(points: F32, *, coarse_step_deg: float, fine_step_deg: float, bin_px: float,
+                      spacing_min_m: float, spacing_max_m: float) -> float:
+    """Angle in [0, 180) maximizing the offset-histogram power in the row-spacing band.
+
+    The histogram variance also rewards large aperiodic structure (a tree belt, a sand/grass edge), which
+    can outweigh the rows; the band power only sees periodicity at 1/spacing_max_m .. 1/spacing_min_m.
+    """
+    _need_points(points, "periodic_angle_px")
+    return _best_angle(lambda a: _row_band_power(points, a, bin_px, spacing_min_m, spacing_max_m),
+                       coarse_step_deg, fine_step_deg)
 
 
 def offset_profile(points: F32, angle_px_deg: float, bin_px: float, sigma_bins: float,

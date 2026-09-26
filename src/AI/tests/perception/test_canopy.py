@@ -25,8 +25,10 @@ from vineyard.contracts.ids import IdKind, is_valid_id
 from vineyard.eval.metrics import canopy_metrics
 from vineyard.geo.raster import read_tile, valid_mask
 from vineyard.geo.tiling import CRS_EPSG, GSD_M, TILE_PX, px_to_utm, tile_box, tile_ref, utm_to_px
+from vineyard.perception.axis_refine import AxisRefineOptions
 from vineyard.perception.canopy import (
     CANOPY_COLUMNS,
+    EVIDENCE_COLUMNS,
     CanopyOptions,
     eligible_labels,
     extract_canopies,
@@ -35,7 +37,7 @@ from vineyard.perception.canopy import (
     vine_mask,
 )
 from vineyard.perception.corridor import clip_rows_to_tile, corridor_labels
-from vineyard.perception.vegmask import compute_tile_masks
+from vineyard.perception.vegmask import compute_tile_masks, exg_mask
 
 TILE = tile_ref("siret3_r021_c012")
 OPTS = CanopyOptions(
@@ -196,6 +198,35 @@ def test_label_fractions_eligibility_and_vine_mask() -> None:
     assert vm.dtype == np.int32 and vm[500, 50] == 0 and vm[500, 500] == 1 and vm[900, 500] == 0
 
 
+def test_axis_refinement_moves_the_corridor_onto_off_axis_canopies() -> None:
+    mask = _blobs(510, [(100, 400)], half_px=10)  # rows 500..519: centred 10 px (0.25 m) south of the axis
+    pieces = _pieces([500.0])
+    plain = extract_canopies(mask, pieces, TILE, tile_box(TILE), OPTS).canopies
+    refine = AxisRefineOptions(band_m=0.35, iterations=3, max_shift_m=0.10, min_px=200)
+    moved = extract_canopies(mask, pieces, TILE, tile_box(TILE), dataclasses.replace(OPTS, axis_refine=refine))
+    can = moved.canopies
+    assert len(plain) == len(can) == 1 and can["row_id"].tolist() == ["V01-R001"]
+    # the corridor moves 4 px (capped at 0.10 m) south: 4 more pixel rows of the blob are inside it
+    assert can["area_m2"].iloc[0] == pytest.approx(plain["area_m2"].iloc[0] + 4 * 299 * GSD_M**2, rel=1e-6)
+    assert can["along_m"].iloc[0] == pytest.approx(plain["along_m"].iloc[0])
+    assert pieces.geometry.iloc[0].equals(_pieces([500.0]).geometry.iloc[0])
+
+
+def test_gap_evidence_keeps_small_plants_out_of_the_canopies() -> None:
+    # 18 x 16 px = 288 px (< 304) with a raw contour of 17 x 15 px = 0.159 m2: evidence, never a canopy
+    mask = _blobs(500, [(100, 180)]) | _blobs(500, [(600, 616)], half_px=9) | _blobs(500, [(900, 908)])
+    off = extract_canopies(mask, _pieces([500.0]), TILE, tile_box(TILE), OPTS)
+    assert len(off.canopies) == 1 and off.evidence.empty
+    on = extract_canopies(mask, _pieces([500.0]), TILE, tile_box(TILE),
+                          dataclasses.replace(OPTS, evidence_min_area_m2=0.14))
+    assert on.canopies.drop(columns="geometry").equals(off.canopies.drop(columns="geometry"))
+    ev = on.evidence
+    assert list(ev.columns) == [*EVIDENCE_COLUMNS, "geometry"] and len(ev) == 1
+    assert ev["area_m2"].iloc[0] == pytest.approx(17 * 15 * GSD_M**2, rel=1e-6)
+    assert ev["row_id"].tolist() == ["V01-R001"] and ev["tile_id"].tolist() == [TILE.tile_id]
+    assert on.stats.n_components == off.stats.n_components and on.stats.n_small_dropped == off.stats.n_small_dropped
+
+
 def test_empty_inputs_and_no_mutation() -> None:
     pieces = _pieces([500.0])
     before = pieces.copy()
@@ -244,12 +275,15 @@ Predicted = dict[str, tuple[list[Polygon], ExampleImage]]
 
 
 def _example_masks(cfg: object, tif: Path) -> tuple[np.ndarray, np.ndarray]:
-    nd = cfg.nodata  # type: ignore[attr-defined]
+    """(canopy mask as the canopy stage builds it for cfg.canopy.mask_method, valid mask)."""
+    nd, can = cfg.nodata, cfg.canopy  # type: ignore[attr-defined]
     rgb = read_tile(tif)
     valid = valid_mask(rgb, max_rgb=nd.max_rgb, min_area_px=nd.min_area_m2 / GSD_M**2, close_px=nd.close_px,
                        dilate_px=nd.dilate_px)
     k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * nd.veg_erode_px + 1,) * 2)
     eroded = cv2.erode(valid.astype(np.uint8), k) > 0
+    if can.mask_method == "exg":
+        return exg_mask(rgb, eroded, blur_sigma_px=can.exg_blur_sigma_px, threshold=can.exg_threshold), valid
     return compute_tile_masks(rgb, eroded, cfg.veg).veg, valid  # type: ignore[attr-defined]
 
 
@@ -279,7 +313,8 @@ def example_canopies(examples_xml: bytes, example_tif: Callable[[str], Path]) ->
 
     cfg = load_config()
     imgs = load_examples(examples_xml)
-    base = CanopyOptions.from_config(cfg.canopy)
+    # the reference axes are exact: the axis refinement exists to correct model axes fitted on a*
+    base = dataclasses.replace(CanopyOptions.from_config(cfg.canopy), axis_refine=None)
     inputs = {tid: _example_masks(cfg, example_tif(tid)) for tid in EXAMPLE_TILES}
     out: dict[float, Predicted] = {}
     for eps in (base.approx_eps_px, PREVIOUS_SIMPLIFY_PX):

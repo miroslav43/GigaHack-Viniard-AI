@@ -14,6 +14,9 @@ from vineyard.geo.raster import read_tile
 from vineyard.perception.types import VIS_NODATA, VIS_OK, VIS_OVEREXPOSED, VIS_SHADOW
 from vineyard.perception.vegmask import (
     compute_tile_masks,
+    erode_mask,
+    excess_green,
+    exg_mask,
     neg_a,
     otsu_threshold,
     veg_mask,
@@ -74,6 +77,54 @@ def test_veg_mask_rejects_bad_shapes() -> None:
         veg_mask(np.zeros((8, 8), np.uint8), np.ones((8, 8), bool), blur_sigma_px=0.0, threshold=4.0)
     with pytest.raises(ValueError):
         veg_mask(np.zeros((8, 8, 3), np.uint8), np.ones((4, 4), bool), blur_sigma_px=0.0, threshold=4.0)
+
+
+# ------------------------------------------------------------------ ExG canopy mask
+
+
+def test_excess_green_is_2g_minus_r_minus_b_in_absolute_dn() -> None:
+    rgb = np.zeros((2, 3, 3), np.uint8)
+    rgb[:, 0] = (60, 130, 40)  # sunlit vine
+    rgb[:, 1] = (8, 18, 5)  # the same green in deep cast shadow
+    rgb[:, 2] = (150, 115, 90)  # soil
+    exg = excess_green(rgb, 0.0)
+    assert exg.dtype == np.float32 and exg.shape == (2, 3)
+    assert exg[0].tolist() == [160.0, 23.0, -10.0]
+
+
+def test_exg_mask_drops_dark_shadow_that_lab_a_keeps() -> None:
+    rgb = np.zeros((4, 8, 3), np.uint8)
+    rgb[:, :4] = (60, 130, 40)
+    rgb[:, 4:] = (8, 18, 5)  # a* still calls it green (na 6 > 4), ExG does not (23 < 24)
+    valid = np.ones((4, 8), bool)
+    assert veg_mask(rgb, valid, blur_sigma_px=0.0, threshold=4.0).all()
+    exg = exg_mask(rgb, valid, blur_sigma_px=0.0, threshold=24.0)
+    assert exg.dtype == np.bool_
+    assert exg[:, :4].all() and not exg[:, 4:].any()
+    valid[:, :2] = False
+    assert not exg_mask(rgb, valid, blur_sigma_px=0.0, threshold=24.0)[:, :2].any()
+
+
+def test_excess_green_blur_and_shape_checks() -> None:
+    rgb = np.full((32, 32, 3), (150, 115, 90), np.uint8)
+    rgb[:, 16:] = (60, 130, 40)
+    sharp, blurred = excess_green(rgb, 0.0), excess_green(rgb, 2.0)
+    assert blurred[:, 0] == pytest.approx(sharp[:, 0], abs=1e-3)
+    assert blurred[0, 15] > sharp[0, 15]
+    with pytest.raises(ValueError):
+        excess_green(np.zeros((8, 8), np.uint8), 0.0)
+    with pytest.raises(ValueError):
+        exg_mask(np.zeros((8, 8, 3), np.uint8), np.ones((4, 4), bool), blur_sigma_px=0.0, threshold=24.0)
+
+
+def test_erode_mask_radius_and_tile_edge() -> None:
+    mask = np.ones((16, 16), bool)
+    mask[8, 8] = False
+    eroded = erode_mask(mask, 2)
+    assert not eroded[8, 6:11].any() and not eroded[6:11, 8].any() and eroded[8, 5] and eroded[8, 11]
+    assert eroded[0, 0] and eroded[15, 15]  # the tile edge does not erode
+    same = erode_mask(mask, 0)
+    assert np.array_equal(same, mask) and same is not mask
 
 
 # ------------------------------------------------------------------ vis codes

@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "rows_detect"
-VERSION: Final = "1"
+VERSION: Final = "2"
 TILE_VALID_LAYER: Final = "tile_valid"
 FORBIDDEN_LAYER: Final = "in_forbidden"
 FORBIDDEN_FILE: Final = "in_forbidden.parquet"

@@ -17,6 +17,7 @@ from vineyard.perception.profile import (
     lattice_deviation,
     mask_points,
     offset_profile,
+    periodic_angle_px,
     px_angle_to_utm,
     sample_points,
     spectral_snr,
@@ -76,6 +77,20 @@ def test_dominant_angle_of_stripes(angle: float, det: RowsDetectConfig) -> None:
     found, _, _ = _analyse(mask, det)
     assert 0.0 <= found < 180.0
     assert _axial_err(found, angle) <= 0.5
+
+
+def test_periodic_angle_ignores_a_large_aperiodic_block(det: RowsDetectConfig) -> None:
+    shape = (2048, 2048)
+    v = np.broadcast_to(np.arange(shape[0])[:, None], shape)
+    mask = (striped_mask(shape, angle_deg=53.0, spacing_px=111.0, width_px=16.0) & (v >= 1100)) | (v < 1040)
+    pts = mask_points(mask)
+    kw = {"coarse_step_deg": det.angle_coarse_step_deg, "fine_step_deg": det.angle_step_deg,
+          "bin_px": det.angle_bin_m / GSD_M}
+    assert abs(dominant_angle_px(pts, **kw) - 53.0) > 10.0  # the block edge wins the variance
+    periodic = periodic_angle_px(pts, **kw, spacing_min_m=det.spacing_min_m, spacing_max_m=det.spacing_max_m)
+    assert abs(periodic - 53.0) <= 1.0
+    with pytest.raises(ValueError):
+        periodic_angle_px(pts[:1], **kw, spacing_min_m=det.spacing_min_m, spacing_max_m=det.spacing_max_m)
 
 
 def test_dominant_angle_needs_two_points() -> None:

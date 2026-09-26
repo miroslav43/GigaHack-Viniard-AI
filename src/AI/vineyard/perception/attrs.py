@@ -352,13 +352,17 @@ def _gaps_frame(records: list[dict]) -> gpd.GeoDataFrame:
 def row_pieces_attributes(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame, tile: TileRef,
                           cfg: RowStructureConfig, *, half_m: float, min_piece_m: float, vis: U8 | None = None,
                           source: Source = Source.MODEL, run_id: str = "",
-                          model_version: str = "") -> RowAttrsResult:
-    """AnnSet `row_pieces` of one tile (+ internal gaps) from its clipped axes and its canopies."""
+                          model_version: str = "", evidence: gpd.GeoDataFrame | None = None) -> RowAttrsResult:
+    """AnnSet `row_pieces` of one tile (+ internal gaps) from its clipped axes and its canopies.
+
+    `evidence`: plant pieces too small to be exported as canopies; they occupy the profile like canopies.
+    """
     _check_pieces(pieces, tile)
     kept = _kept_pieces(pieces, min_piece_m)
     if kept.empty:
         return RowAttrsResult(empty_layer(ROW_PIECES_LAYER), _gaps_frame([]))
-    canopy_ij = canopy_pixels(list(canopies.geometry), tile)
+    extra = [] if evidence is None else list(evidence.geometry)
+    canopy_ij = canopy_pixels(list(canopies.geometry) + extra, tile)
     ids = _piece_ids(kept, tile)
     records, gap_records = [], []
     for piece_id, (_, row) in zip(ids, kept.iterrows(), strict=True):

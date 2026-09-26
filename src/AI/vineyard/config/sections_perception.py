@@ -56,6 +56,8 @@ class RowsDetectConfig(Section):
     mask_forbidden: bool
     snr_peak_rel_width: PosFloat
     snap_ray_max_factor: PosFloat
+    angle_fallback_enabled: bool
+    angle_fallback_min_rows: PosInt
 
     @model_validator(mode="after")
     def _spacing_ordered(self) -> RowsDetectConfig:
@@ -142,6 +144,14 @@ class CanopyConfig(Section):
     corridor_label_convention: Literal["index", "continuous"]
     clip_to_corridor: bool
     interpolated_min_veg_frac: Frac
+    mask_method: Literal["exg", "veg"]
+    exg_blur_sigma_px: NonNegFloat
+    exg_threshold: float
+    axis_refine_band_m: NonNegFloat
+    axis_refine_iters: PosInt
+    axis_refine_max_m: NonNegFloat
+    axis_refine_min_px: PosInt
+    gap_evidence_min_area_m2: NonNegFloat
 
 
 class InterrowConfig(Section):

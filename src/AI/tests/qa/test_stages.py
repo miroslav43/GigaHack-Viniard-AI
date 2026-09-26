@@ -11,11 +11,13 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 
+from tests.qa import annset_factory as af
 from tests.qa import stage_env as env
 from vineyard.annset.io import read_annset
 from vineyard.config import load_config
 from vineyard.contracts.schemas import validate_layer
 from vineyard.errors import StageError
+from vineyard.geo.tiling import CRS_EPSG
 from vineyard.geo.vector_io import read_layer
 from vineyard.pipeline.cache import key_path, read_key
 from vineyard.pipeline.context import RunContext, make_run_paths
@@ -24,6 +26,7 @@ from vineyard.pipeline.runner import TileFailure, load_tile_failures, record_til
 from vineyard.pipeline.stages import assemble as assemble_stage
 from vineyard.pipeline.stages import qa_previews as qa_stage
 from vineyard.pipeline.stages import row_attrs as row_attrs_stage
+from vineyard.pipeline.stages.canopy import evidence_path, write_evidence
 from vineyard.qa import review
 
 A, B = env.A, env.B
@@ -67,6 +70,24 @@ def test_row_attrs_structure_gaps_and_cache(ctx: RunContext) -> None:
     key = read_key(row_attrs_stage.row_pieces_path(ctx.paths, A))
     again = row_attrs_stage.run(ctx)
     assert again.n_cached == 2 and read_key(row_attrs_stage.row_pieces_path(ctx.paths, A)) == key
+
+
+def test_row_attrs_gap_evidence_closes_a_gap(ctx: RunContext) -> None:
+    # a small plant (never exported as a canopy) in the middle of R002's 6 m gap leaves two < 5 m gaps
+    mid = 0.5 * (env.GAP[0] + env.GAP[1])
+    plant = af.rect(A, mid - 0.2, env.ROW_YS[1] - 0.2, mid + 0.2, env.ROW_YS[1] + 0.2)
+    evidence = gpd.GeoDataFrame({"tile_id": [A], "row_id": ["V01-R002"], "area_m2": [plant.area]},
+                                geometry=[plant], crs=f"EPSG:{CRS_EPSG}")
+    write_evidence(evidence, evidence_path(ctx.paths, A))
+    row_attrs_stage.run(ctx)
+    pieces = read_layer(row_attrs_stage.row_pieces_path(ctx.paths, A), "row_pieces")
+    assert list(pieces["row_structure"]) == ["regular", "regular", "regular"]
+    assert pieces["max_gap_m"].iloc[1] == pytest.approx(0.5 * (env.GAP[1] - env.GAP[0]) - 0.2, abs=0.05)
+
+
+def test_row_attrs_fails_without_gap_evidence(ctx: RunContext) -> None:
+    evidence_path(ctx.paths, A).unlink()
+    assert row_attrs_stage.run(ctx).failed == (A,)
 
 
 def test_row_attrs_needs_canopy_cache_and_rows(ctx: RunContext) -> None:

@@ -57,6 +57,36 @@ def veg_mask(rgb: U8, valid: BoolMask, *, blur_sigma_px: float, threshold: float
     return (neg_a(rgb, blur_sigma_px) > threshold) & valid
 
 
+def excess_green(rgb: U8, blur_sigma_px: float) -> F32:
+    """ExG = 2G - R - B in absolute 8-bit DN (float32), Gaussian-blurred (0 = no blur).
+
+    Unlike a*, ExG scales with brightness: the dark cast shadow next to a plant has a green hue (a* > 0)
+    but a small ExG, and pale sunlit leaves have a weak a* but a large ExG.
+    """
+    _require_rgb(rgb)
+    f = rgb.astype(np.float32)
+    exg = 2.0 * f[..., 1] - f[..., 0] - f[..., 2]
+    if blur_sigma_px > 0:
+        exg = cv2.GaussianBlur(exg, (0, 0), blur_sigma_px)
+    return exg
+
+
+def exg_mask(rgb: U8, valid: BoolMask, *, blur_sigma_px: float, threshold: float) -> BoolMask:
+    """Canopy vegetation = excess_green > threshold, restricted to `valid`."""
+    _require_rgb(rgb)
+    _require_mask(valid, rgb.shape[:2], "valid")
+    return (excess_green(rgb, blur_sigma_px) > threshold) & valid
+
+
+def erode_mask(mask: BoolMask, radius_px: int) -> BoolMask:
+    """Erosion by an elliptic disc of `radius_px` (0 = copy); the tile edge itself does not erode."""
+    if radius_px <= 0:
+        return np.array(mask, dtype=bool, copy=True)
+    size = 2 * radius_px + 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+    return cv2.erode(mask.astype(np.uint8), kernel) > 0  # default border value: the tile edge does not erode
+
+
 def vis_codes(rgb: U8, valid: BoolMask, *, shadow_v_max: int, overexp_v_min: int) -> U8:
     """Per-pixel visibility: VIS_SHADOW if V < shadow_v_max, VIS_OVEREXPOSED if V > overexp_v_min,
     VIS_NODATA outside `valid` (wins over the others), else VIS_OK. V = max(R, G, B) (HSV value)."""

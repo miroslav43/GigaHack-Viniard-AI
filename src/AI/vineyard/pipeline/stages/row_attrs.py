@@ -1,4 +1,5 @@
-"""Stage `row_attrs` (tile): rows ∩ tile box + the tile's canopies + vis codes -> row structure (S2).
+"""Stage `row_attrs` (tile): rows ∩ tile box + the tile's canopies (+ the canopy stage's gap evidence, plant
+pieces below the canopy minimum) + vis codes -> row structure (S2).
 
 Writes cache/row_attrs/<t>.parquet (contract `row_pieces`) and cache/row_attrs/<t>.gaps.parquet
 (internal: every gap with kind + censored, for targets/QA). The cache key covers the tile_prep key
@@ -27,7 +28,7 @@ from vineyard.pipeline.atomic import atomic_path
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult, TileTask, run_tile_stage
-from vineyard.pipeline.stages.canopy import geometry_digest
+from vineyard.pipeline.stages.canopy import evidence_path, geometry_digest, read_evidence
 from vineyard.pipeline.tile_cache import load_vis, tile_prep_key, vis_path
 from vineyard.pipeline.tile_index import tile_path
 
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 NAME: Final = "row_attrs"
-VERSION: Final = "1"
+VERSION: Final = "2"
 LAYER: Final = "row_pieces"
 ROWS_LAYER: Final = "rows"
 ROWS_FILE: Final = "rows.parquet"
@@ -113,11 +114,12 @@ def row_attrs_tile(task: TileTask) -> Mapping[str, Any]:
     tile = tile_ref(task.tile_id)
     pieces = local_row_pieces(read_layer(task.inputs["rows"], ROWS_LAYER), tile)
     canopies = read_layer(task.inputs["canopy"], CANOPY_LAYER)
+    evidence = read_evidence(task.inputs["evidence"])
     vis = load_vis(task.inputs["vis"].parents[1], task.tile_id) if not pieces.empty else None
     res = row_pieces_attributes(
         pieces, canopies, tile, cfg.row_structure, half_m=cfg.canopy.corridor_half_m,
         min_piece_m=cfg.export.min_row_piece_m, vis=vis, source=tcfg.source, run_id=tcfg.run_id,
-        model_version=tcfg.model_version,
+        model_version=tcfg.model_version, evidence=evidence,
     )
     write_layer(res.row_pieces, LAYER, task.outputs["row_pieces"])
     write_gaps(res.gaps, task.outputs["gaps"])
@@ -132,7 +134,7 @@ def row_attrs_tile(task: TileTask) -> Mapping[str, Any]:
 def _make_task(ctx: RunContext, tile_id: str) -> TileTask:
     paths = ctx.paths
     inputs = {"rows": paths.layers_dir / ROWS_FILE, "canopy": canopy_cache_path(paths, tile_id),
-              "vis": vis_path(paths.cache_dir, tile_id)}
+              "evidence": evidence_path(paths, tile_id), "vis": vis_path(paths.cache_dir, tile_id)}
     outputs = {"row_pieces": row_pieces_path(paths, tile_id), "gaps": gaps_path(paths, tile_id)}
     tcfg = RowAttrsTaskCfg(app=ctx.cfg, source=ctx.source, run_id=ctx.run_id, model_version=run_model_version(ctx))
     return TileTask(tile_id=tile_id, tif_path=tile_path(ctx, tile_id), key="", cfg=tcfg, inputs=inputs,
@@ -166,5 +168,5 @@ def run(ctx: RunContext) -> StageResult:
 STAGE: Final = StageSpec(
     name=NAME, version=VERSION, scope="tile", cfg_keys=CFG_KEYS, requires=("tile_prep", "blocks", "canopy"),
     run=run,
-    description="row_structure per row piece from canopy pixel-set gaps (1-px bins, ends included, nodata unknown)",
+    description="row_structure per row piece from canopy (+ gap evidence) pixel-set gaps (1-px bins, ends in)",
 )

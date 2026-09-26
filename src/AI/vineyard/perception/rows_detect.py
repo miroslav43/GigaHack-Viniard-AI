@@ -19,6 +19,7 @@ from shapely.geometry.base import BaseGeometry
 from vineyard.contracts.enums import Source
 from vineyard.contracts.ids import format_row_candidate_id
 from vineyard.contracts.ordering import angle_deg_utm, canonical_normal
+from vineyard.contracts.schema_defs import MIN_LINE_LENGTH_M
 from vineyard.contracts.schemas import coerce_layer, empty_layer
 from vineyard.geo.tiling import CRS_EPSG, GSD_M, TileRef, px_to_utm
 from vineyard.perception.linefit import (
@@ -38,6 +39,7 @@ from vineyard.perception.profile import (
     find_row_offsets,
     mask_points,
     offset_profile,
+    periodic_angle_px,
     px_angle_to_utm,
     subsample,
 )
@@ -62,7 +64,9 @@ STATUS_LOW_SNR: Final = "low_snr"
 METHOD_VEG: Final = "veg"
 METHOD_VEG_NN: Final = "veg_nn"
 METHOD_TEXTURE: Final = "texture"
-MIN_LINE_PX: Final = 2.0  # contract §2.7: lines >= 0.05 m
+# contract §2.7: lines >= 0.05 m. A 2.0 px line can come out 0.049999999813 m in UTM (r027_c024 crashed the
+# 311-tile run with a SchemaError), so the px gate keeps a relative margin above the exact 2.0 px.
+MIN_LINE_PX: Final = MIN_LINE_LENGTH_M / GSD_M * (1.0 + 1e-6)
 
 
 @dataclass(frozen=True)
@@ -265,8 +269,10 @@ def _enough_points(n: int, n_total: int, orientation: int, p: DetectParams) -> b
     return orientation == 0 or n >= d.multi_min_residual_frac * n_total
 
 
-def _orientation_loop(all_pts: F32, inp: _TileInputs, p: DetectParams
+def _orientation_loop(all_pts: F32, inp: _TileInputs, p: DetectParams, first_angle: float | None = None
                       ) -> tuple[list[OrientationResult], list[RowCandidate]]:
+    """Orientations one after the other on the points not yet explained; `first_angle` replaces the
+    dominant angle of the first orientation (angle fallback)."""
     d = p.rows.detect
     alive = np.ones(len(all_pts), dtype=bool)
     results: list[OrientationResult] = []
@@ -276,9 +282,9 @@ def _orientation_loop(all_pts: F32, inp: _TileInputs, p: DetectParams
         if not _enough_points(len(live_idx), len(all_pts), o, p):
             break
         pts = all_pts[live_idx]
-        angle = dominant_angle_px(subsample(pts, d.max_sample_points, p.seed + o),
-                                  coarse_step_deg=d.angle_coarse_step_deg, fine_step_deg=d.angle_step_deg,
-                                  bin_px=d.angle_bin_m / GSD_M)
+        angle = first_angle if o == 0 and first_angle is not None else dominant_angle_px(
+            subsample(pts, d.max_sample_points, p.seed + o), coarse_step_deg=d.angle_coarse_step_deg,
+            fine_step_deg=d.angle_step_deg, bin_px=d.angle_bin_m / GSD_M)
         if any(axial_diff_deg(angle, r.angle_px_deg) < d.multi_min_angle_sep_deg for r in results):
             break
         result, found, explained = _detect_orientation(pts, angle, inp, p, o)
@@ -289,6 +295,36 @@ def _orientation_loop(all_pts: F32, inp: _TileInputs, p: DetectParams
         alive[live_idx[explained]] = False
         if result.n_kept == 0:
             break
+    return results, cands
+
+
+def _accepted(cands: list[RowCandidate]) -> tuple[int, float]:
+    """(number, total px length) of the accepted candidates."""
+    ok = [c for c in cands if c.rejected_reason is None]
+    return len(ok), float(sum(c.line_px.length for c in ok))
+
+
+def _angle_fallback(all_pts: F32, inp: _TileInputs, p: DetectParams, results: list[OrientationResult],
+                    cands: list[RowCandidate]) -> tuple[list[OrientationResult], list[RowCandidate]]:
+    """When nothing was accepted, retry from the angle with the most row-band periodic power.
+
+    The variance argmax follows a tree belt or a sand edge on some tiles (r023_c014: 0 deg picked, rows at
+    127 deg); no autocorrelation peak lies in the row range there, so every candidate is rejected and the
+    real angle is never tried. The retry is kept only with >= angle_fallback_min_rows accepted rows and
+    more accepted length, so tiles that already work are never touched.
+    """
+    d = p.rows.detect
+    if not d.angle_fallback_enabled or not results or _accepted(cands)[1] > 0 or len(all_pts) < 2:
+        return results, cands
+    alt = periodic_angle_px(subsample(all_pts, d.max_sample_points, p.seed), coarse_step_deg=d.angle_coarse_step_deg,
+                            fine_step_deg=d.angle_step_deg, bin_px=d.angle_bin_m / GSD_M,
+                            spacing_min_m=d.spacing_min_m, spacing_max_m=d.spacing_max_m)
+    if axial_diff_deg(alt, results[0].angle_px_deg) < d.multi_min_angle_sep_deg:
+        return results, cands
+    alt_results, alt_cands = _orientation_loop(all_pts, inp, p, first_angle=alt)
+    n_ok, length = _accepted(alt_cands)
+    if n_ok >= d.angle_fallback_min_rows and length > _accepted(cands)[1]:
+        return alt_results, alt_cands
     return results, cands
 
 
@@ -303,7 +339,7 @@ def detect_tile_rows(veg: BoolMask, clip_px: BaseGeometry, tile_id: str, params:
     mask, method = _profile_mask(veg, prob, params, fallback_points)
     all_pts = mask_points(mask)
     inp = _TileInputs(veg=veg, valid=valid, prob=prob, clip_px=clip_px)
-    results, cands = _orientation_loop(all_pts, inp, params)
+    results, cands = _angle_fallback(all_pts, inp, params, *_orientation_loop(all_pts, inp, params))
     numbered = tuple(replace(c, k=i + 1) for i, c in enumerate(cands))
     return TileDetection(tile_id=tile_id, status_hint=_status(results, params), method=method,
                          n_veg_px=len(all_pts), orientations=tuple(results), candidates=numbered)
