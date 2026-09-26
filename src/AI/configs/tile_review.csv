@@ -1,0 +1,42 @@
+tile_id,status,note
+siret3_r013_c003,missed,vine block in the lower-left
+siret3_r030_c016,missed,vine block along the top
+siret3_r032_c022,missed,vine patch in the bottom-left
+siret3_r033_c023,missed,vine rows at the top of the tile
+siret3_r034_c025,missed,young vines on tan soil
+siret3_r035_c021,missed,vine rows in the top-right
+siret3_r037_c026,missed,vine rows along the top edge
+siret3_r013_c009,missed,whole-tile vineyard
+siret3_r014_c004,missed,vineyard on the left half of the tile
+siret3_r014_c009,missed,young vine rows in the upper half
+siret3_r030_c017,missed,vine block in the centre-left
+siret3_r030_c018,missed,vine strip in the centre
+siret3_r031_c017,missed,vine strip on the right edge
+siret3_r031_c019,missed,vine rows in the upper part
+siret3_r032_c020,missed,vine rows in the bottom-left
+siret3_r033_c021,missed,vine patch in the top-right
+siret3_r034_c026,missed,young vines on tan soil around the two trees
+siret3_r035_c024,missed,vine rows in the bottom-right corner
+siret3_r036_c022,missed,vine rows in the top-left corner
+siret3_r036_c023,missed,vine rows in the bottom-right
+siret3_r036_c027,missed,vine rows on the left
+siret3_r012_c007,verify,rows of green plants on the left - vines or crop
+siret3_r026_c019,verify,garden rows in the bottom-left next to the houses
+siret3_r029_c029,verify,garden rows in the bottom-left
+siret3_r012_c009,verify,garden rows in the bottom-right
+siret3_r007_c003,partial,left half of the vineyard unmapped
+siret3_r031_c018,partial,most of the vineyard unmapped
+siret3_r036_c024,partial,left half of the young-vine block unmapped
+siret3_r038_c025,partial,only 1 row piece - rest of the vine area at the top unmapped
+siret3_r023_c015,partial,left block unmapped
+siret3_r035_c026,partial,bottom-left block with another orientation unmapped
+siret3_r038_c024,partial,vine patch in the top-right unmapped
+siret3_r033_c019,partial,upper-left rows of the block unmapped
+siret3_r033_c022,partial,tan-soil block rows partly mapped
+siret3_r034_c022,partial,left tan block partly mapped
+siret3_r025_c016,partial,tan strip unmapped
+siret3_r026_c017,partial,tan strip partly mapped
+siret3_r010_c003,partial,left strip of the vineyard south of the road unmapped
+siret3_r027_c031,verify,dense dark striped beds - likely a mulched crop not vines
+siret3_r027_c032,verify,dense dark striped beds - likely a mulched crop not vines
+siret3_r028_c032,verify,dense dark striped beds - likely a mulched crop not vines

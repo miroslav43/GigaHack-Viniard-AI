@@ -23,6 +23,7 @@ import shapely
 from shapely.geometry import MultiPolygon, mapping
 
 from vineyard.annset.model import AnnSet
+from vineyard.contracts.ids import tile_grid_ids
 from vineyard.errors import ConfigError, SchemaError
 from vineyard.geo.ops import make_valid_polygonal, orient_ccw
 from vineyard.geo.vector_io import round_geometry, write_geojson
@@ -36,6 +37,7 @@ from vineyard.measure.measurements import MeasureInputs, compute_measurements
 from vineyard.perception.block_overlap import BlockOverlapParams, remove_block_overlap
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json, atomic_write_text
 from vineyard.web.manifest import SurveyInfo, build_manifest, manifest_stage, survey_info
+from vineyard.web.masks_export import MASK_EXT, MASKS_DIRNAME, mask_manifest, mask_pngs
 from vineyard.web.objects_export import (
     RouteInfo,
     canopy_features,
@@ -45,6 +47,14 @@ from vineyard.web.objects_export import (
     waste_features,
 )
 from vineyard.web.rows_export import features_frame, natural_key, physical_rows, text_or_none
+from vineyard.web.tile_review import TileReview
+from vineyard.web.tiles_export import (
+    facts_from_stats,
+    facts_from_status,
+    merge_facts,
+    tile_counts,
+    tile_features,
+)
 
 if TYPE_CHECKING:
     from vineyard.config import AppConfig
@@ -56,8 +66,10 @@ MEASUREMENTS_FILE: Final = "measurements.csv"
 LAYER_FILES: Final[Mapping[str, str]] = MappingProxyType({
     "blocks": "blocks.geojson", "rows": "rows.geojson", "canopies": "canopies.geojsonl",
     "interrows": "interrows.geojson", "waste": "waste.geojson", "targets": "targets.geojson",
-    "route": "route.geojson",
+    "route": "route.geojson", "tiles": "tiles.geojson",
 })
+# Layers describing the grid rather than the survey's objects: left out of the manifest bbox.
+GRID_LAYERS: Final = frozenset({"tiles"})
 SEQ_LAYERS: Final = frozenset({"canopies"})
 # canopies.geojson is the non-sequence spelling of the same layer: a stale copy would shadow ours.
 BUNDLE_FILES: Final = frozenset({*LAYER_FILES.values(), "canopies.geojson", MEASUREMENTS_FILE, MANIFEST_FILE})
@@ -84,6 +96,7 @@ class WebParams:
     waste_block_max_m: float
     block_buffer_m: float
     tz: str
+    mask_px: int
 
 
 def decimals_of(step: float, key: str) -> int:
@@ -103,7 +116,7 @@ def web_params(cfg: AppConfig) -> WebParams:
         overlap=BlockOverlapParams.from_config(cfg), visit_radius_m=cfg.route.visit_radius_m,
         speed_kmh=cfg.route.walking_speed_kmh,
         row_link_tol_m=ROW_LINK_TOL_M, waste_block_max_m=WASTE_BLOCK_MAX_M,
-        block_buffer_m=cfg.blocks.outline_buffer_m, tz=cfg.logging.tz,
+        block_buffer_m=cfg.blocks.outline_buffer_m, tz=cfg.logging.tz, mask_px=cfg.web.mask_px,
     )
 
 
@@ -120,6 +133,9 @@ class WebInputs:
     visits: pd.DataFrame | None = None  # route `target_visits`
     route: RouteInfo | None = None
     measurements_csv: bytes | None = None  # measure's exports/measurements.csv, copied verbatim
+    tile_status: pd.DataFrame | None = None  # the model run's layers/tile_status (veg_frac, review_priority)
+    cache_dir: Path | None = None  # tile_prep cache: veg/<tile>.png masks, stats/<tile>.json
+    tile_review: Mapping[str, TileReview] = MappingProxyType({})  # web.tile_review
 
 
 @dataclass(frozen=True)
@@ -128,6 +144,7 @@ class BundleResult:
     written: tuple[Path, ...]
     removed: tuple[Path, ...]
     counts: Mapping[str, int]
+    masks: tuple[Path, ...] = ()
 
 
 def bundle_dir(web_root: Path, survey_id: str) -> Path:
@@ -211,21 +228,30 @@ def tiles_with_objects(layers: Mapping[str, gpd.GeoDataFrame | None]) -> int:
 
 def bundle_bbox(layers: Mapping[str, gpd.GeoDataFrame | None], decimals: int) -> list[float] | None:
     """[minx, miny, maxx, maxy] (EPSG:32635) of every geometry of the bundle; None when it has none."""
-    arrays = [frame.geometry.to_numpy() for frame in layers.values() if frame is not None and len(frame)]
+    arrays = [frame.geometry.to_numpy() for name, frame in layers.items()
+              if name not in GRID_LAYERS and frame is not None and len(frame)]
     bounds = shapely.total_bounds(np.concatenate(arrays)) if arrays else np.full(4, np.nan)
     if not np.isfinite(bounds).all():
         return None  # no layer, or only empty / null geometries
     return [round(float(v), decimals) for v in bounds]
 
 
+def tile_layer(inputs: WebInputs, with_mask: frozenset[str]) -> gpd.GeoDataFrame:
+    """tiles.geojson: every grid tile; image facts from tile_prep's stats, else the model's tile_status."""
+    ids = tile_grid_ids()
+    facts = merge_facts(facts_from_stats(inputs.cache_dir, ids), facts_from_status(inputs.tile_status))
+    return tile_features(ids, tile_counts(inputs.annset), facts, inputs.tile_review, with_mask)
+
+
 def manifest_extras(inputs: WebInputs, layers: Mapping[str, gpd.GeoDataFrame | None], params: WebParams, *,
-                    run_id: str) -> dict[str, Any]:
-    """Informative manifest fields: provenance (runs, AnnSet source, model version), layer counts, extent."""
+                    run_id: str, n_masks: int = 0) -> dict[str, Any]:
+    """Informative manifest fields: provenance (runs, AnnSet source, model version), layer counts, extent,
+    the vegetation masks."""
     meta = inputs.annset.meta
     counts = {name: 0 if frame is None else len(frame) for name, frame in layers.items()}
     return {"run_id": run_id, "annset_run_id": meta.run_id, "annset_source": meta.source.value,
             "model_version": meta.model_version, "counts": counts, "tiles_with_objects": tiles_with_objects(layers),
-            "bbox_32635": bundle_bbox(layers, params.utm_decimals)}
+            "bbox_32635": bundle_bbox(layers, params.utm_decimals), "masks": mask_manifest(params.mask_px, n_masks)}
 
 
 def overlap_free_interrows(inputs: WebInputs, params: WebParams) -> gpd.GeoDataFrame:
@@ -307,15 +333,27 @@ def _remove_stale(out: Path, keep: frozenset[str]) -> tuple[Path, ...]:
     return tuple(out / name for name in stale)
 
 
+def write_masks(out: Path, pngs: Mapping[str, bytes]) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
+    """masks/<tile>.png for every given tile; other PNGs of masks/ are removed. Returns (written, removed)."""
+    masks = out / MASKS_DIRNAME
+    written = tuple(atomic_write_bytes(masks / f"{t}{MASK_EXT}", data) for t, data in pngs.items())
+    keep = frozenset(p.name for p in written)
+    stale = sorted(p for p in masks.glob(f"*{MASK_EXT}") if p.name not in keep) if masks.is_dir() else []
+    for path in stale:
+        path.unlink()
+    return written, tuple(stale)
+
+
 def build_web_bundle(inputs: WebInputs, out_dir: Path, params: WebParams, *, generated_at: str,
                      pipeline_version: str, run_id: str) -> BundleResult:
     """Write the whole bundle into `out_dir` (see the module docstring). Without derive's interrows, the
     interrow features and the computed measurements both use the AnnSet's pieces without their cross-block
     overlap (resolved once)."""
     resolved = replace(inputs, interrows=overlap_free_interrows(inputs, params))
-    layers = build_layers(resolved, params)
+    pngs = mask_pngs(inputs.cache_dir, tile_grid_ids(), params.mask_px)
+    layers = build_layers(resolved, params) | {"tiles": tile_layer(resolved, frozenset(pngs))}
     csv_bytes = measurements_bytes(resolved, params)
-    extras = manifest_extras(resolved, layers, params, run_id=run_id)
+    extras = manifest_extras(resolved, layers, params, run_id=run_id, n_masks=len(pngs))
     counts = extras["counts"]
     manifest = build_manifest(params.survey, stage=manifest_stage(inputs.annset.meta.source),
                               generated_at=generated_at, pipeline_version=pipeline_version, extras=extras)
@@ -323,6 +361,8 @@ def build_web_bundle(inputs: WebInputs, out_dir: Path, params: WebParams, *, gen
     written = [_write_layer(name, frame, out, params.utm_decimals) for name, frame in layers.items()
                if frame is not None]
     written.append(atomic_write_bytes(out / MEASUREMENTS_FILE, csv_bytes))
-    removed = _remove_stale(out, frozenset({p.name for p in written} | {MANIFEST_FILE}))
+    masks, stale_masks = write_masks(out, pngs)
+    removed = _remove_stale(out, frozenset({p.name for p in written} | {MANIFEST_FILE})) + stale_masks
     written.append(atomic_write_json(out / MANIFEST_FILE, manifest))
-    return BundleResult(out_dir=out, written=tuple(written), removed=removed, counts=MappingProxyType(counts))
+    return BundleResult(out_dir=out, written=tuple(written), removed=removed, counts=MappingProxyType(counts),
+                        masks=masks)

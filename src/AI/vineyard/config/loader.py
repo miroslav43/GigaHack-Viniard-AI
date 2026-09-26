@@ -26,6 +26,7 @@ PROJECT_RELATIVE_KEYS: Final = (
     "paths.overrides",
     "paths.waste_confirmed",
     "web.out_dir",
+    "web.tile_review",
     "waste.sam3.local_checkpoint",
     "nn.pseudolabels.train_tiles_file",
     "eval.baseline_file",

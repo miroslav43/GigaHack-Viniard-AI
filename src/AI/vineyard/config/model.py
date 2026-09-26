@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from vineyard.config.sections_core import (
     GridConfig,
@@ -67,3 +67,9 @@ class AppConfig(Section):
     web: WebConfig
     eval: EvalConfig
     logging: LoggingConfig
+
+    @model_validator(mode="after")
+    def _web_mask_px_divides_tile_px(self) -> AppConfig:
+        if self.grid.tile_px % self.web.mask_px:
+            raise ValueError(f"web.mask_px={self.web.mask_px} must divide grid.tile_px={self.grid.tile_px}")
+        return self
