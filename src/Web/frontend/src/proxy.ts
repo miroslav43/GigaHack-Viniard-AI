@@ -7,8 +7,9 @@ import { AUTH_ENABLED, DEMO_COOKIE, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } fro
 const intl = createMiddleware(routing);
 
 const PUBLIC_PATHS = ["/login", "/acces-interzis"];
-/** Open with or without a session: the invitation link lands here before the page creates the session. */
-const OPEN_PATHS = ["/parola-noua"];
+/** Open with or without a session: the invitation link lands here before the page creates the session;
+ *  the presentation site is readable by everyone (and is what "/" shows to visitors without a session). */
+const OPEN_PATHS = ["/parola-noua", "/prezentare"];
 
 /** "/en/harta" → { locale: "en", path: "/harta" }; Romanian has no prefix. */
 function splitLocale(pathname: string) {
@@ -41,13 +42,26 @@ function denyAccess(request: NextRequest, prefix: string, from?: NextResponse) {
   return res;
 }
 
+/** "/" for a visitor with neither a session nor the demo cookie: the presentation site, keeping the URL. */
+function showLanding(request: NextRequest, prefix: string, from: NextResponse) {
+  const url = request.nextUrl.clone();
+  url.pathname = `/${prefix ? prefix.slice(1) : routing.defaultLocale}/prezentare`;
+  const res = NextResponse.rewrite(url);
+  from.cookies.getAll().forEach((c) => res.cookies.set(c));
+  return res;
+}
+
 export default async function proxy(request: NextRequest) {
   const response = intl(request);
   const { prefix, path } = splitLocale(request.nextUrl.pathname);
   const adminOnly = matches(path, ADMIN_ONLY_PATHS);
   if (response.headers.get("location")) return response;
+  const demo = request.cookies.get(DEMO_COOKIE)?.value === "1";
   // without Supabase (CI / open demo) nobody is a platform admin
-  if (!AUTH_ENABLED) return adminOnly || matches(path, UAT_ADMIN_PATHS) ? denyAccess(request, prefix) : response;
+  if (!AUTH_ENABLED) {
+    if (adminOnly || matches(path, UAT_ADMIN_PATHS)) return denyAccess(request, prefix);
+    return path === "/" && !demo ? showLanding(request, prefix, response) : response;
+  }
 
   // refresh the Supabase session cookie on the response next-intl produced
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -63,7 +77,6 @@ export default async function proxy(request: NextRequest) {
   // do not run code between createServerClient and getClaims()
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
-  const demo = request.cookies.get(DEMO_COOKIE)?.value === "1";
 
   if (matches(path, OPEN_PATHS)) return response;
   const isPublic = matches(path, PUBLIC_PATHS);
@@ -81,6 +94,7 @@ export default async function proxy(request: NextRequest) {
 
   if (matches(path, UAT_ADMIN_PATHS) && (signedIn || demo) && role !== "uat_admin") return denyAccess(request, prefix, response);
 
+  if (!signedIn && !demo && path === "/") return showLanding(request, prefix, response);
   if (!signedIn && !demo && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = `${prefix}/login`;

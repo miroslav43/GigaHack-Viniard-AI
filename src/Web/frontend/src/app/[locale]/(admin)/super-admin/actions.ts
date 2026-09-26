@@ -59,6 +59,21 @@ const run = async <T,>(fn: () => Promise<T>): Promise<ActionResult<T>> => {
   }
 };
 
+// -------------------------------------------------------------- leads ----
+
+/** Follow-up of a "request a pilot" from the presentation site (RLS: platform_admin; columns status + notes). */
+export async function setLeadStatus(id: number, status: string): Promise<ActionResult> {
+  return run(async () => {
+    const { supabase } = await requireAdmin();
+    if (!["new", "contacted", "pilot", "closed"].includes(status)) throw new Error("invalid_status");
+    const { error } = await supabase.from("lead").update({ status }).eq("id", id);
+    if (error) throw new Error(error.message);
+    await audit("lead.status", "lead", String(id), { status });
+    done();
+    return null;
+  });
+}
+
 // ---------------------------------------------------------------- UAT ----
 
 export async function searchOsm(query: string): Promise<ActionResult<OsmSearchHit[]>> {

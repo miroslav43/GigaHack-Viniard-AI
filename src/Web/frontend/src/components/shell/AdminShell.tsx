@@ -21,6 +21,7 @@ import GroupOutlined from "@mui/icons-material/GroupOutlined";
 import SatelliteAltOutlined from "@mui/icons-material/SatelliteAltOutlined";
 import MonitorHeartOutlined from "@mui/icons-material/MonitorHeartOutlined";
 import HistoryOutlined from "@mui/icons-material/HistoryOutlined";
+import ContactMailOutlined from "@mui/icons-material/ContactMailOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import { Link } from "@/i18n/routing";
@@ -36,6 +37,7 @@ const ICONS: Record<AdminTab, ReactNode> = {
   uat: <AccountBalanceOutlined />,
   users: <GroupOutlined />,
   surveys: <SatelliteAltOutlined />,
+  leads: <ContactMailOutlined />,
   system: <MonitorHeartOutlined />,
   audit: <HistoryOutlined />,
 };

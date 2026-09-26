@@ -46,6 +46,8 @@ const COMMON = `
 - Language: RO / EN / RU buttons in the menu (desktop: bottom of the sidebar; mobile: top bar).
 - Sign out: the round avatar with your initials (desktop: bottom of the sidebar; mobile: top right) → «auth.signOut».
 - Forgotten password: on [the sign-in page](/login) the link «auth.forgot» → email → a link to choose a new password.
+- [The presentation site](/prezentare) — what Solemtrix does, for which institutions, security, how a free pilot works, and the
+  form «landing.contact.submit» to request a pilot for a commune (what "/" shows to visitors without an account).
 
 # Roles
 - «auth.roles.uat_admin»: manages the municipality team and turns AI targets into field tasks.
@@ -99,7 +101,8 @@ The table also shows each member's open / in-progress / done tasks.
 const ADMIN = `
 # Platform console — [«superAdmin.title»](/super-admin) (platform administrator only; reachable by URL)
 Tabs: [«superAdmin.tabs.overview»](/super-admin), [«superAdmin.tabs.uat»](/super-admin?tab=uat), [«superAdmin.tabs.users»](/super-admin?tab=users),
-[«superAdmin.tabs.surveys»](/super-admin?tab=surveys), [«superAdmin.tabs.system»](/super-admin?tab=system), [«superAdmin.tabs.audit»](/super-admin?tab=audit).
+[«superAdmin.tabs.surveys»](/super-admin?tab=surveys), [«superAdmin.tabs.leads»](/super-admin?tab=leads), [«superAdmin.tabs.system»](/super-admin?tab=system), [«superAdmin.tabs.audit»](/super-admin?tab=audit).
+Pilot requests sent from the presentation site are in the tab «superAdmin.tabs.leads»; set their status there.
 Enroll a municipality: tab «superAdmin.tabs.uat» → «superAdmin.uat.enroll» → «superAdmin.uat.searchLabel» (name or OSM relation id)
 → pick the result → check the preview → «superAdmin.uat.enrollSubmit».
 Add the municipality admin: on the municipality row → «superAdmin.uat.addAdmin» (dialog prefilled with the municipality and role)

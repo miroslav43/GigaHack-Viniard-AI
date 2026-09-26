@@ -9,6 +9,7 @@ import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LanguageSwitch } from "@/components/shell/AppShell";
 import { LogoMark } from "@/components/shell/Logo";
+import { LinkButton } from "@/components/common/links";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/login">): Promise<Metadata> {
   const { locale } = await params;
@@ -98,7 +99,10 @@ export default async function LoginPage({ params }: PageProps<"/[locale]/login">
             <LogoMark />
             <Typography sx={{ fontSize: 20, fontWeight: 700 }}>solemtrix</Typography>
           </Box>
-          <Box sx={{ ml: "auto" }}>
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+            <LinkButton href="/prezentare" size="small">
+              {t("about")}
+            </LinkButton>
             <LanguageSwitch />
           </Box>
         </Box>

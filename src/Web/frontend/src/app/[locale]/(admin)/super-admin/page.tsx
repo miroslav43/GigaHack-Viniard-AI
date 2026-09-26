@@ -10,7 +10,8 @@ import { UsersPanel } from "@/components/admin/UsersPanel";
 import { SurveysPanel } from "@/components/admin/SurveysPanel";
 import { SystemPanel } from "@/components/admin/SystemPanel";
 import { AuditPanel, type AuditRow } from "@/components/admin/AuditPanel";
-import { ADMIN_TABS, type AdminSurvey, type AdminTab, type AdminUat, type AdminUser, type LocalBundle, type Role } from "@/components/admin/types";
+import { LeadsPanel } from "@/components/admin/LeadsPanel";
+import { ADMIN_TABS, type AdminSurvey, type AdminTab, type AdminUat, type AdminUser, type LeadRow, type LocalBundle, type Role } from "@/components/admin/types";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
 import type { UatRow } from "@/lib/uats";
@@ -149,6 +150,12 @@ export default async function SuperAdminPage({ params, searchParams }: PageProps
       if (summary) bundles.push({ id: d.name, name: JSON.parse(summary).survey.name, registered: surveys.some((s) => s.id === d.name) });
     }
     panel = <SurveysPanel surveys={surveys} bundles={bundles} />;
+  }
+
+  if (tab === "leads") {
+    // RLS: only platform admins read public.lead
+    const { data } = await supabase.from("lead").select("*").order("created_at", { ascending: false }).limit(500);
+    panel = <LeadsPanel rows={(data ?? []) as LeadRow[]} />;
   }
 
   if (tab === "system") {

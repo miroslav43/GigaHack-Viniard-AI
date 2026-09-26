@@ -1,8 +1,26 @@
 import type { Geometry } from "geojson";
 
 // shared by server and client modules (a "use client" module cannot export plain values to the server)
-export type AdminTab = "overview" | "uat" | "users" | "surveys" | "system" | "audit";
-export const ADMIN_TABS: AdminTab[] = ["overview", "uat", "users", "surveys", "system", "audit"];
+export type AdminTab = "overview" | "uat" | "users" | "surveys" | "leads" | "system" | "audit";
+export const ADMIN_TABS: AdminTab[] = ["overview", "uat", "users", "surveys", "leads", "system", "audit"];
+
+/** Row of public.lead: a "request a pilot" from the presentation site. */
+export interface LeadRow {
+  id: number;
+  created_at: string;
+  name: string;
+  institution: string;
+  institution_type: string;
+  position: string | null;
+  email: string;
+  phone: string | null;
+  message: string | null;
+  locale: string;
+  status: LeadStatus;
+  notes: string | null;
+}
+export type LeadStatus = "new" | "contacted" | "pilot" | "closed";
+export const LEAD_STATUSES: LeadStatus[] = ["new", "contacted", "pilot", "closed"];
 
 export type Country = "MD" | "RO";
 export type Role = "platform_admin" | "uat_admin" | "inspector" | "viewer";

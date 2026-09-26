@@ -14,7 +14,7 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 
 | Email | Rol (`uat_role`) | Primărie (`uat`) | Ce vede |
 |---|---|---|---|
-| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (panou general, UAT-uri, utilizatori, survey-uri, sistem, jurnal); paginile de primărie îl redirecționează acolo |
+| `admin@solemtrix.demo` | `platform_admin` — administrator platformă | — (toată platforma) | după login ajunge direct în **`/super-admin`** (panou general, UAT-uri, utilizatori, survey-uri, cereri de pilot, sistem, jurnal); paginile de primărie îl redirecționează acolo |
 | `primar@sireti.demo` | `uat_admin` — administrator UAT | Sireți | panou, hartă, blocuri, rută + **Sarcini** (creează din țintele AI, atribuie) + **Echipă** (adaugă inspectori) |
 | `inspector@sireti.demo` | `inspector` — inspector de teren | Sireți | panou, hartă, blocuri, rută + **Sarcini** (actualizează sarcinile atribuite lui); fără Echipă (403) |
 | `primar@cojusna.demo` | `uat_admin` — administrator UAT | Cojușna | doar limita comunei Cojușna + „niciun zbor” (nu vede nimic din Sireți) |
@@ -46,6 +46,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 
 | Rută | Pagină | Cine are acces | Parametri |
 |---|---|---|---|
+| `/` (fără cont și fără demo) · `/prezentare` | Site de prezentare: problema, pilotul Sireți, cum funcționează, pentru cine, securitate, colaborare, întrebări, formularul „Solicitați un pilot” | oricine; cu cont sau demo, `/` e panoul primăriei | — |
 | `/login` | Autentificare (+ „Demo fără cont”, „Ați uitat parola?”) | oricine; un utilizator logat e trimis la `/` | `?next=/harta` — unde revine după login; `?forgot=1` — deschide direct pasul de resetare |
 | `/` | Panou general (KPI comună, zbor, plantații, inspecție, blocuri) | cont logat sau demo | — |
 | `/harta` | Hartă: ortofoto, straturi, atribute, căutare, rută, unealtă de măsurare | cont logat sau demo | `?rand=V02-R16` — selectează rândul; `?bloc=V01` — zoom pe bloc; `?tinta=T003` — ținta unei sarcini |
@@ -53,11 +54,11 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 | `/ruta` | Rută de inspecție (lungime, durată, ordine ținte, GPX / GeoJSON) | cont logat sau demo | — |
 | `/sarcini` | Sarcini de teren (din țintele AI): creare, atribuire, stare, notă; responsabilul primește o notificare în aplicație (clopoțelul din meniu) | conturi de primărie (`uat_admin` gestionează, `inspector` își actualizează sarcinile, `viewer` citește); demo: mesaj, fără date | `?sarcina=<id>` — evidențiază sarcina (link-ul din notificare) |
 | `/echipa` | Echipa primăriei: membri, roluri, încărcare pe sarcini | **doar `uat_admin`**; oricine altcineva logat / demo: **HTTP 403** | — |
-| `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
+| `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `leads` (cererile de pe site) · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |
 | `/parola-noua` | Setarea parolei din emailul de invitație sau de resetare | oricine, cu sau fără sesiune; fără link valid arată „Linkul nu este valid” | tokenii vin în fragmentul URL (`#access_token=…`) sau `?token_hash=…&type=invite` |
 
-Comportament fără cont și fără demo: orice pagină (în afară de `/login` și `/super-admin`) → redirect la `/login?next=…`; `/super-admin` → 403 direct.
+Comportament fără cont și fără demo: `/` arată site-ul de prezentare; orice altă pagină (în afară de `/login`, `/prezentare`, `/parola-noua` și `/super-admin`) → redirect la `/login?next=…`; `/super-admin` → 403 direct.
 
 O primărie fără zbor în limita ei (ex. Cojușna) vede pe `/`, `/harta`, `/blocuri`, `/ruta` harta limitei + mesajul „Niciun zbor de dronă în limita acestei primării”.
 

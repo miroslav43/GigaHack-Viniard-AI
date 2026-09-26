@@ -415,7 +415,8 @@
     "forgotResend": "Didn't get it? Send again",
     "forgotRateLimit": "Too many email requests in a short time. Try again in a few minutes.",
     "forgotError": "The email could not be sent. Try again.",
-    "backToSignIn": "Back to sign in"
+    "backToSignIn": "Back to sign in",
+    "about": "About Solemtrix"
   },
   "setPassword": {
     "title": "Set your password",
@@ -457,7 +458,8 @@
       "users": "Users",
       "surveys": "Surveys",
       "system": "System",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "leads": "Requests"
     },
     "common": {
       "cancel": "Cancel",
@@ -659,6 +661,21 @@
       "allActivity": "Full log →",
       "byUat": "By municipality",
       "manage": "Manage →"
+    },
+    "leads": {
+      "count": "{n} requests from the site ({fresh} new)",
+      "colAt": "Received",
+      "colContact": "Person",
+      "colInstitution": "Institution",
+      "colMessage": "Message",
+      "colStatus": "Status",
+      "empty": "No requests yet. The form is on the presentation page.",
+      "status": {
+        "new": "new",
+        "contacted": "contacted",
+        "pilot": "pilot",
+        "closed": "closed"
+      }
     }
   },
   "country": {
@@ -863,6 +880,285 @@
       "rate_limit": "Too many questions in a short time. Try again in a few minutes.",
       "sign_in": "Sign in or enter the demo to use the assistant.",
       "generic": "Could not get an answer. Try again."
+    }
+  },
+  "landing": {
+    "meta": {
+      "title": "Solemtrix — vineyard inventory from drone imagery, for public institutions",
+      "description": "The complete map of a municipality's vineyards: blocks, rows, every plant, gaps and waste, measured from drone imagery with AI, plus field inspection tasks with a route. Free pilot for municipalities."
+    },
+    "nav": {
+      "problem": "The problem",
+      "how": "How it works",
+      "audiences": "Who it's for",
+      "security": "Security",
+      "engagement": "Working together",
+      "faq": "FAQ",
+      "signIn": "Sign in",
+      "cta": "Request a pilot",
+      "menu": "Menu"
+    },
+    "hero": {
+      "eyebrow": "For municipalities, district councils and agricultural agencies",
+      "title": "Every vineyard in the commune, measured row by row",
+      "subtitle": "Solemtrix turns drone imagery into the complete map of the plantations: blocks, rows, every plant, gaps and waste. And the team gets inspection tasks with a ready-to-walk route.",
+      "ctaPilot": "Request a free pilot",
+      "ctaDemo": "See the Sireți demo",
+      "chips": [
+        "Data hosted in the EU",
+        "Română · English · Русский",
+        "CSV · GPX · GeoJSON export"
+      ],
+      "imageAlt": "Solemtrix map: vineyard block V12 in Sireți, with AI-detected rows over the orthophoto and the block's card"
+    },
+    "pilot": {
+      "title": "Pilot: Sireți commune, Strășeni district",
+      "caption": "Flight of {date}, {tiles} tiles of 51.2 m, 2.5 cm/px resolution. Figures computed by the platform, measured planimetrically in metres.",
+      "area": "hectares analysed",
+      "plants": "plants counted",
+      "rows": "rows measured",
+      "rowLength": "km of rows",
+      "disrupted": "rows with gaps over 5 m",
+      "targets": "inspection targets",
+      "route": "km, the route that visits them"
+    },
+    "problem": {
+      "title": "Vineyard data no longer keeps up with the field",
+      "subtitle": "Decisions on subsidies, abandoned land and registers rely on self-declarations and on rare, costly manual checks.",
+      "items": [
+        {
+          "value": "45,500 ha vs 66,400 ha",
+          "title": "The register and the statistics disagree",
+          "text": "The Vine and Wine Register and the National Bureau of Statistics reported wine-grape areas more than 20,000 ha apart (2024). The register relies on self-declarations.",
+          "source": "ONVV, NBS, 2024"
+        },
+        {
+          "value": "7 : 1",
+          "title": "More is uprooted than planted",
+          "text": "For every hectare planted in the last 8 years, seven were uprooted. Records change faster than they can be checked in the field.",
+          "source": "ONVV, September 2026"
+        },
+        {
+          "value": "5 districts",
+          "title": "Subsidy control without an integrated system",
+          "text": "The Land Parcel Identification System (LPIS) was piloted in only five districts. The Court of Accounts points to missing traceability and a risk of double funding.",
+          "source": "European Commission 2025, Court of Accounts 2026"
+        },
+        {
+          "value": "2 years",
+          "title": "Abandoned land is checked on complaint",
+          "text": "Land Code no. 22/2024 lets the municipality lease out land left uncultivated for 2 years, but the finding is made in the field, case by case.",
+          "source": "Land Code no. 22/2024, GD no. 688/2024"
+        }
+      ]
+    },
+    "how": {
+      "title": "How it works",
+      "subtitle": "From a drone flight to a list of field checks, in four steps.",
+      "steps": [
+        {
+          "title": "Drone flight",
+          "text": "A licensed operator photographs the commune at 2.5 cm/px. The result: an orthophoto where every vine is visible."
+        },
+        {
+          "title": "AI analysis",
+          "text": "The model detects blocks, rows, each plant's canopy, inter-rows, gaps and waste. A human operator can correct the annotations before publishing."
+        },
+        {
+          "title": "The municipality's map",
+          "text": "Each municipality sees only the area within its administrative boundary: map, indicators per block and row, tables and export."
+        },
+        {
+          "title": "Field tasks",
+          "text": "Gaps, missing plants and waste become tasks for inspectors, with a due date, priority, notification and an optimised route (GPX for the phone)."
+        }
+      ]
+    },
+    "product": {
+      "title": "What the institution gets",
+      "items": [
+        {
+          "eyebrow": "Map",
+          "title": "Every row, with length, plants and the largest gap",
+          "text": "Click any row or block: length, number of plants, largest gap, canopy and inter-row area. Search by code, measure distances and areas, 3D view.",
+          "alt": "Row V12-R003 on the map, marked disrupted, with a largest gap of 46.7 m"
+        },
+        {
+          "eyebrow": "Tasks and team",
+          "title": "From the AI analysis straight to the inspector's list",
+          "text": "The municipality admin picks the targets and assigns them to the team with a due date and priority. The inspector is notified, sees the place on the map and closes the task with a field note.",
+          "alt": "The Field tasks page with AI targets ready to assign"
+        },
+        {
+          "eyebrow": "In the field",
+          "title": "Works on a phone",
+          "text": "The map, the tasks and the route open on the inspector's phone. The route exports to GPX for any navigation app.",
+          "alt": "The Solemtrix map on a phone, with a row selected"
+        },
+        {
+          "eyebrow": "Reports",
+          "title": "Figures ready for a report",
+          "text": "The municipality dashboard gathers areas, the number of blocks, rows and plants, disrupted rows and the route. Tables export to CSV in the organisers' format.",
+          "alt": "The Sireți municipality dashboard with the plantation indicators"
+        }
+      ]
+    },
+    "audiences": {
+      "title": "Who it's for",
+      "subtitle": "The same map answers different questions, depending on who uses it.",
+      "items": [
+        {
+          "title": "Municipalities",
+          "who": "mayor, cadastral engineer, agriculture specialist",
+          "bullets": [
+            "the commune's vineyard inventory, updated with every flight",
+            "evidence for neglected land (Land Code no. 22/2024)",
+            "waste and dumps located on the map",
+            "data for projects and funding applications"
+          ]
+        },
+        {
+          "title": "District councils",
+          "who": "land relations service, agriculture department",
+          "bullets": [
+            "several communes on the same platform",
+            "prioritising field checks",
+            "comparable indicators across localities"
+          ]
+        },
+        {
+          "title": "ONVV, AIPA, MAIA",
+          "who": "register, subsidies, control",
+          "bullets": [
+            "independent check of the areas declared in the Vine and Wine Register",
+            "targeted control of subsidised plantations, per plant and per row",
+            "a detail layer (2.5 cm) complementing satellite imagery for LPIS/IACS"
+          ]
+        }
+      ]
+    },
+    "security": {
+      "title": "Security and data",
+      "subtitle": "Built for public data, with strict rules on who sees what.",
+      "items": [
+        {
+          "title": "Hosted in the European Union",
+          "text": "The database runs in the Ireland data centre. Encryption in transit and at rest is provided by the infrastructure provider."
+        },
+        {
+          "title": "Each municipality sees only its data",
+          "text": "Isolation per municipality is enforced by the database (row-level policies), not only by the interface."
+        },
+        {
+          "title": "Clear roles",
+          "text": "Municipality admin, inspector, viewer. Nobody sets someone else's password: members are invited by email."
+        },
+        {
+          "title": "Action log",
+          "text": "Enrolments, accounts and access changes are recorded in a log that cannot be edited."
+        },
+        {
+          "title": "The data belongs to the institution",
+          "text": "Export at any time in open formats: CSV, GPX, GeoJSON."
+        },
+        {
+          "title": "In the state language",
+          "text": "Interface in Romanian, with English and Russian for mixed teams."
+        }
+      ],
+      "note": "Personal data is processed under Law no. 195/2024 on personal data protection; the terms are agreed in writing with each institution before the pilot."
+    },
+    "engagement": {
+      "title": "How we start",
+      "subtitle": "No procurement at first: the pilot runs under a cooperation agreement.",
+      "steps": [
+        {
+          "tag": "60–90 days",
+          "title": "Free pilot",
+          "text": "One commune, one flight, the map and tasks for the municipality's team. At the end: a report and a decision."
+        },
+        {
+          "tag": "yearly",
+          "title": "Subscription per municipality",
+          "text": "Priced by vineyard area, sized for the low-value procurement procedure. Flights are quoted separately."
+        },
+        {
+          "tag": "district or national",
+          "title": "Project at scale",
+          "text": "For district councils and central agencies: a contract via MTender, possibly co-funded by European programmes."
+        }
+      ],
+      "budgetNote": "The local budget for next year is approved by 10 December: autumn is the right time to include the subscription."
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "q": "Who flies the drone?",
+          "a": "A drone operator licensed under Government Decision no. 949/2022. We organise the flight together with the municipality; within 10 km of the border the Border Police's approval is also required."
+        },
+        {
+          "q": "Do the measurements have legal value?",
+          "a": "They do not replace the cadastre or property titles. They are working data that show precisely where a field check is worth it and how much area is planted."
+        },
+        {
+          "q": "Why a drone and not a satellite?",
+          "a": "They complement each other. Free satellite imagery has 10 m per pixel and shows the parcel; the drone has 2.5 cm per pixel and shows every plant, the gaps in a row and the waste."
+        },
+        {
+          "q": "What does the municipality need to provide?",
+          "a": "A contact person and consent for the flight. We take the commune's administrative boundary from OpenStreetMap, and the municipality admin creates the team's accounts."
+        },
+        {
+          "q": "Where is the data and who owns it?",
+          "a": "In the European Union (Ireland). The data belongs to the institution, which can export it at any time in open formats."
+        },
+        {
+          "q": "How accurate are the results?",
+          "a": "Areas and lengths are computed in metres, planimetrically, from 2.5 cm/px imagery. AI annotations can be checked and corrected by a human operator before publishing, and any row can be checked on the orthophoto."
+        },
+        {
+          "q": "How do we buy it?",
+          "a": "The pilot requires no procurement. The yearly subscription can be bought through the low-value procurement procedure; large projects through MTender."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Request a pilot for your commune",
+      "subtitle": "Leave your contact details and we will reply with the steps for the pilot.",
+      "name": "Full name",
+      "institution": "Institution",
+      "institutionType": "Type of institution",
+      "types": {
+        "primarie": "Municipality",
+        "consiliu_raional": "District council",
+        "minister_agentie": "Ministry or agency",
+        "asociatie_producatori": "Growers' association",
+        "altul": "Other"
+      },
+      "position": "Position",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "message": "Message (optional)",
+      "messagePlaceholder": "e.g. the commune, approximate vineyard area, what you would like to know",
+      "consent": "I agree to be contacted about this request.",
+      "submit": "Send the request",
+      "success": "Thank you! Your request has been recorded; we will contact you soon.",
+      "errors": {
+        "invalid": "Fill in your name, the institution, its type and a valid email, and tick the consent.",
+        "unavailable": "The form is not available right now. Please try again later.",
+        "rate_limit": "Too many requests from this address. Please try again later.",
+        "generic": "The request could not be sent. Please try again."
+      }
+    },
+    "footer": {
+      "tagline": "Vineyard inventory from drone imagery, for public institutions of the Republic of Moldova.",
+      "hackathon": "Built at DeepTech GigaHack 2026, Vineyard AI Field Challenge.",
+      "attribution": "Sireț3 orthophoto © 3DATA COLLECT / OpenAerialMap, CC BY 4.0 · Boundaries © OpenStreetMap, ODbL.",
+      "sources": "Sources for the figures on this page",
+      "app": "The app",
+      "demo": "Demo without an account",
+      "signIn": "Sign in"
     }
   }
 }

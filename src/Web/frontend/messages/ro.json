@@ -415,7 +415,8 @@
     "forgotResend": "Nu a sosit? Trimite din nou",
     "forgotRateLimit": "Prea multe cereri de email într-un timp scurt. Încercați din nou peste câteva minute.",
     "forgotError": "Emailul nu a putut fi trimis. Încercați din nou.",
-    "backToSignIn": "Înapoi la autentificare"
+    "backToSignIn": "Înapoi la autentificare",
+    "about": "Despre Solemtrix"
   },
   "setPassword": {
     "title": "Setați parola",
@@ -457,7 +458,8 @@
       "users": "Utilizatori",
       "surveys": "Survey-uri",
       "system": "Sistem",
-      "audit": "Jurnal"
+      "audit": "Jurnal",
+      "leads": "Cereri"
     },
     "common": {
       "cancel": "Anulează",
@@ -659,6 +661,21 @@
       "allActivity": "Tot jurnalul →",
       "byUat": "Pe primării",
       "manage": "Gestionează →"
+    },
+    "leads": {
+      "count": "{n} cereri de pe site ({fresh} noi)",
+      "colAt": "Primită",
+      "colContact": "Persoana",
+      "colInstitution": "Instituția",
+      "colMessage": "Mesaj",
+      "colStatus": "Stare",
+      "empty": "Nicio cerere încă. Formularul este pe pagina de prezentare.",
+      "status": {
+        "new": "nouă",
+        "contacted": "contactată",
+        "pilot": "pilot",
+        "closed": "închisă"
+      }
     }
   },
   "country": {
@@ -863,6 +880,285 @@
       "rate_limit": "Prea multe întrebări într-un timp scurt. Încercați din nou peste câteva minute.",
       "sign_in": "Autentificați-vă sau intrați în demo ca să folosiți asistentul.",
       "generic": "Nu am putut obține un răspuns. Încercați din nou."
+    }
+  },
+  "landing": {
+    "meta": {
+      "title": "Solemtrix — inventarul viilor din imagini de dronă, pentru instituții publice",
+      "description": "Harta completă a plantațiilor viticole din comună: blocuri, rânduri, fiecare plantă, goluri și deșeuri, măsurate din imagini de dronă cu AI, plus sarcini de inspecție cu traseu. Pilot gratuit pentru primării."
+    },
+    "nav": {
+      "problem": "Problema",
+      "how": "Cum funcționează",
+      "audiences": "Pentru cine",
+      "security": "Securitate",
+      "engagement": "Colaborare",
+      "faq": "Întrebări",
+      "signIn": "Autentificare",
+      "cta": "Solicitați un pilot",
+      "menu": "Meniu"
+    },
+    "hero": {
+      "eyebrow": "Pentru primării, consilii raionale și agențiile din agricultură",
+      "title": "Fiecare vie din comună, măsurată rând cu rând",
+      "subtitle": "Solemtrix transformă imaginile de dronă în harta completă a plantațiilor: blocuri, rânduri, fiecare plantă, goluri și deșeuri. Iar echipa primește sarcini de inspecție cu traseul gata de mers.",
+      "ctaPilot": "Solicitați un pilot gratuit",
+      "ctaDemo": "Vedeți demo-ul Sireți",
+      "chips": [
+        "Date găzduite în UE",
+        "Română · English · Русский",
+        "Export CSV · GPX · GeoJSON"
+      ],
+      "imageAlt": "Harta Solemtrix: blocul viticol V12 din Sireți, cu rândurile detectate de AI peste ortofoto și fișa blocului"
+    },
+    "pilot": {
+      "title": "Pilot: comuna Sireți, raionul Strășeni",
+      "caption": "Zbor din {date}, {tiles} tile-uri de 51,2 m, rezoluție 2,5 cm/px. Cifre calculate de platformă, măsurate plan în metri.",
+      "area": "hectare analizate",
+      "plants": "plante numărate",
+      "rows": "rânduri măsurate",
+      "rowLength": "km de rânduri",
+      "disrupted": "rânduri cu goluri de peste 5 m",
+      "targets": "ținte de inspecție",
+      "route": "km, traseul care le vizitează"
+    },
+    "problem": {
+      "title": "Datele despre vii nu mai țin pasul cu realitatea din teren",
+      "subtitle": "Decizii despre subvenții, terenuri abandonate și registre se iau pe declarații și pe verificări manuale, rare și scumpe.",
+      "items": [
+        {
+          "value": "45.500 ha vs 66.400 ha",
+          "title": "Registrul și statistica nu coincid",
+          "text": "Registrul vitivinicol și Biroul Național de Statistică raportau suprafețe de viță de vin diferite cu peste 20.000 ha (2024). Registrul se bazează pe declarații pe propria răspundere.",
+          "source": "ONVV, BNS, 2024"
+        },
+        {
+          "value": "7 : 1",
+          "title": "Se defrișează mai mult decât se plantează",
+          "text": "Pentru fiecare hectar plantat în ultimii 8 ani, alte șapte au fost defrișate. Evidența se schimbă mai repede decât poate fi verificată pe teren.",
+          "source": "ONVV, septembrie 2026"
+        },
+        {
+          "value": "5 raioane",
+          "title": "Controlul subvențiilor, fără sistem integrat",
+          "text": "Sistemul de identificare a parcelelor (LPIS) a fost pilotat doar în cinci raioane. Curtea de Conturi semnalează lipsa trasabilității și riscul de dublă finanțare.",
+          "source": "Comisia Europeană 2025, Curtea de Conturi 2026"
+        },
+        {
+          "value": "2 ani",
+          "title": "Terenurile abandonate se verifică la plângere",
+          "text": "Codul funciar nr. 22/2024 permite primăriei să preia în arendă terenurile necultivate 2 ani, dar constatarea se face pe teren, caz cu caz.",
+          "source": "Codul funciar nr. 22/2024, HG nr. 688/2024"
+        }
+      ]
+    },
+    "how": {
+      "title": "Cum funcționează",
+      "subtitle": "De la un zbor de dronă la o listă de verificări pe teren, în patru pași.",
+      "steps": [
+        {
+          "title": "Zbor cu drona",
+          "text": "Un operator autorizat fotografiază comuna la 2,5 cm/px. Rezultatul: ortofoto în care se vede fiecare butuc."
+        },
+        {
+          "title": "Analiză AI",
+          "text": "Modelul detectează blocurile, rândurile, coroana fiecărei plante, inter-rândurile, golurile și deșeurile. Un operator uman poate corecta adnotările înainte de publicare."
+        },
+        {
+          "title": "Harta primăriei",
+          "text": "Fiecare primărie vede doar suprafața din limita ei administrativă: hartă, indicatori pe bloc și pe rând, tabele și export."
+        },
+        {
+          "title": "Sarcini pe teren",
+          "text": "Golurile, plantele lipsă și deșeurile devin sarcini pentru inspectori, cu termen, prioritate, notificare și traseu optimizat (GPX pentru telefon)."
+        }
+      ]
+    },
+    "product": {
+      "title": "Ce primește instituția",
+      "items": [
+        {
+          "eyebrow": "Hartă",
+          "title": "Fiecare rând, cu lungime, plante și cel mai mare gol",
+          "text": "Click pe orice rând sau bloc: lungimea, numărul de plante, golul maxim, aria coroanelor și a inter-rândurilor. Căutare după cod, măsurare de distanțe și arii, vedere 3D.",
+          "alt": "Rândul V12-R003 pe hartă, marcat întrerupt, cu un gol maxim de 46,7 m"
+        },
+        {
+          "eyebrow": "Sarcini și echipă",
+          "title": "Din analiza AI direct în lista inspectorului",
+          "text": "Administratorul primăriei alege țintele, le atribuie echipei cu termen și prioritate. Inspectorul primește o notificare, vede locul pe hartă și închide sarcina cu o notă de teren.",
+          "alt": "Pagina Sarcini de teren cu țintele analizei AI gata de atribuit"
+        },
+        {
+          "eyebrow": "Pe teren",
+          "title": "Merge pe telefon",
+          "text": "Harta, sarcinile și traseul se deschid pe telefonul inspectorului. Traseul se exportă în GPX pentru orice aplicație de navigație.",
+          "alt": "Harta Solemtrix pe un telefon, cu un rând selectat"
+        },
+        {
+          "eyebrow": "Rapoarte",
+          "title": "Cifre gata de pus într-un raport",
+          "text": "Panoul primăriei adună suprafețele, numărul de blocuri, de rânduri și de plante, rândurile întrerupte și ruta. Tabelele se exportă în CSV, în formatul cerut de organizatori.",
+          "alt": "Panoul general al primăriei Sireți cu indicatorii plantațiilor"
+        }
+      ]
+    },
+    "audiences": {
+      "title": "Pentru cine",
+      "subtitle": "Aceeași hartă răspunde la întrebări diferite, după cine o folosește.",
+      "items": [
+        {
+          "title": "Primării",
+          "who": "primar, inginer cadastral, specialist în agricultură",
+          "bullets": [
+            "inventarul viilor din comună, actualizat la fiecare zbor",
+            "dovezi pentru terenurile neîngrijite (Codul funciar nr. 22/2024)",
+            "deșeurile și gunoiștile reperate pe hartă",
+            "date pentru proiecte și aplicații de finanțare"
+          ]
+        },
+        {
+          "title": "Consilii raionale",
+          "who": "serviciul relații funciare, direcția agricultură",
+          "bullets": [
+            "situația mai multor comune pe aceeași platformă",
+            "prioritizarea verificărilor pe teren",
+            "indicatori comparabili între localități"
+          ]
+        },
+        {
+          "title": "ONVV, AIPA, MAIA",
+          "who": "registru, subvenții, control",
+          "bullets": [
+            "verificare independentă a suprafețelor declarate în Registrul vitivinicol",
+            "control țintit al plantațiilor subvenționate, pe plantă și pe rând",
+            "strat de detaliu (2,5 cm) complementar imaginilor satelitare pentru LPIS/SIAC"
+          ]
+        }
+      ]
+    },
+    "security": {
+      "title": "Securitate și date",
+      "subtitle": "Construit pentru date publice, cu reguli stricte despre cine vede ce.",
+      "items": [
+        {
+          "title": "Găzduire în Uniunea Europeană",
+          "text": "Baza de date rulează în centrul de date din Irlanda. Criptarea în tranzit și în repaus este asigurată de furnizorul de infrastructură."
+        },
+        {
+          "title": "Fiecare primărie își vede doar datele",
+          "text": "Izolarea pe primărie este impusă de baza de date (politici pe rând), nu doar de interfață."
+        },
+        {
+          "title": "Roluri clare",
+          "text": "Administrator UAT, inspector, vizualizator. Nimeni nu setează parola altcuiva: membrii sunt invitați pe email."
+        },
+        {
+          "title": "Jurnal al acțiunilor",
+          "text": "Înrolările, conturile și modificările de acces rămân înregistrate într-un jurnal care nu se poate edita."
+        },
+        {
+          "title": "Datele sunt ale instituției",
+          "text": "Export oricând în formate deschise: CSV, GPX, GeoJSON."
+        },
+        {
+          "title": "În limba de stat",
+          "text": "Interfață în română, cu engleză și rusă pentru echipe mixte."
+        }
+      ],
+      "note": "Prelucrarea datelor personale se face conform Legii nr. 195/2024 privind protecția datelor cu caracter personal; condițiile se stabilesc în scris cu fiecare instituție înainte de pilot."
+    },
+    "engagement": {
+      "title": "Cum începem",
+      "subtitle": "Fără achiziție la început: pilotul se face pe baza unui acord de colaborare.",
+      "steps": [
+        {
+          "tag": "60–90 de zile",
+          "title": "Pilot gratuit",
+          "text": "O comună, un zbor, harta și sarcinile pentru echipa primăriei. La final: raport și decizie."
+        },
+        {
+          "tag": "anual",
+          "title": "Abonament pe primărie",
+          "text": "Preț după suprafața de vii, dimensionat pentru procedura de achiziții de valoare mică. Zborurile se ofertează separat."
+        },
+        {
+          "tag": "raion sau național",
+          "title": "Proiect la scară",
+          "text": "Pentru consilii raionale și agenții centrale: contract prin MTender, cu posibilă co-finanțare din programe europene."
+        }
+      ],
+      "budgetNote": "Bugetul local pentru anul următor se aprobă până la 10 decembrie: toamna este momentul potrivit pentru a include abonamentul."
+    },
+    "faq": {
+      "title": "Întrebări frecvente",
+      "items": [
+        {
+          "q": "Cine face zborurile cu drona?",
+          "a": "Un operator de drone autorizat conform HG nr. 949/2022. Organizăm zborul împreună cu primăria; în zona de 10 km de la frontieră se cere în plus acordul Poliției de Frontieră."
+        },
+        {
+          "q": "Au măsurătorile valoare juridică?",
+          "a": "Nu înlocuiesc cadastrul sau actele de proprietate. Sunt date de lucru care arată precis unde merită verificat pe teren și câtă suprafață e plantată."
+        },
+        {
+          "q": "De ce dronă și nu satelit?",
+          "a": "Sunt complementare. Imaginile satelitare gratuite au 10 m pe pixel și arată parcela; drona are 2,5 cm pe pixel și arată fiecare plantă, golurile din rând și deșeurile."
+        },
+        {
+          "q": "Ce trebuie să pună la dispoziție primăria?",
+          "a": "O persoană de contact și acordul pentru zbor. Limita administrativă a comunei o preluăm din OpenStreetMap, iar conturile echipei le creează administratorul primăriei."
+        },
+        {
+          "q": "Unde sunt datele și cine le deține?",
+          "a": "În Uniunea Europeană (Irlanda). Datele sunt ale instituției: le poate exporta oricând în formate deschise."
+        },
+        {
+          "q": "Cât de exacte sunt rezultatele?",
+          "a": "Suprafețele și lungimile se calculează în metri, plan, din imagini de 2,5 cm/px. Adnotările AI pot fi verificate și corectate de un operator uman înainte de publicare, iar orice rând se poate controla pe ortofoto."
+        },
+        {
+          "q": "Cum o achiziționăm?",
+          "a": "Pilotul nu cere achiziție. Abonamentul anual se poate cumpăra prin procedura de achiziții de valoare mică; proiectele mari, prin MTender."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Solicitați un pilot pentru comuna dumneavoastră",
+      "subtitle": "Lăsați-ne datele de contact și vă răspundem cu pașii pentru pilot.",
+      "name": "Nume și prenume",
+      "institution": "Instituția",
+      "institutionType": "Tipul instituției",
+      "types": {
+        "primarie": "Primărie",
+        "consiliu_raional": "Consiliu raional",
+        "minister_agentie": "Minister sau agenție",
+        "asociatie_producatori": "Asociație de producători",
+        "altul": "Altul"
+      },
+      "position": "Funcția",
+      "email": "Email",
+      "phone": "Telefon (opțional)",
+      "message": "Mesaj (opțional)",
+      "messagePlaceholder": "ex. comuna, suprafața aproximativă de vii, ce doriți să aflați",
+      "consent": "Sunt de acord să fiu contactat(ă) în legătură cu această cerere.",
+      "submit": "Trimite cererea",
+      "success": "Mulțumim! Cererea a fost înregistrată; vă contactăm în curând.",
+      "errors": {
+        "invalid": "Completați numele, instituția, tipul ei și un email valid, și bifați acordul.",
+        "unavailable": "Formularul nu este disponibil momentan. Încercați mai târziu.",
+        "rate_limit": "Prea multe cereri de la această adresă. Încercați mai târziu.",
+        "generic": "Cererea nu a putut fi trimisă. Încercați din nou."
+      }
+    },
+    "footer": {
+      "tagline": "Inventarul viilor din imagini de dronă, pentru instituții publice din Republica Moldova.",
+      "hackathon": "Dezvoltat în cadrul DeepTech GigaHack 2026, Vineyard AI Field Challenge.",
+      "attribution": "Ortofoto Sireț3 © 3DATA COLLECT / OpenAerialMap, CC BY 4.0 · Limite © OpenStreetMap, ODbL.",
+      "sources": "Surse pentru cifrele de pe această pagină",
+      "app": "Aplicația",
+      "demo": "Demo fără cont",
+      "signIn": "Autentificare"
     }
   }
 }

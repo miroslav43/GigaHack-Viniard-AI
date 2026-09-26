@@ -324,3 +324,13 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - `forbidden.geojson` nu e încă ocolit;
   - testele unitare (`src/lib/farmRoute/farmRoute.test.ts`) rulează cu `node --test` direct pe TypeScript (Node ≥ 22.18 elimină tipurile), deci `tsconfig` are `allowImportingTsExtensions`, iar modulele din `src/lib/farmRoute/` se importă între ele cu extensia `.ts`;
   - e2e: `e2e/farm-route.spec.ts`.
+
+### ADR-028 — Site de prezentare la `/` pentru vizitatorii fără cont, cu cereri de pilot în baza de date
+- **Context:** aplicația deschidea direct pagina de login; cumpărătorii (primării, consilii raionale, ONVV/AIPA/MAIA) trebuie întâi să înțeleagă problema rezolvată, siguranța datelor și cum se începe. Cercetarea (surse, cifre, obiecții): `docs/PREZENTARE_CERCETARE.md`.
+- **Decizie:**
+  - `src/app/[locale]/prezentare/page.tsx` (static pe limbă); `src/proxy.ts` o servește la `/` (rewrite, URL-ul rămâne `/`) când nu există nici sesiune, nici cookie demo; cu cont sau demo, `/` rămâne panoul primăriei. `/prezentare` e deschisă tuturor;
+  - structura urmează paginile care conving instituțiile publice: problemă cu cifre și surse, cifrele reale ale pilotului Sireți (citite din `summary.json`; ascunse pe datele de test), pași, capturi reale din aplicație (`public/marketing/`), pentru cine, securitate, cum începem (pilot gratuit → abonament pe primărie sub pragul achizițiilor de valoare mică → MTender), întrebări frecvente, formular;
+  - pe pagină apar doar afirmații verificate azi (găzduire UE, RLS pe primărie, roluri, jurnal, export deschis, Legea nr. 195/2024 ca angajament scris înainte de pilot). Nu apar: integrări MPass/MSign, certificări, precizie în procente, prețuri, parteneriate cu instituții;
+  - formularul „Solicitați un pilot” → server action → `public.lead` (migrația `20260926000500_leads.sql`): fără drept de inserare pentru `anon`/`authenticated` (API-ul public nu poate fi folosit pentru spam), scriere cu cheia secretă doar din server, câmp capcană, timp minim de completare, limită pe adresă; citire și stare (`nouă / contactată / pilot / închisă`) doar pentru `platform_admin`, în `/super-admin?tab=leads`.
+- **Respins:** landing separat (alt domeniu/proiect): regula din `src/Web/` și un singur deploy; formular prin email: fără SMTP configurat și fără istoric; inserare directă din browser cu RLS: ar permite spam prin REST.
+- **Consecințe:** textele sunt în `messages/*.json` → `landing` (RO / EN / RU). O afirmație nouă pe site se verifică întâi și se notează în `PREZENTARE_CERCETARE.md`. Fără `SUPABASE_SECRET_KEY`, formularul spune că nu e disponibil.
