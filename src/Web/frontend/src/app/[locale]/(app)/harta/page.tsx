@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { MapExplorer } from "@/components/map/MapExplorer";
 import { NoSurvey } from "@/components/common/NoSurvey";
 import { getViewer } from "@/lib/viewer";
-import { SURVEY_ID, dataUrl, getRows, getSummary } from "@/lib/data";
+import { SURVEY_ID, dataUrl, getRows, getSummary, getTerrain } from "@/lib/data";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/harta">): Promise<Metadata> {
   const { locale } = await params;
@@ -17,10 +17,10 @@ export default async function MapPage({ params }: PageProps<"/[locale]/harta">) 
   setRequestLocale(locale);
   const viewer = await getViewer();
   if (!viewer.uat?.surveys.includes(SURVEY_ID)) return <NoSurvey viewer={viewer} fullHeight />;
-  const [summary, rows] = await Promise.all([getSummary(), getRows()]);
+  const [summary, rows, terrain] = await Promise.all([getSummary(), getRows(), getTerrain()]);
   return (
     <Suspense>
-      <MapExplorer summary={summary} rows={rows} dataBase={dataUrl("").replace(/\/$/, "")} geofence={viewer.uat.geofence} />
+      <MapExplorer summary={summary} rows={rows} dataBase={dataUrl("").replace(/\/$/, "")} geofence={viewer.uat.geofence} terrain={terrain} />
     </Suspense>
   );
 }

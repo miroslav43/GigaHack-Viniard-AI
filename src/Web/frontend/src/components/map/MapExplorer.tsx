@@ -28,8 +28,11 @@ import { LayerPanel, DEFAULT_VISIBILITY, type LayerKey } from "./LayerPanel";
 import { AttributePanel, type Selection } from "./AttributePanel";
 import { KpiStrip } from "./KpiStrip";
 import { MeasureTool } from "./MeasureTool";
+import { ReliefControl } from "./ReliefControl";
+import { useRelief } from "./useRelief";
 import { ROUTE_ARROW, routeArrowImage } from "./arrowImage";
 import type { LonLat } from "@/lib/utm";
+import type { TerrainMeta } from "@/lib/terrain";
 
 interface TileIndex {
   overview: { url: string; corners: [number, number][] };
@@ -53,11 +56,14 @@ export function MapExplorer({
   rows,
   dataBase,
   geofence: geofenceGeometry,
+  terrain = null,
 }: {
   summary: SurveySummary;
   rows: RowRecord[];
   dataBase: string;
   geofence: Geometry;
+  /** synthetic canopy relief for the oblique 3D view (null: not generated, the view stays 2D) */
+  terrain?: TerrainMeta | null;
 }) {
   const t = useTranslations();
   const theme = useTheme();
@@ -87,6 +93,8 @@ export function MapExplorer({
   const [measuring, setMeasuring] = useState(false);
   const [measurePts, setMeasurePts] = useState<LonLat[]>([]);
   const [arrowReady, setArrowReady] = useState(false);
+  // arrowReady is set in onLoad: the style is loaded, so the relief can add its sources and set the terrain
+  const relief = useRelief(mapRef, terrain, dataBase, arrowReady);
 
   useEffect(() => {
     // `absent`: an optional layer a bundle may not ship (no waste.geojson before the waste model runs) — used only on 404
@@ -457,6 +465,7 @@ export function MapExplorer({
             setMeasuring(false);
           }}
         />
+        <ReliefControl available={relief.available} ready={relief.ready} settings={relief.settings} onChange={relief.update} />
         {selection && (
           <AttributePanel
             selection={selection}

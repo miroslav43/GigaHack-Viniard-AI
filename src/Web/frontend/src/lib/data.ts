@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { FeatureCollection, Point } from "geojson";
 import type { RowRecord, SurveySummary, TargetProps } from "./types";
+import { parseTerrainMeta, TERRAIN_META_FILE, type TerrainMeta } from "./terrain";
 
 export const SURVEY_ID = process.env.NEXT_PUBLIC_SURVEY_ID ?? "siret3-mock";
 const DATA_DIR = path.join(process.cwd(), "public", "data", SURVEY_ID);
@@ -12,5 +13,11 @@ const readJson = async <T>(file: string): Promise<T> => JSON.parse(await readFil
 export const getSummary = () => readJson<SurveySummary>("summary.json");
 export const getRows = () => readJson<RowRecord[]>("rows.json");
 export const getTargets = () => readJson<FeatureCollection<Point, TargetProps>>("targets.geojson");
+/** Relief of the 3D view (scripts/build-terrain.mjs); null when not generated or unusable — the map then stays 2D only. */
+export const getTerrain = (): Promise<TerrainMeta | null> =>
+  readJson<unknown>(TERRAIN_META_FILE).then(parseTerrainMeta, (err: NodeJS.ErrnoException) => {
+    if (err.code !== "ENOENT") console.warn(`terrain: ${TERRAIN_META_FILE} of ${SURVEY_ID} unreadable (${err.message}); 3D view disabled`);
+    return null;
+  });
 
 export const dataUrl = (file: string) => `/data/${SURVEY_ID}/${file}`;
