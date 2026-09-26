@@ -83,7 +83,10 @@ export function MapExplorer({
   const [visible, setVisible] = useState<Record<LayerKey, boolean>>(DEFAULT_VISIBILITY);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [cursor, setCursor] = useState<string>("grab");
-  const [panelOpen, setPanelOpen] = useState(!compact);
+  // null = follow the screen size (closed on phones/tablets) until the user toggles it. Reading `compact` only in the
+  // initial state was wrong: useMediaQuery is false on the first render, so the panel stayed open over the map on phones
+  const [panelChoice, setPanelChoice] = useState<boolean | null>(null);
+  const panelOpen = panelChoice ?? !compact;
   const [measuring, setMeasuring] = useState(false);
   const [measurePts, setMeasurePts] = useState<LonLat[]>([]);
   const [arrowReady, setArrowReady] = useState(false);
@@ -435,7 +438,7 @@ export function MapExplorer({
 
         <LayerPanel
           open={panelOpen}
-          onToggleOpen={() => setPanelOpen((v) => !v)}
+          onToggleOpen={() => setPanelChoice(!panelOpen)}
           visible={visible}
           onChange={(k, v) => setVisible((s) => ({ ...s, [k]: v }))}
           rows={rows}
