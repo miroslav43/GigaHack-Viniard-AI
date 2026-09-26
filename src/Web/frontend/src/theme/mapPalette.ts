@@ -23,6 +23,7 @@ export const mapPalette = {
   block: color.primary[200],
   waste: color.error.main,
   target: color.info.main,
+  targetOffRoute: color.grey[600],
   targetText: color.white,
   route: color.primary.main,
   start: color.grey[900],

@@ -12,6 +12,8 @@
     "prebuild": "node scripts/copy-maplibre-worker.mjs",
     "data": "node scripts/build-data.mjs",
     "data:fast": "node scripts/build-data.mjs --skip-ortho",
+    "data:survey": "node scripts/build-survey.mjs",
+    "test:scripts": "node --test scripts/survey/*.test.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

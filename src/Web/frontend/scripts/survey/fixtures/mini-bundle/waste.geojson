@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","name":"waste","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::32635"}},"features":[{"type":"Feature","properties":{"waste_id":"W1","vineyard_id":null,"tile":"siret3_r018_c011","confidence":0.87},"geometry":{"type":"Polygon","coordinates":[[[629590,5220285],[629592,5220285],[629592,5220287],[629590,5220287],[629590,5220285]]]}}]}

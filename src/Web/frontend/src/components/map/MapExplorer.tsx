@@ -14,13 +14,14 @@ import Map, {
 } from "@vis.gl/react-maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { FeatureCollection, Geometry, LineString, MultiLineString, Point, Polygon } from "geojson";
+import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString, Point, Polygon } from "geojson";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { mapPalette } from "@/theme/mapPalette";
-import type { RowRecord, SurveySummary, TargetProps } from "@/lib/types";
+import type { RowRecord, SurveySummary, TargetProps, WasteProps } from "@/lib/types";
 import { baseStyle, ORTHO_ANCHOR, ZOOM } from "./mapStyle";
 import { bboxOf, bboxOfCollection, intersects, maskOutside, type BBox } from "./geo";
 import { LayerPanel, DEFAULT_VISIBILITY, type LayerKey } from "./LayerPanel";
@@ -36,8 +37,11 @@ interface TileIndex {
 }
 
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
-const INTERACTIVE = ["rows-hit", "canopies-fill", "interrows-fill", "blocks-fill"];
+const INTERACTIVE = ["targets-circle", "waste-fill", "rows-hit", "canopies-fill", "interrows-fill", "blocks-fill"];
 const MAX_DETAIL_TILES = 48;
+// every target is a circle on the canvas; the numbered DOM markers are only for the route stops in view, close up
+const TARGET_LABEL_ZOOM = 18;
+const MAX_TARGET_LABELS = 120;
 
 // see scripts/copy-maplibre-worker.mjs
 if (typeof window !== "undefined") setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -65,7 +69,9 @@ export function MapExplorer({
   const [rowsFc, setRowsFc] = useState<FeatureCollection<MultiLineString> | null>(null);
   const [blocksFc, setBlocksFc] = useState<FeatureCollection<Polygon> | null>(null);
   const [targets, setTargets] = useState<FeatureCollection<Point, TargetProps> | null>(null);
+  const [wasteFc, setWasteFc] = useState<FeatureCollection<Polygon, WasteProps> | null>(null);
   const [route, setRoute] = useState<FeatureCollection<LineString> | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const geofence = useMemo<FeatureCollection>(
     () => ({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: geofenceGeometry }] }),
     [geofenceGeometry],
@@ -73,6 +79,7 @@ export function MapExplorer({
   const [start, setStart] = useState<[number, number] | null>(null);
   const [studyBbox, setStudyBbox] = useState<BBox | null>(null);
   const [detailTiles, setDetailTiles] = useState<TileIndex["tiles"]>([]);
+  const [targetLabels, setTargetLabels] = useState<Feature<Point, TargetProps>[]>([]);
   const [visible, setVisible] = useState<Record<LayerKey, boolean>>(DEFAULT_VISIBILITY);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [cursor, setCursor] = useState<string>("grab");
@@ -82,7 +89,13 @@ export function MapExplorer({
   const [arrowReady, setArrowReady] = useState(false);
 
   useEffect(() => {
-    const get = <T,>(url: string) => fetch(url).then((r) => r.json() as Promise<T>);
+    // `absent`: an optional layer a bundle may not ship (no waste.geojson before the waste model runs) — used only on 404
+    const get = <T,>(url: string, absent?: T) =>
+      fetch(url).then((r) => {
+        if (r.status === 404 && absent) return absent;
+        if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+        return r.json() as Promise<T>;
+      });
     Promise.all([
       get<TileIndex>("/data/tiles.json"),
       get<FeatureCollection<MultiLineString>>(`${dataBase}/rows.geojson`),
@@ -91,15 +104,20 @@ export function MapExplorer({
       get<FeatureCollection<LineString>>(`${dataBase}/route.geojson`),
       get<FeatureCollection<Point>>("/data/ref/start.geojson"),
       get<FeatureCollection>("/data/ref/study_area.geojson"),
-    ]).then(([ti, rw, bl, tg, rt, st, sa]) => {
-      setTileIndex(ti);
-      setRowsFc(rw);
-      setBlocksFc(bl);
-      setTargets(tg);
-      setRoute(rt);
-      setStart(st.features[0].geometry.coordinates as [number, number]);
-      setStudyBbox(bboxOfCollection(sa));
-    });
+      get<FeatureCollection<Polygon, WasteProps>>(`${dataBase}/waste.geojson`, { type: "FeatureCollection", features: [] }),
+    ])
+      .then(([ti, rw, bl, tg, rt, st, sa, ws]) => {
+        setTileIndex(ti);
+        setRowsFc(rw);
+        setBlocksFc(bl);
+        setTargets(tg);
+        setRoute(rt);
+        setWasteFc(ws);
+        setStart(st.features[0].geometry.coordinates as [number, number]);
+        setStudyBbox(bboxOfCollection(sa));
+      })
+      // a missing or broken required file: show what failed instead of "loading" forever
+      .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : String(e)));
   }, [dataBase]);
 
   const mask = useMemo(() => (geofence ? maskOutside(geofence) : null), [geofence]);
@@ -112,14 +130,21 @@ export function MapExplorer({
     if (b) mapRef.current?.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 60, maxZoom, duration: 800 });
   }, []);
 
+  const routeStops = useMemo(() => targets?.features.filter((f) => f.properties.route_order != null) ?? [], [targets]);
+
   const refreshDetail = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (map.getZoom() < ZOOM.orthoDetail) return setDetailTiles([]);
+    const zoom = map.getZoom();
     const b = map.getBounds();
     const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-    setDetailTiles(tileBoxes.filter((t) => intersects(t.bbox, view)).slice(0, MAX_DETAIL_TILES));
-  }, [tileBoxes]);
+    setDetailTiles(zoom < ZOOM.orthoDetail ? [] : tileBoxes.filter((t) => intersects(t.bbox, view)).slice(0, MAX_DETAIL_TILES));
+    setTargetLabels(
+      zoom < TARGET_LABEL_ZOOM
+        ? []
+        : routeStops.filter(({ geometry: { coordinates: [lon, lat] } }) => intersects([lon, lat, lon, lat], view)).slice(0, MAX_TARGET_LABELS),
+    );
+  }, [tileBoxes, routeStops]);
 
   const selectRow = useCallback(
     (rowId: string, zoom = true) => {
@@ -155,15 +180,21 @@ export function MapExplorer({
   const deepLinked = useRef(false);
   useEffect(() => {
     if (deepLinked.current || !rowsFc || !blocksFc || !studyBbox || !targets) return;
-    const frame = requestAnimationFrame(() => {
-      if (!mapRef.current) return;
+    let frame = 0;
+    const apply = () => {
+      // react-maplibre imports maplibre-gl lazily, so the data can arrive before the map exists: wait for it
+      if (!mapRef.current) {
+        frame = requestAnimationFrame(apply);
+        return;
+      }
       deepLinked.current = true;
       const rand = params.get("rand"), bloc = params.get("bloc"), tinta = params.get("tinta");
       if (tinta) selectTarget(tinta);
       else if (rand) selectRow(rand);
       else if (bloc) selectBlock(bloc);
       else fit(studyBbox, 17);
-    });
+    };
+    frame = requestAnimationFrame(apply);
     return () => cancelAnimationFrame(frame);
   }, [rowsFc, blocksFc, studyBbox, targets, params, selectRow, selectBlock, selectTarget, fit]);
 
@@ -296,6 +327,14 @@ export function MapExplorer({
               <Layer id="rows-selected" type="line" filter={selectedFilter("row_id", "rows") as never} paint={{ "line-color": mapPalette.selected, "line-width": 5 }} />
             </Source>
           )}
+          {wasteFc && (
+            <Source id="waste" type="geojson" data={wasteFc}>
+              <Layer id="waste-fill" type="fill" paint={{ "fill-color": mapPalette.waste, "fill-opacity": 0.25 }} layout={vis(visible.waste)} />
+              <Layer id="waste-casing" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 4, "line-opacity": 0.8 }} layout={vis(visible.waste)} />
+              <Layer id="waste-line" type="line" paint={{ "line-color": mapPalette.waste, "line-width": 2 }} layout={vis(visible.waste)} />
+              <Layer id="waste-selected" type="line" filter={selectedFilter("waste_id", "waste") as never} paint={{ "line-color": mapPalette.selected, "line-width": 3 }} />
+            </Source>
+          )}
           {route && (
             <Source id="route" type="geojson" data={route}>
               <Layer id="route-halo" type="line" paint={{ "line-color": mapPalette.casing, "line-width": 7, "line-opacity": 0.85 }} layout={{ ...vis(visible.route), "line-join": "round", "line-cap": "round" }} />
@@ -316,6 +355,28 @@ export function MapExplorer({
                   }}
                 />
               )}
+            </Source>
+          )}
+          {targets && (
+            <Source id="targets" type="geojson" data={targets}>
+              <Layer
+                id="targets-circle"
+                type="circle"
+                paint={{
+                  "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.5, 17, 5, 20, 8],
+                  // route_order null (or absent) = the route does not visit it
+                  "circle-color": ["case", ["==", ["typeof", ["get", "route_order"]], "number"], mapPalette.target, mapPalette.targetOffRoute],
+                  "circle-stroke-color": mapPalette.casing,
+                  "circle-stroke-width": 1.5,
+                }}
+                layout={vis(visible.route)}
+              />
+              <Layer
+                id="targets-selected"
+                type="circle"
+                filter={selectedFilter("target_id", "targets") as never}
+                paint={{ "circle-radius": 11, "circle-opacity": 0, "circle-stroke-color": mapPalette.selected, "circle-stroke-width": 3 }}
+              />
             </Source>
           )}
 
@@ -339,9 +400,9 @@ export function MapExplorer({
               </Source>
             ))}
 
-          {/* ---- markers ---- */}
+          {/* ---- markers: numbered route stops in view (refreshDetail) ---- */}
           {visible.route &&
-            targets?.features.map((f) => {
+            targetLabels.map((f) => {
               const [lon, lat] = f.geometry.coordinates;
               const p = f.properties;
               const active = selection?.layer === "targets" && selection.props.target_id === p.target_id;
@@ -405,8 +466,14 @@ export function MapExplorer({
           />
         )}
         {!rowsFc && (
-          <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <Typography color="text.secondary">{t("common.loadingMap")}</Typography>
+          <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", px: 4 }}>
+            {loadError ? (
+              <Alert severity="error" sx={{ maxWidth: 560 }}>
+                {t("common.mapLoadError", { detail: loadError })}
+              </Alert>
+            ) : (
+              <Typography color="text.secondary">{t("common.loadingMap")}</Typography>
+            )}
           </Box>
         )}
       </Box>

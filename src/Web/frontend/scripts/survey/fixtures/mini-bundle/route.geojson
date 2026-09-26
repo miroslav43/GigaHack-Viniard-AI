@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","name":"route","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::32635"}},"features":[{"type":"Feature","properties":{"length_m":185.329,"duration_min":2.78,"baseline_length_m":400,"outside_share":0},"geometry":{"type":"LineString","coordinates":[[629504.7,5220250.75],[629560,5220280],[629590.5,5220260],[629504.7,5220250.75]]}}]}

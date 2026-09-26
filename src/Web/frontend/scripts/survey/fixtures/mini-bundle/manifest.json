@@ -1,0 +1,25 @@
+{
+  "annset_run_id": "mini",
+  "annset_source": "model",
+  "captured_at": "2025-05-20",
+  "counts": {
+    "blocks": 2,
+    "canopies": 4,
+    "interrows": 4,
+    "route": 1,
+    "rows": 3,
+    "targets": 5,
+    "waste": 1
+  },
+  "crs": "EPSG:32635",
+  "generated_at": "2026-09-26T04:37:13+03:00",
+  "gsd_m": 0.025,
+  "license": "CC BY 4.0",
+  "name": "Sireț3",
+  "pipeline_version": "0000000000000000000000000000000000000000",
+  "run_id": "post-mini",
+  "source": "3DATA COLLECT / OpenAerialMap",
+  "stage": "model",
+  "survey_id": "siret3",
+  "tiles": 311
+}

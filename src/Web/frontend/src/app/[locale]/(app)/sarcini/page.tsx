@@ -44,7 +44,9 @@ export default async function TasksPage({ params }: PageProps<"/[locale]/sarcini
   let members: Assignable[] = [];
   if (role === "uat_admin") {
     const taken = new Set(tasks.map((x) => `${x.survey_id}/${x.target_id}`));
-    targets = (await readTargets(viewer.uat.surveys)).filter((x) => !taken.has(`${x.survey_id}/${x.target_id}`)).sort((a, b) => (a.route_order ?? 0) - (b.route_order ?? 0));
+    // route order first; targets the route does not visit (route_order null) go last
+    const order = (x: { route_order: number | null }) => x.route_order ?? Number.MAX_SAFE_INTEGER;
+    targets = (await readTargets(viewer.uat.surveys)).filter((x) => !taken.has(`${x.survey_id}/${x.target_id}`)).sort((a, b) => order(a) - order(b));
     if (ADMIN_API_ENABLED) {
       const users = await listUatUsers(createAdminClient(), viewer.uat.key);
       members = users

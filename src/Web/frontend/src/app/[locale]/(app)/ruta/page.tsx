@@ -36,7 +36,10 @@ export default async function RoutePage({ params }: PageProps<"/[locale]/ruta">)
   const f = makeFormat(await getLocale());
   const r = s.route;
   const saved = r.baseline_length_m - r.length_m;
-  const ordered = [...targets.features].sort((a, b) => a.properties.route_order - b.properties.route_order);
+  // only the stops the route visits, in walking order (route_order null = left out by the route planner)
+  const ordered = targets.features
+    .filter((x) => x.properties.route_order != null)
+    .sort((a, b) => (a.properties.route_order ?? 0) - (b.properties.route_order ?? 0));
 
   return (
     <Page>
@@ -72,8 +75,11 @@ export default async function RoutePage({ params }: PageProps<"/[locale]/ruta">)
       </KpiGrid>
 
       <Card sx={{ mt: 6 }}>
-        <Box sx={{ px: 5, pt: 5, pb: 2 }}>
+        <Box sx={{ px: 5, pt: 5, pb: 2, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 3, flexWrap: "wrap" }}>
           <Typography variant="h3">{t("order")}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t("onRoute", { n: f.int(ordered.length), total: f.int(targets.features.length) })}
+          </Typography>
         </Box>
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">

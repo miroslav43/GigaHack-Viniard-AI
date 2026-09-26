@@ -26,6 +26,11 @@ export interface SurveySummary {
     tiles_total: number;
     tiles_annotated: number;
     surveyed_area_ha: number;
+    // provenance of a real AI survey (manifest.json of the pipeline bundle); absent on the mock
+    model_version?: string;
+    run_id?: string;
+    generated_at?: string;
+    pipeline_version?: string;
   };
   uat: { name: string; district: string; country: string; osm_relation_id: number; area_ha: number };
   totals: {
@@ -62,9 +67,38 @@ export interface RowRecord {
 export interface TargetProps {
   target_id: string;
   type: string;
-  vineyard_id: string;
+  /** null only for a waste target more than 10 m from every block (src/Web/CLAUDE.md §6.3) */
+  vineyard_id: string | null;
   row_id: string | null;
   gap_length_m?: number;
   tile: string;
-  route_order: number;
+  /** null = the route does not visit this target (see skip_reason) */
+  route_order: number | null;
+  // AI bundle extras (src/Web/CLAUDE.md §6.3); absent on the mock
+  reachable?: boolean;
+  kind?: string;
+  note?: string | null;
+  waste_id?: string | null;
+  source_target_id?: string;
+  priority?: number | null;
+  route_role?: string | null;
+  skip_reason?: string | null;
+}
+
+export interface WasteProps {
+  waste_id: string;
+  vineyard_id: string | null;
+  tile: string;
+  confidence?: number | null;
+  category?: string | null;
+}
+
+export interface InterrowProps {
+  interrow_id: string;
+  vineyard_id: string;
+  interrow_cover: InterrowCover;
+  tile: string;
+  area_m2: number;
+  /** area of the whole inter-row (union of its pieces across tiles); absent on the mock */
+  interrow_total_m2?: number;
 }

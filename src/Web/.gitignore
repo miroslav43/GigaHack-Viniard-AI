@@ -1,2 +1,6 @@
 # local-only notes with credentials (the repo is public) — never commit
 *.local.md
+
+# AI bundles and generated survey data live only on the demo laptop (CLAUDE.md §8) — only the README is committed
+/data/**
+!/data/README.md

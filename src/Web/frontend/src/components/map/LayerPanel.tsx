@@ -21,7 +21,7 @@ import { useTranslations } from "next-intl";
 import { useFormat } from "@/lib/useFormat";
 import type { RowRecord } from "@/lib/types";
 
-export type LayerKey = "ortho" | "geofence" | "blocks" | "canopies" | "rows" | "interrows" | "route" | "reference";
+export type LayerKey = "ortho" | "geofence" | "blocks" | "canopies" | "rows" | "interrows" | "waste" | "route" | "reference";
 
 export const DEFAULT_VISIBILITY: Record<LayerKey, boolean> = {
   ortho: true,
@@ -30,6 +30,7 @@ export const DEFAULT_VISIBILITY: Record<LayerKey, boolean> = {
   canopies: true,
   rows: true,
   interrows: true,
+  waste: true,
   route: true,
   reference: false,
 };
@@ -41,6 +42,7 @@ const LAYERS: { key: LayerKey; label: string; minZoom?: number }[] = [
   { key: "canopies", label: "layerCanopies", minZoom: 17.5 },
   { key: "rows", label: "layerRows" },
   { key: "interrows", label: "layerInterrows", minZoom: 16.5 },
+  { key: "waste", label: "layerWaste" },
   { key: "route", label: "layerRoute" },
   { key: "reference", label: "layerReference" },
 ];
@@ -192,8 +194,10 @@ export function LayerPanel({
           {(Object.keys(mapPalette.interrow) as (keyof typeof mapPalette.interrow)[]).map((k) => (
             <LegendItem key={k} label={t("legendInterrow", { cover: tc(`cover.${k}`) })} color={mapPalette.interrow[k]} />
           ))}
+          <LegendItem label={t("legendWaste")} color={mapPalette.waste} />
           <LegendItem label={t("legendRoute")} color={mapPalette.route} line />
           <LegendItem label={t("legendTarget")} color={mapPalette.target} />
+          <LegendItem label={t("legendTargetOffRoute")} color={mapPalette.targetOffRoute} />
           <LegendItem label={t("legendGeofence")} color={mapPalette.geofence} line dashed />
         </Box>
       </Box>

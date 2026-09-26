@@ -1,6 +1,11 @@
 // The 3-minute jury flow (src/Web/docs/DEMO.md) on the siret3-mock survey:
 // overview → map → object IDs → measurements → route, in RO/EN/RU.
 import { expect, test } from "@playwright/test";
+import { SURVEY_ID } from "../src/lib/data";
+
+// the reference values below are the mock's; a build on the real survey is covered by survey-real.spec.ts
+// (SURVEY_ID is what the build inlined: playwright.config.ts loads the same .env files as `next build`)
+test.skip(SURVEY_ID !== "siret3-mock", `build serves ${SURVEY_ID}, not siret3-mock — see survey-real.spec.ts`);
 
 // the jury flow runs in the public demo mode (no Supabase session needed)
 test.beforeEach(async ({ context, baseURL }) => {

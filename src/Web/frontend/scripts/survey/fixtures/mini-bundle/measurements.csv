@@ -1,0 +1,7 @@
+level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canopy_area_ha,interrow_area_m2,interrow_area_ha,plant_count,row_structure
+survey,,,2,3,66.44,2.10,0.0002,573.00,0.0573,4,
+block,V01,,,2,46.44,1.10,0.0001,399.00,0.0399,3,
+block,V02,,,1,20.00,1.00,0.0001,174.00,0.0174,1,
+row,V01,V01-R002,,,30.00,,,,,2,disrupted
+row,V01,V01-R010,,,16.44,,,,,1,regular
+row,V02,V02-R001,,,20.00,,,,,1,regular

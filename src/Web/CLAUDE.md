@@ -31,6 +31,8 @@ Ce rulează acum (din `src/Web/frontend/`):
 | `pnpm install` | dependențele (versiuni exacte, `pnpm-lock.yaml`) |
 | `pnpm data` | `scripts/build-data.mjs`: ortofoto din cele 311 GeoTIFF (`public/ortho/`, ~33 s) + survey-ul `siret3-mock` din exemplele CVAT (`public/data/`), măsurat în EPSG:32635. Fără GeoTIFF-uri (CI) folosește `data/tiles_index.json` și sare peste ortofoto; cifrele rămân identice |
 | `pnpm data:fast` | la fel, fără regenerarea ortofoto |
+| `pnpm data:survey --survey siret3` | `scripts/build-survey.mjs`: bundle-ul AI real din `src/Web/data/surveys/siret3/pipeline/` (EPSG:32635) → `public/data/siret3/` (EPSG:4326, același format ca mock-ul); validează contractul §6 și iese cu 1 la erori. `--check` doar validează; `--emit-seed` scrie `supabase/seed/survey_siret3.sql`. Apoi `NEXT_PUBLIC_SURVEY_ID=siret3 pnpm build` (variabila se fixează la build) |
+| `pnpm test:scripts` | teste `node:test` pentru convertor (fixture mini-bundle) |
 | `pnpm dev` | `http://localhost:3000` (copiază întâi worker-ul MapLibre în `public/maplibre/`) |
 | `pnpm build` · `pnpm start` | build de producție și server |
 | `pnpm lint` · `pnpm typecheck` | ESLint, TypeScript |

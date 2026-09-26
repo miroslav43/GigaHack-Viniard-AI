@@ -14,7 +14,7 @@ import { useFormat } from "@/lib/useFormat";
 import type { SurveySummary } from "@/lib/types";
 
 export type Selection = {
-  layer: "rows" | "canopies" | "interrows" | "targets" | "blocks";
+  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks";
   props: Record<string, unknown>;
 };
 
@@ -107,22 +107,47 @@ export function AttributePanel({
             <ColorChip label={tc(`cover.${cv}`)} color={mapPalette.interrow[cv] ?? mapPalette.interrow.unassessable} />
           </Field>
           <Field label={t("area")}>{f.area(n("area_m2"))}</Field>
+          {p.interrow_total_m2 != null && <Field label={t("interrowTotal")}>{f.area(n("interrow_total_m2"))}</Field>}
         </>
       );
       break;
     }
-    case "targets":
-      title = t("target", { id: s("target_id") });
+    case "waste":
+      title = t("waste", { id: s("waste_id") });
       body = (
         <>
-          <Field label={t("routeOrder")}>{s("route_order")}</Field>
-          <Field label={t("type")}>{tc.has(`targetType.${s("type")}`) ? tc(`targetType.${s("type")}`) : s("type")}</Field>
+          <Field label="waste_id">{s("waste_id")}</Field>
           <Field label="vineyard_id">{s("vineyard_id")}</Field>
-          <Field label="row_id">{rowChip}</Field>
-          {p.gap_length_m != null && <Field label={t("gapLength")}>{f.m(n("gap_length_m"), 1)}</Field>}
+          {p.category != null && <Field label={t("category")}>{s("category")}</Field>}
+          {p.confidence != null && <Field label={t("confidence")}>{f.pct(n("confidence"))}</Field>}
         </>
       );
       break;
+    case "targets": {
+      const kind = s("kind"), skip = s("skip_reason");
+      title = t("target", { id: s("target_id") });
+      body = (
+        <>
+          <Field label={t("routeOrder")}>
+            {p.route_order != null ? s("route_order") : <Chip size="small" variant="outlined" label={t("offRoute")} />}
+          </Field>
+          {p.route_order == null && p.skip_reason != null && (
+            <Field label={t("skipReason")}>{tc.has(`skipReason.${skip}`) ? tc(`skipReason.${skip}`) : skip}</Field>
+          )}
+          <Field label={t("type")}>{tc.has(`targetType.${s("type")}`) ? tc(`targetType.${s("type")}`) : s("type")}</Field>
+          {p.kind != null && <Field label={t("kind")}>{tc.has(`targetKind.${kind}`) ? tc(`targetKind.${kind}`) : kind}</Field>}
+          <Field label="vineyard_id">{s("vineyard_id")}</Field>
+          <Field label="row_id">{rowChip}</Field>
+          {p.gap_length_m != null && <Field label={t("gapLength")}>{f.m(n("gap_length_m"), 1)}</Field>}
+          {p.note != null && (
+            <Typography variant="caption" color="text.secondary" component="p" sx={{ pt: 1 }}>
+              {s("note")}
+            </Typography>
+          )}
+        </>
+      );
+      break;
+    }
     case "blocks": {
       const b = summary.blocks.find((x) => x.vineyard_id === p.vineyard_id);
       title = t("block", { id: s("vineyard_id") });

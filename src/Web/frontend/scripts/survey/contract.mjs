@@ -1,0 +1,56 @@
+// The AI bundle contract (src/Web/CLAUDE.md §6.2–6.4) and the survey facts (§6.6) the converter relies on.
+export const BUNDLE_CRS = "EPSG:32635";
+export const CRS_URN = "urn:ogc:def:crs:EPSG::32635";
+export const STAGES = ["model", "marcaj_corrected"];
+export const TILES_TOTAL = 311;
+export const TILE_M = 51.2;
+
+export const ROW_STRUCTURES = ["regular", "disrupted", "unassessable"];
+export const INTERROW_COVERS = ["bare_soil", "vegetation", "mixed", "unassessable"];
+export const TARGET_TYPES = ["gap", "missing", "waste"];
+
+export const MANIFEST_FILE = "manifest.json";
+export const CSV_FILE = "measurements.csv";
+// canopies may be GeoJSONSeq (one Feature per line, §6.2) or a plain FeatureCollection
+export const CANOPY_FILES = ["canopies.geojsonl", "canopies.geojson"];
+export const MANIFEST_REQUIRED = ["survey_id", "name", "captured_at", "gsd_m", "crs", "source", "license", "stage", "generated_at"];
+export const CSV_HEADER =
+  "level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canopy_area_ha,interrow_area_m2,interrow_area_ha,plant_count,row_structure";
+
+const POLYGONAL = ["Polygon", "MultiPolygon"];
+/**
+ * Per layer: file, allowed geometry types, properties that must be set (`required`), properties that must be
+ * present but may be null (`nullable`), the unique id property and the lowercase enums (§6.2, §6.3).
+ */
+export const LAYERS = {
+  blocks: { file: "blocks.geojson", geometry: POLYGONAL, required: ["vineyard_id"], unique: "vineyard_id" },
+  rows: {
+    file: "rows.geojson",
+    geometry: ["LineString", "MultiLineString"],
+    required: ["row_id", "vineyard_id", "row_structure"],
+    unique: "row_id",
+    enums: { row_structure: ROW_STRUCTURES },
+  },
+  canopies: { file: CANOPY_FILES[0], geometry: POLYGONAL, required: ["canopy_id", "vineyard_id", "tile"], unique: "canopy_id" },
+  interrows: {
+    file: "interrows.geojson",
+    geometry: POLYGONAL,
+    required: ["interrow_id", "vineyard_id", "interrow_cover", "tile"],
+    unique: "piece_id",
+    enums: { interrow_cover: INTERROW_COVERS },
+  },
+  waste: { file: "waste.geojson", geometry: POLYGONAL, required: ["waste_id", "tile"], nullable: ["vineyard_id"], unique: "waste_id" },
+  // vineyard_id is null on a waste target more than 10 m from every block, like its waste (still set on gap / missing)
+  targets: {
+    file: "targets.geojson",
+    geometry: ["Point"],
+    required: ["target_id", "type"],
+    nullable: ["vineyard_id", "row_id", "route_order"],
+    unique: "target_id",
+    enums: { type: TARGET_TYPES },
+  },
+  route: { file: "route.geojson", geometry: ["LineString"], required: ["length_m"] },
+};
+
+// map-performance guard: past this point canopies need a per-tile split or PMTiles (docs/DECISIONS.md ADR-006)
+export const CANOPY_GUARD = { features: 40_000, bytes: 25 * 1024 * 1024 };

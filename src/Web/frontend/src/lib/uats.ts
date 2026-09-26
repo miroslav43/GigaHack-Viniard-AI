@@ -4,6 +4,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Geometry } from "geojson";
+import { SURVEY_ID } from "./data";
 
 export type Country = "MD" | "RO";
 
@@ -59,7 +60,7 @@ export function getDemoUat(): Promise<UatInfo> {
       osmRelationId: 19100171,
       areaHa: areas.sireti.area_ha,
       geofence: osm.features[0].geometry,
-      surveys: ["siret3-mock"],
+      surveys: [SURVEY_ID],
     };
   })();
   return demoUat;
