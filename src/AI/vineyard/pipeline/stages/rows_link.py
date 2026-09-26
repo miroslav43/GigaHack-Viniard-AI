@@ -1,5 +1,6 @@
 """Stage `rows_link` (global, 02 §3.5 + plan S4): cache/rows_detect/<t>.parquet of the selected tiles ->
-candidate overrides (exclude_areas, force_empty_tiles) -> support-line linking across tiles ->
+neighbour-guided second pass (rows_guided) -> candidate overrides (exclude_areas, force_empty_tiles) ->
+support-line linking across tiles ->
 layers/rows_raw.parquet, layers/row_candidates.parquet (+ link_decision, chain_id) and qa/qa_rows_link.parquet.
 
 Tiles whose rows_detect output has no cache key (failed or stale) are skipped with a warning issue.
@@ -33,13 +34,14 @@ from vineyard.perception.rows_link import LinkSettings, link_candidates
 from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult
+from vineyard.pipeline.stages._rows_guided_io import add_guided_candidates
 from vineyard.pipeline.tile_index import indexed_tile_ids
 
 if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "rows_link"
-VERSION: Final = "1"
+VERSION: Final = "2"  # 2: neighbour-guided second pass (rows_guided) before linking
 DETECT_STAGE: Final = "rows_detect"
 CANDIDATES_LAYER: Final = "row_candidates"
 ROWS_RAW_LAYER: Final = "rows_raw"
@@ -54,6 +56,8 @@ CFG_KEYS: Final = (
     "rows.link", "rows.detect.residual_split_m", "rows.detect.dp_tolerance_m", "rows.detect.track_vertex_m",
     "rows.detect.snap_to_edge_m", "rows.detect.gap_record_min_m", "blocks.collinear_gap_max_m",
     "blocks.neighbour_max_m", "blocks.parallel_max_deg", "export.min_row_piece_m", "paths.overrides",
+    "rows_guided", "rows.detect", "rows.filter", "orchard", "canopy.corridor_half_m", "row_structure.occ_bin_m",
+    "runtime.seed",
 )
 
 _log = get_logger("pipeline.stages.rows_link")
@@ -149,8 +153,10 @@ def link_stage(ctx: RunContext) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, lis
     """(rows_raw, candidates with decisions, issues) of the selected tiles."""
     tile_ids = ctx.selected_tiles(indexed_tile_ids(ctx))
     cands, issues = collect_candidates(ctx, tile_ids)
+    clips = load_clips(ctx)
+    cands = add_guided_candidates(ctx, cands, tile_ids, clips, ctx.model_version(nn=nn_tag(ctx)))
     ov = apply_candidate_overrides(cands, load_overrides_cfg(ctx))
-    res = link_candidates(ov.frame, load_passages(ctx), load_clips(ctx), LinkSettings.from_config(ctx.cfg))
+    res = link_candidates(ov.frame, load_passages(ctx), clips, LinkSettings.from_config(ctx.cfg))
     rows_raw = provenance(res.rows_raw, ctx)
     kept = _with_decisions(ov.frame, res.decisions) if len(ov.frame) else ov.frame
     return rows_raw, kept, [*issues, *ov.issues, *res.issues]
@@ -167,7 +173,9 @@ def run(ctx: RunContext) -> StageResult:
         write_issues(ctx, issues, NAME),
     )
     n_tiles = len(ctx.selected_tiles(indexed_tile_ids(ctx)))
-    metrics = {"n_candidates": float(len(cands)), "n_chains": float(len(rows_raw)), "n_issues": float(len(issues))}
+    n_guided = float((cands.method.astype(str) == "guided").sum()) if "method" in cands.columns else 0.0
+    metrics = {"n_candidates": float(len(cands)), "n_chains": float(len(rows_raw)), "n_issues": float(len(issues)),
+               "n_guided": n_guided}
     return StageResult(stage=NAME, n_items=n_tiles, n_cached=0, n_failed=0, outputs=outputs, metrics=metrics)
 
 

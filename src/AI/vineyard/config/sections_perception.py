@@ -92,6 +92,32 @@ class RowsConfig(Section):
     filter: RowsFilterConfig
 
 
+class RowsGuidedConfig(Section):
+    """Neighbour-guided second pass (rows_link): tiles with few accepted rows retried at a neighbour's lattice."""
+
+    enabled: bool
+    target_max_accepted: NonNegInt
+    prior_min_rows: PosInt
+    prior_angle_merge_deg: PosFloat
+    max_priors_per_cluster: PosInt
+    angle_search_deg: NonNegFloat
+    angle_step_deg: PosFloat
+    spacing_rel_tol: Frac
+    min_snr: NonNegFloat
+    lattice_tol_frac: Frac
+    phase_tol_frac: Frac
+    occupancy_min: Frac
+    min_rel_contrast: NonNegFloat
+    width_p80_max_m: PosFloat
+    wide_min_rel_contrast: NonNegFloat
+    orchard_along_period_m: Range
+    min_row_len_m: NonNegFloat
+    min_rows: PosInt
+    min_sep_m: NonNegFloat
+    continue_max_m: NonNegFloat
+    cut_gap_m: PosFloat
+
+
 class OrchardConfig(Section):
     width_spacing_ratio_max: PosFloat
     along_period_m: Range
