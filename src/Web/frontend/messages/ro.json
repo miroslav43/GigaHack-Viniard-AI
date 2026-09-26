@@ -318,6 +318,26 @@
     },
     "banned": "Contul este dezactivat. Contactați administratorul platformei."
   },
+  "setPassword": {
+    "title": "Setați parola",
+    "subtitle": "Alegeți parola contului {email}.",
+    "subtitleGeneric": "Finalizați contul Solemtrix.",
+    "checking": "Verificăm linkul…",
+    "password": "Parolă nouă",
+    "confirm": "Confirmați parola",
+    "hint": "Cel puțin {n} caractere.",
+    "mismatch": "Parolele nu coincid.",
+    "show": "Arată parola",
+    "hide": "Ascunde parola",
+    "submit": "Salvează parola și intră",
+    "saved": "Parola a fost salvată. Vă conectăm…",
+    "expired": "Linkul a expirat sau a fost deja folosit. Cereți administratorului primăriei să vă retrimită invitația.",
+    "invalid": "Linkul nu este valid. Deschideți linkul din emailul de invitație sau autentificați-vă.",
+    "toLogin": "Mergi la autentificare",
+    "samePassword": "Parola nouă trebuie să fie diferită de cea veche.",
+    "weak": "Parola este prea slabă. Alegeți una mai lungă.",
+    "error": "Parola nu a putut fi salvată. Încercați din nou."
+  },
   "noSurvey": {
     "title": "Niciun zbor de dronă în limita acestei primării",
     "body": "Nu există încă date de dronă în interiorul limitei administrative a acestei primării. Datele altor UAT-uri nu sunt accesibile din acest cont.",
@@ -373,7 +393,10 @@
       "invalid_osm_id": "ID OSM invalid.",
       "invalid_assignee": "Responsabilul trebuie să fie din echipa primăriei.",
       "invalid_date": "Dată invalidă.",
-      "invalid_status": "Stare invalidă."
+      "invalid_status": "Stare invalidă.",
+      "email_rate_limit": "Limita de emailuri a fost atinsă. Încercați din nou mai târziu.",
+      "email_not_authorized": "Serverul de email nu are voie să trimită la această adresă (configurați un SMTP propriu în Supabase).",
+      "already_active": "Membrul și-a setat deja parola."
     },
     "uat": {
       "count": "{n} primării înrolate",
@@ -648,7 +671,12 @@
     "deleteConfirm": "Ștergeți definitiv contul {email}?",
     "empty": "Nu aveți încă membri în echipă. Adăugați primul inspector.",
     "noKey": "Gestionarea echipei are nevoie de cheia secretă Supabase pe server (SUPABASE_SECRET_KEY). Contactați administratorul platformei.",
-    "passwordNote": "Transmiteți parola membrului printr-un canal privat."
+    "passwordNote": "Transmiteți parola membrului printr-un canal privat.",
+    "invited": "invitație trimisă",
+    "resendInvite": "Retrimite invitația",
+    "sendInvite": "Trimite invitația",
+    "inviteSent": "Invitație trimisă la {email}.",
+    "inviteNote": "Membrul primește un email cu un link de unică folosință prin care își alege parola; dacă linkul expiră, retrimiteți invitația din tabel."
   },
   "architecture": {
     "title": "Arhitectura pipeline-ului AI",

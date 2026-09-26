@@ -318,6 +318,26 @@
     },
     "banned": "This account is disabled. Contact the platform administrator."
   },
+  "setPassword": {
+    "title": "Set your password",
+    "subtitle": "Choose the password for {email}.",
+    "subtitleGeneric": "Finish setting up your Solemtrix account.",
+    "checking": "Checking the link…",
+    "password": "New password",
+    "confirm": "Confirm password",
+    "hint": "At least {n} characters.",
+    "mismatch": "The passwords do not match.",
+    "show": "Show password",
+    "hide": "Hide password",
+    "submit": "Save password and continue",
+    "saved": "Password saved. Signing you in…",
+    "expired": "The link has expired or was already used. Ask your town hall administrator to resend the invitation.",
+    "invalid": "The link is not valid. Open the link from the invitation email or sign in.",
+    "toLogin": "Go to sign in",
+    "samePassword": "The new password must differ from the old one.",
+    "weak": "The password is too weak. Choose a longer one.",
+    "error": "The password could not be saved. Try again."
+  },
   "noSurvey": {
     "title": "No drone flight within this municipality's boundary",
     "body": "There is no drone data inside this municipality's administrative boundary yet. Other municipalities' data is not accessible from this account.",
@@ -373,7 +393,10 @@
       "invalid_osm_id": "Invalid OSM id.",
       "invalid_assignee": "The assignee must be in the municipality's team.",
       "invalid_date": "Invalid date.",
-      "invalid_status": "Invalid status."
+      "invalid_status": "Invalid status.",
+      "email_rate_limit": "The email sending limit was reached. Try again later.",
+      "email_not_authorized": "The email server may not send to this address (configure a custom SMTP in Supabase).",
+      "already_active": "The member has already set a password."
     },
     "uat": {
       "count": "{n} municipalities enrolled",
@@ -648,7 +671,12 @@
     "deleteConfirm": "Permanently delete the account {email}?",
     "empty": "No team members yet. Add the first inspector.",
     "noKey": "Team management needs the Supabase secret key on the server (SUPABASE_SECRET_KEY). Contact the platform administrator.",
-    "passwordNote": "Send the password to the member over a private channel."
+    "passwordNote": "Send the password to the member over a private channel.",
+    "invited": "invitation sent",
+    "resendInvite": "Resend invitation",
+    "sendInvite": "Send invitation",
+    "inviteSent": "Invitation sent to {email}.",
+    "inviteNote": "The member receives an email with a one-time link to choose a password; if the link expires, resend the invitation from the table."
   },
   "architecture": {
     "title": "AI pipeline architecture",

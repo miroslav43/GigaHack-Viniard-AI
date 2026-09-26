@@ -26,6 +26,8 @@ Toate conturile demo au aceeași parolă, comunicată privat (nu e în repo).
 - din Supabase: [Auth → Users](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/users); rolul și primăria sunt în `raw_app_meta_data` (`uat`, `uat_role`);
 - re-creare de la zero: `src/Web/supabase/seed/demo_users.sql` (înlocuiește `__DEMO_PASSWORD__` cu parola demo și rulează în SQL Editor).
 
+**Invitații pe email (`/echipa` → „Adaugă membru”):** administratorul UAT nu mai alege parola; Supabase trimite un link de unică folosință (expiră după `mailer_otp_exp`, implicit 24 h), iar membrul își setează parola pe `/parola-noua`. Configurare în Supabase → [Auth → URL Configuration](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/url-configuration): adresa aplicației (ex. `http://localhost:3000/**`) trebuie să fie în *Redirect URLs*, altfel linkul duce la *Site URL*. Serverul de email implicit al Supabase trimite **doar către adresele membrilor organizației Supabase** și câteva emailuri pe oră; pentru adrese reale configurați un SMTP propriu ([Auth → SMTP](https://supabase.com/dashboard/project/htdnuwmnztenevnfahie/auth/smtp)). Fallback: „Resetează parola” din tabel, cu parola transmisă privat.
+
 **Chei (în `src/Web/frontend/.env.local`, ignorat de git):**
 
 | Variabilă | Tip | Unde e folosită |
@@ -51,6 +53,7 @@ Româna nu are prefix; engleza și rusa au prefix: `/en/…`, `/ru/…` (ex. `/e
 | `/echipa` | Echipa primăriei: membri, roluri, încărcare pe sarcini | **doar `uat_admin`**; oricine altcineva logat / demo: **HTTP 403** | — |
 | `/super-admin` | Consola platformei (shell propriu, fără meniul de primărie) | **doar `platform_admin`**, **doar prin URL** (nu e în meniu); oricine altcineva: **HTTP 403**. Administratorul e trimis aici automat după login și de pe `/`, `/harta`, `/blocuri`, `/ruta` | `?tab=overview` (implicit) · `uat` · `users` · `surveys` · `system` · `audit` |
 | `/acces-interzis` | Pagina 403 „Acces interzis” | afișată automat de `proxy.ts` | — |
+| `/parola-noua` | Setarea parolei din emailul de invitație (echipa primăriei) | oricine, cu sau fără sesiune; fără link valid arată „Linkul nu este valid” | tokenii vin în fragmentul URL (`#access_token=…`) sau `?token_hash=…&type=invite` |
 
 Comportament fără cont și fără demo: orice pagină (în afară de `/login` și `/super-admin`) → redirect la `/login?next=…`; `/super-admin` → 403 direct.
 

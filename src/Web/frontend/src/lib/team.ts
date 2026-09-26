@@ -14,6 +14,8 @@ export interface TeamMember {
   name: string | null;
   role: string | null;
   banned: boolean;
+  /** invited by email and has not set a password yet */
+  invited: boolean;
   created_at: string;
   last_sign_in_at: string | null;
 }
@@ -24,6 +26,7 @@ export const toMember = (u: User): TeamMember => ({
   name: (u.user_metadata?.full_name as string | undefined) ?? null,
   role: (u.app_metadata?.uat_role as string | undefined) ?? null,
   banned: Boolean(u.banned_until && new Date(u.banned_until) > new Date()),
+  invited: Boolean(u.invited_at && !u.email_confirmed_at),
   created_at: u.created_at,
   last_sign_in_at: u.last_sign_in_at ?? null,
 });

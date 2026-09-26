@@ -31,6 +31,12 @@ test("municipality admin sees Tasks and Team, with AI targets to turn into tasks
   await expect(page.locator("nav").getByRole("link", { name: "Echipă" })).toBeVisible();
   await page.goto("/echipa");
   await expect(page.getByRole("row", { name: /inspector@sireti\.demo/ })).toBeVisible();
+  // new members are invited by email and choose their own password: no password field in the dialog
+  await page.getByRole("button", { name: "Adaugă membru" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "Trimite invitația" })).toBeVisible();
+  await expect(dialog.getByLabel(/Parolă/)).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Anulează" }).click();
   await page.goto("/sarcini");
   await expect(page.getByRole("heading", { level: 3, name: /Ținte din analiza AI/ })).toBeVisible();
 });
