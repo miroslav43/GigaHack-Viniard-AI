@@ -38,6 +38,7 @@ from vineyard.config.sections_post import (
     TargetsConfig,
     WebConfig,
 )
+from vineyard.config.sections_seeded import RowsSeededConfig
 from vineyard.config.sections_waste import WasteConfig
 
 
@@ -53,6 +54,7 @@ class AppConfig(Section):
     rows: RowsConfig
     orchard: OrchardConfig
     rows_guided: RowsGuidedConfig
+    rows_seeded: RowsSeededConfig          # seeded rows from reviewed tile seeds (rows_link)
     blocks: BlocksConfig
     canopy: CanopyConfig
     interrow: InterrowConfig

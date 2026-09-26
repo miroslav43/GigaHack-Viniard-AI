@@ -36,15 +36,20 @@ from vineyard.pipeline.cache import read_key
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.runner import StageResult
 from vineyard.pipeline.stages._rows_guided_io import add_guided_candidates
+from vineyard.pipeline.stages._rows_seeded_io import (  # rows_seeded hook
+    add_seeded_candidates,
+    mark_seeded_chains,
+)
 from vineyard.pipeline.tile_index import indexed_tile_ids
 
 if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "rows_link"
-VERSION: Final = "4"  # 2: neighbour-guided second pass (rows_guided) before linking; 3: partial-block
+VERSION: Final = "5"  # 2: neighbour-guided second pass (rows_guided) before linking; 3: partial-block
 #   completion (own-lattice prior, lateral anchoring beside the tile's rows, 2 rounds, all tiles, pooled);
-#   4: label audit — crossing row families rejected, duplicate chains merged, chain ends joined at seams
+#   4: label audit — crossing row families rejected, duplicate chains merged, chain ends joined at seams;
+#   5: seeded rows of reviewed tile seeds (rows_seeded, configs/row_seeds.csv)
 DETECT_STAGE: Final = "rows_detect"
 CANDIDATES_LAYER: Final = "row_candidates"
 ROWS_RAW_LAYER: Final = "rows_raw"
@@ -60,7 +65,7 @@ CFG_KEYS: Final = (
     "rows.detect.snap_to_edge_m", "rows.detect.gap_record_min_m", "blocks.collinear_gap_max_m",
     "blocks.neighbour_max_m", "blocks.parallel_max_deg", "export.min_row_piece_m", "paths.overrides",
     "rows_guided", "rows.detect", "rows.filter", "orchard", "canopy.corridor_half_m", "row_structure.occ_bin_m",
-    "runtime.seed",
+    "runtime.seed", "rows_seeded",
 )
 
 _log = get_logger("pipeline.stages.rows_link")
@@ -169,9 +174,12 @@ def link_stage(ctx: RunContext) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, lis
     cands = _without_conflicts(ctx, cands)
     cands = _without_conflicts(ctx, add_guided_candidates(ctx, cands, tile_ids, clips,
                                                           ctx.model_version(nn=nn_tag(ctx))))
+    # --- rows_seeded hook: rows of reviewed tile seeds (configs/row_seeds.csv), flagged "seeded" ---
+    cands = _without_conflicts(ctx, add_seeded_candidates(ctx, cands, tile_ids, clips,
+                                                          ctx.model_version(nn=nn_tag(ctx))))
     ov = apply_candidate_overrides(cands, load_overrides_cfg(ctx))
     res = link_candidates(ov.frame, load_passages(ctx), clips, LinkSettings.from_config(ctx.cfg))
-    rows_raw = provenance(res.rows_raw, ctx)
+    rows_raw = mark_seeded_chains(provenance(res.rows_raw, ctx), ov.frame)  # rows_seeded hook
     kept = _with_decisions(ov.frame, res.decisions) if len(ov.frame) else ov.frame
     return rows_raw, kept, [*issues, *ov.issues, *res.issues]
 
