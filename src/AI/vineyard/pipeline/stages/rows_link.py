@@ -41,7 +41,8 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 NAME: Final = "rows_link"
-VERSION: Final = "2"  # 2: neighbour-guided second pass (rows_guided) before linking
+VERSION: Final = "3"  # 2: neighbour-guided second pass (rows_guided) before linking; 3: partial-block
+#   completion (own-lattice prior, lateral anchoring beside the tile's rows, 2 rounds, all tiles, pooled)
 DETECT_STAGE: Final = "rows_detect"
 CANDIDATES_LAYER: Final = "row_candidates"
 ROWS_RAW_LAYER: Final = "rows_raw"

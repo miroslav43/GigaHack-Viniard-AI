@@ -206,7 +206,7 @@ orchard:
 # are recovered without the global gates. Priors come from rows_detect only (no propagation).
 rows_guided:
   enabled: true
-  target_max_accepted: 4
+  target_max_accepted: 999                 # every tile (was 4: only near-empty tiles; partial blocks stayed partial)
   prior_min_rows: 5
   prior_angle_merge_deg: 5.0
   max_priors_per_cluster: 3                # neighbours at one angle may disagree on spacing/phase: best of 3
@@ -226,6 +226,13 @@ rows_guided:
   min_sep_m: 1.0
   continue_max_m: 1.5                      # a guided row must continue a neighbour's accepted row (gap <= this)
   cut_gap_m: 3.0                           # guided rows end at empty runs >= this (road): only the continued piece
+  # complete partial blocks (2026-09-26): every tile with a prior is retried (target_max_accepted above
+  # was 4), its own lattice is a prior, and a row may also be anchored beside an accepted row of its tile.
+  self_prior: true
+  lateral_enabled: true
+  lateral_max_factor: 1.3                  # x spacing: the next row of the block, never two rows away
+  lateral_min_rows: 1
+  rounds: 2                                # round 2 continues from the rows recovered in round 1
 
 blocks:
   neighbour_max_m: 4.0
