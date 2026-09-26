@@ -429,7 +429,7 @@
       "activate": "Activează",
       "deactivate": "Dezactivează",
       "deleteConfirm": "Ștergeți primăria {name}? Conturile ei nu vor mai avea acces la date.",
-      "mapTitle": "Toate primăriile înrolate",
+      "mapTitle": "Primăriile active",
       "empty": "Nicio primărie înrolată.",
       "dialogTitle": "Înrolează o primărie (UAT)",
       "searchLabel": "Caută în OpenStreetMap",

@@ -33,7 +33,8 @@ export function UatPanel({ uats }: { uats: AdminUat[] }) {
   const { run, pending, snackbar } = useAdminAction();
   const [enrolling, setEnrolling] = useState(false);
   const [toDelete, setToDelete] = useState<AdminUat | null>(null);
-  const geometries = useMemo(() => uats.map((u) => u.geofence), [uats]);
+  // a deactivated municipality has no access to the platform: the map shows only the active ones
+  const geometries = useMemo(() => uats.filter((u) => u.active).map((u) => u.geofence), [uats]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>

@@ -429,7 +429,7 @@
       "activate": "Activate",
       "deactivate": "Deactivate",
       "deleteConfirm": "Delete municipality {name}? Its accounts will lose access to data.",
-      "mapTitle": "All enrolled municipalities",
+      "mapTitle": "Active municipalities",
       "empty": "No municipality enrolled.",
       "dialogTitle": "Enrol a municipality (UAT)",
       "searchLabel": "Search OpenStreetMap",
