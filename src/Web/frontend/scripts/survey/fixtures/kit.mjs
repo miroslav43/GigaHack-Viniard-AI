@@ -22,13 +22,45 @@ export const tempDir = (t, prefix = "build-survey-") => {
 /**
  * Copy of the fixture bundle, optionally in the new schema. tiles: false strips the web bundle v3 extras
  * (tiles.geojson, masks/, manifest counts.tiles and masks), giving a bundle as older pipelines wrote it.
+ * farms: true adds farms.geojson + roads.geojson (addFarmsRoads).
  */
-export const copyBundle = (t, { schema = "old", tiles = true } = {}) => {
+export const copyBundle = (t, { schema = "old", tiles = true, farms = false } = {}) => {
   const dir = path.join(tempDir(t), "pipeline");
   fs.cpSync(MINI_BUNDLE, dir, { recursive: true });
   if (schema === "new") enrich(dir);
   if (!tiles) stripTiles(dir);
+  if (farms) addFarmsRoads(dir);
   return dir;
+};
+
+// ---------- farms and road classes (optional layers) ----------
+const utmCollection = (name, features) => ({
+  type: "FeatureCollection", name, crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::32635" } },
+  features: features.map(([properties, type, coordinates]) => ({ type: "Feature", properties, geometry: { type, coordinates } })),
+});
+// F01 is a U around block V01 (its centroid falls in the notch, so the label goes elsewhere); F02 has no area_m2
+export const F01_OUTLINE = [[[629510, 5220270], [629580, 5220270], [629580, 5220300], [629570, 5220300], [629570, 5220280],
+  [629520, 5220280], [629520, 5220300], [629510, 5220300], [629510, 5220270]]];
+export const FARM_FEATURES = [
+  [{ farm_id: "F01", vineyard_ids: ["V01"], n_blocks: 1, area_m2: 1100.004 }, "Polygon", F01_OUTLINE],
+  [{ farm_id: "F02", vineyard_ids: ["V02"], n_blocks: 1 }, "MultiPolygon",
+    [[[[629575, 5220255], [629605, 5220255], [629605, 5220272], [629575, 5220272], [629575, 5220255]]]]],
+];
+export const ROAD_FEATURES = [
+  [{ road_id: "D0001", road_class: "public", highway: "residential", name: "Strada Test", surface: "asphalt", farm_id: null,
+    length_m: 100, source: "osm" }, "LineString", [[629500, 5220250], [629600, 5220250]]],
+  // no length_m (measured: 30 m) and no name / surface / farm_id keys (read as null)
+  [{ road_id: "D0002", road_class: "field", highway: "track", source: "osm" }, "MultiLineString",
+    [[[629500, 5220300], [629510, 5220300]], [[629510, 5220300], [629530, 5220300]]]],
+  [{ road_id: "D0003", road_class: "internal", highway: "cross_path", name: null, surface: null, farm_id: "F01",
+    length_m: 20.004, source: "detected" }, "LineString", [[629530, 5220285], [629550, 5220285]]],
+];
+
+/** Adds farms.geojson (F01 = V01, F02 = V02), roads.geojson (one road per class) and their manifest counts. */
+export const addFarmsRoads = (dir) => {
+  fs.writeFileSync(path.join(dir, "farms.geojson"), JSON.stringify(utmCollection("farms", FARM_FEATURES)));
+  fs.writeFileSync(path.join(dir, "roads.geojson"), JSON.stringify(utmCollection("roads", ROAD_FEATURES)));
+  editJson(dir, "manifest.json", (m) => ({ ...m, counts: { ...m.counts, farms: FARM_FEATURES.length, roads: ROAD_FEATURES.length } }));
 };
 
 export const readJson = (dir, file) => JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));

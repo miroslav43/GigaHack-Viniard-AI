@@ -76,3 +76,20 @@ export const TILES = {
 };
 export const MASKS_DIR = "masks";
 export const MASK_PX = 1024;
+
+// ---------- optional: farms and road classes (older bundles have neither) ----------
+// a farm = vineyard blocks at most 10 m apart and not separated by a public road; its vineyard_ids are the source of
+// truth for block membership (blocks.geojson farm_id is filled from them when missing)
+export const FARMS = { file: "farms.geojson", geometry: POLYGONAL, required: ["farm_id"], unique: "farm_id" };
+export const ROAD_CLASSES = ["public", "field", "internal"];
+// "cadastre" = a public road found only in the cadastre (styled like an OSM road)
+export const ROAD_SOURCES = ["osm", "detected", "cadastre"];
+// farms and blocks may carry a cadastre snapshot: n_parcels, cadastral_codes, landuse_counts (each may be null)
+// name, surface, farm_id and cadastral (bool) may be null or absent (read as null); length_m is measured when absent
+export const ROADS = {
+  file: "roads.geojson",
+  geometry: ["LineString", "MultiLineString"],
+  required: ["road_id", "road_class"],
+  unique: "road_id",
+  enums: { road_class: ROAD_CLASSES, source: ROAD_SOURCES },
+};

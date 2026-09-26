@@ -84,7 +84,9 @@
     "targets": "Țintă de inspecție",
     "waste": "Deșeu",
     "blocks": "Bloc",
-    "tiles": "Tile"
+    "tiles": "Tile",
+    "farms": "Fermă",
+    "roads": "Drum"
   },
   "dashboard": {
     "subtitle": "Inventar viticol în limita comunei · {source}",
@@ -236,6 +238,58 @@
       "vegetation": "Vegetație",
       "nodata": "Fără date",
       "note": "Notă: {note}"
+    },
+    "layerFarms": "Ferme",
+    "layerRoads": "Drumuri",
+    "layerRoadsInternal": "Drumuri interne",
+    "roadsNote": "publice și de câmp (OpenStreetMap)",
+    "roadsInternalNote": "prin fermă, inclusiv treceri prin rânduri detectate",
+    "legendFarm": "Fermă (blocuri la ≤ 10 m, fără drum public între ele)",
+    "legendRoadPublic": "Drum public",
+    "legendRoadField": "Drum de câmp",
+    "legendRoadInternal": "Drum intern al fermei",
+    "kpiFarms": "ferme",
+    "farm": {
+      "title": "Ferma {id}",
+      "id": "Fermă",
+      "blocks": "Blocuri ({n})",
+      "area": "Suprafața fermei",
+      "rows": "Rânduri",
+      "rowLength": "Lungime rânduri",
+      "canopyArea": "Aria coroanelor",
+      "interrowArea": "Aria inter-rândurilor",
+      "plants": "Plante",
+      "targets": "Ținte de inspecție",
+      "note": "Suprafața = conturul fermei; celelalte cifre sunt suma blocurilor ei (din measurements.csv)."
+    },
+    "road": {
+      "class": "Clasă",
+      "classes": {
+        "public": "public",
+        "field": "de câmp",
+        "internal": "intern"
+      },
+      "highway": "Tip OSM",
+      "crossPath": "trecere prin rânduri (detectată de AI)",
+      "name": "Nume",
+      "surface": "Suprafață",
+      "length": "Lungime",
+      "farm": "Fermă",
+      "source": "Sursă",
+      "sources": {
+        "osm": "OpenStreetMap",
+        "detected": "detectat de AI",
+        "cadastre": "cadastru (AGCC)"
+      },
+      "cadastre": "Cadastru",
+      "cadastralConfirmed": "confirmat în cadastru"
+    },
+    "cadastreSnapshot": {
+      "parcels": "Parcele cadastrale",
+      "landuse": "· {use}",
+      "showCodes": "Numere cadastrale ({n})",
+      "hideCodes": "Ascunde numerele cadastrale ({n})",
+      "more": "+{n}"
     }
   },
   "blocks": {

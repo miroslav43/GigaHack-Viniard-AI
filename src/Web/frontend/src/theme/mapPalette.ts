@@ -43,6 +43,20 @@ export const mapPalette = {
     toComplete: color.map.tileToComplete,
   },
   vegMask: color.map.vegMask,
+  // roads.geojson: one colour for public and field roads (public drawn wider), another for a farm's internal roads
+  road: {
+    network: color.map.roadNetwork,
+    internal: color.map.roadInternal,
+    casing: color.white,
+    internalCasing: color.grey[900],
+  },
+  // farms.geojson: outline + very light fill of the same colour, label text on a halo
+  farm: {
+    line: color.map.farmLine,
+    fill: color.map.farmLine,
+    label: color.map.farmLabel,
+    halo: color.white,
+  },
 } as const;
 
 export type TileStatus = "vineyard" | "no_vineyard";

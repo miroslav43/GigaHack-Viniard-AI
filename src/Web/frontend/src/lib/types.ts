@@ -47,6 +47,8 @@ export interface SurveySummary {
     disrupted_rows: number;
     waste_count: number;
     target_count: number;
+    /** number of farms (farms.geojson of an AI bundle); absent on the mock and older bundles */
+    farm_count?: number;
   };
   structure_counts: Partial<Record<RowStructure, number>>;
   cover_counts: Partial<Record<InterrowCover, number>>;
@@ -54,6 +56,69 @@ export interface SurveySummary {
   blocks: BlockSummary[];
   /** the survey tiles (tiles.geojson of an AI bundle, src/Web/CLAUDE.md §6.3); absent on the mock and older bundles */
   tiles?: TilesSummary;
+  /** farms, summed from `blocks` (they add up to `totals`); absent without farms.geojson */
+  farms?: FarmSummary[];
+  /** road length per class; absent without roads.geojson */
+  roads?: RoadsSummary;
+}
+
+export interface FarmSummary {
+  farm_id: string;
+  vineyard_ids: string[];
+  n_blocks: number;
+  /** outline area of the farm polygon */
+  area_m2: number;
+  row_count: number;
+  row_length_m: number;
+  canopy_area_m2: number;
+  interrow_area_m2: number;
+  plant_count: number;
+  target_count: number;
+  /** cadastral parcels under the farm (cadastre snapshot of the AI stage); absent without one */
+  n_parcels?: number | null;
+}
+
+/** Optional cadastre snapshot of a farm or a block (farms.geojson, blocks.geojson). */
+export interface CadastreSnapshot {
+  n_parcels?: number | null;
+  cadastral_codes?: string[] | null;
+  /** land use → number of parcels */
+  landuse_counts?: Record<string, number> | null;
+}
+
+export interface RoadsSummary {
+  public_m: number;
+  field_m: number;
+  internal_m: number;
+}
+
+/** A feature of farms.geojson (src/Web/CLAUDE.md §6.3). */
+export interface FarmProps extends CadastreSnapshot {
+  farm_id: string;
+  vineyard_ids: string[];
+  n_blocks: number;
+  area_m2: number;
+  /** [lon, lat] inside the outline, for the label */
+  label_point: [number, number] | null;
+}
+
+export type RoadClass = "public" | "field" | "internal";
+
+/** A feature of roads.geojson (src/Web/CLAUDE.md §6.3). */
+export interface RoadProps {
+  road_id: string;
+  road_class: RoadClass;
+  /** OSM highway value (residential, track, …) or "cross_path" (a track through the vine rows found by the AI) */
+  highway: string | null;
+  name: string | null;
+  surface: string | null;
+  /** set on internal roads */
+  farm_id: string | null;
+  length_m: number;
+  /** "cadastre" = a public road found only in the cadastre */
+  source: "osm" | "detected" | "cadastre" | null;
+  /** an official road parcel ("Cale de comunicaţie") covers the road; absent without a cadastre snapshot */
+  cadastral?: boolean | null;
 }
 
 export interface TilesSummary {
@@ -86,6 +151,8 @@ export interface TileProps {
 export interface OverlayFiles {
   tiles: boolean;
   masks: boolean;
+  farms: boolean;
+  roads: boolean;
 }
 
 export interface RowRecord {

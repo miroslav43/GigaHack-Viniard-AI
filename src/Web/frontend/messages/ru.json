@@ -84,7 +84,9 @@
     "targets": "Цель осмотра",
     "waste": "Мусор",
     "blocks": "Квартал",
-    "tiles": "Тайл"
+    "tiles": "Тайл",
+    "farms": "Ферма",
+    "roads": "Дорога"
   },
   "dashboard": {
     "subtitle": "Инвентаризация виноградников в границах коммуны · {source}",
@@ -236,6 +238,58 @@
       "vegetation": "Растительность",
       "nodata": "Нет данных",
       "note": "Примечание: {note}"
+    },
+    "layerFarms": "Фермы",
+    "layerRoads": "Дороги",
+    "layerRoadsInternal": "Внутренние дороги",
+    "roadsNote": "общественные и полевые (OpenStreetMap)",
+    "roadsInternalNote": "внутри фермы, включая найденные проходы через ряды",
+    "legendFarm": "Ферма (блоки на расстоянии ≤ 10 м, без общественной дороги между ними)",
+    "legendRoadPublic": "Общественная дорога",
+    "legendRoadField": "Полевая дорога",
+    "legendRoadInternal": "Внутренняя дорога фермы",
+    "kpiFarms": "ферм",
+    "farm": {
+      "title": "Ферма {id}",
+      "id": "Ферма",
+      "blocks": "Блоки ({n})",
+      "area": "Площадь фермы",
+      "rows": "Ряды",
+      "rowLength": "Длина рядов",
+      "canopyArea": "Площадь крон",
+      "interrowArea": "Площадь междурядий",
+      "plants": "Растения",
+      "targets": "Цели осмотра",
+      "note": "Площадь = контур фермы; остальные цифры — сумма её блоков (из measurements.csv)."
+    },
+    "road": {
+      "class": "Класс",
+      "classes": {
+        "public": "общественная",
+        "field": "полевая",
+        "internal": "внутренняя"
+      },
+      "highway": "Тип OSM",
+      "crossPath": "проход через ряды (найден ИИ)",
+      "name": "Название",
+      "surface": "Покрытие",
+      "length": "Длина",
+      "farm": "Ферма",
+      "source": "Источник",
+      "sources": {
+        "osm": "OpenStreetMap",
+        "detected": "найдено ИИ",
+        "cadastre": "кадастр (AGCC)"
+      },
+      "cadastre": "Кадастр",
+      "cadastralConfirmed": "подтверждено в кадастре"
+    },
+    "cadastreSnapshot": {
+      "parcels": "Кадастровые участки",
+      "landuse": "· {use}",
+      "showCodes": "Кадастровые номера ({n})",
+      "hideCodes": "Скрыть кадастровые номера ({n})",
+      "more": "+{n}"
     }
   },
   "blocks": {

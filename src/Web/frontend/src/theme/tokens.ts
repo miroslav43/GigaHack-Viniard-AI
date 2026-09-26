@@ -44,6 +44,13 @@ export const color = {
     // pipeline vegetation mask (magenta: the complement of the green it marks, visible on vines and grass alike)
     vegMask: rasterColors.vegMask.color,
     vegMaskAlpha: rasterColors.vegMask.alpha,
+    // roads (roads.geojson): public + field roads share a strong orange (redder than the amber of disrupted rows),
+    // a farm's internal roads a light lemon yellow (dashed), both apart from the teal / indigo / soil vine layers
+    roadNetwork: "#EA580C",
+    roadInternal: "#FDE047",
+    // farm outlines (farms.geojson): pink, away from the indigo blocks and the red waste; dark label on a white halo
+    farmLine: "#EC4899",
+    farmLabel: "#831843",
   },
 };
 
