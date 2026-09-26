@@ -185,8 +185,9 @@ rows:                                      # D2 §4 (A names inside the C struct
     # label audit 2026-09-26: one physical row = one row_id across tile edges (rows_seams)
     seam_join_max_m: 0.4                   # facing chain ends this close (head to tail) are joined; 0 = off
     seam_join_angle_max_deg: 3.0
-    seam_align_min_m: 0.4                  # seam ends farther apart move to their midpoint; closer ones stay
-    #   (0.4 = never move: the midpoint cost 0.004-0.012 inter-row IoU on the example tiles)
+    seam_align_min_m: 0.0                  # seam ends farther apart move to their midpoint; closer ones stay
+    #   (> 0 keeps both ends and joins them with a connector: labelfix-c exported 25 object_outside_clip
+    #   errors with 0.4, a connector crossing the tile edge twice; keep 0 until the clip handles it)
     dup_chain_max_m: 0.4                   # a chain within this of another over dup_chain_min_frac = duplicate; 0 = off
     dup_chain_min_frac: 0.6
     orientation_conflict_enabled: true     # per tile: of two crossing row families the weaker is rejected
