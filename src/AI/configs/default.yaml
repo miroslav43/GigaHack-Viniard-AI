@@ -270,6 +270,34 @@ blocks:
   spacing_cut_side_rows: 3
   too_few_rows_issue_min: 2
   override_match_tol_m: 1.0                # overrides.yaml entries: default `tol_m`
+  regularize:                              # RC8 perception.row_regularize: per block, in the row frame
+    enabled: true
+    min_block_rows: 5                      # lattice lines needed before a block is regularised
+    collinear_tol_m: 0.6                   # rows this close across are pieces of one lattice line
+    max_segments: 3                        # headland: 1..3 independent robust lines (steps allowed between)
+    min_segment_rows: 4
+    segment_penalty_m: 6.0                 # truncated-L1 cost (m) of one more headland segment
+    huber_delta_m: 1.0
+    residual_cap_m: 4.0                    # per-row cost cap in the segment search
+    max_breakpoints: 24                    # breakpoint candidates per profile (evenly thinned)
+    over_m: 3.0                            # an end this far past its headland is an overshoot
+    trim_margin_m: 0.5                     # kept past the headland line when trimming
+    trim_max_frac: 0.5                     # never trim more than this share of a row (flag instead)
+    trim_max_contrast: 0.08                # trim only when row-band veg minus inter-row veg is below this
+    under_m: 3.0                           # an end this far short of its headland is flagged
+    extend_enabled: false                  # undershoot extension (flag only by default)
+    extend_min_contrast: 0.35
+    lattice_enabled: true
+    lattice_tol_frac: 0.3                  # off-lattice: |offset| > this x spacing from the local lattice
+    lattice_window: 4                      # lattice lines on each side for the local spacing and phase
+    off_lattice_max_len_m: 15.0            # off-lattice lines are removed when shorter than this with a row
+    off_lattice_short_max_contrast: 0.25   #   contrast below this...
+    off_lattice_min_contrast: -0.10        # ...or at any length when the inter-rows are clearly greener; else flagged
+    stray_enabled: true
+    stray_min_len_m: 8.0                   # outermost line shorter than this, no overlap with its neighbour
+    min_evidence_len_m: 1.0                # shorter pieces carry no evidence (unknown -> flag, not trim)
+    evidence_band_m: 0.3                   # half-width of the row / inter-row evidence bands (veg mask)
+    evidence_step_m: 0.1                   # sampling step of the evidence bands
 
 canopy:
   corridor_half_m: 0.30                    # single key for the 0.30 m corridor (I14: derive/targets read it)

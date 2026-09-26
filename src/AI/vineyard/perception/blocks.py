@@ -44,6 +44,18 @@ from vineyard.perception.blocks_graph import (
     split_at_bands,
     transverse_bands,
 )
+from vineyard.perception.row_regularize import (
+    ACTION_UNDERSHOOT,
+    FLAG_OFF_LATTICE,
+    FLAG_OVERSHOOT,
+    REMOVALS,
+    SPAN_ACTIONS,
+    Evidence,
+    RegularizeOptions,
+    RowChange,
+    apply_span,
+    regularize_block,
+)
 from vineyard.perception.rows_link import (
     FLAG_INTERPOLATED,
     FLAG_SEP,
@@ -82,6 +94,7 @@ class BlockSettings:
     spacing_cut: SpacingCut
     orchard: OrchardRule
     too_few_issue_min_rows: int
+    regularize: RegularizeOptions | None = None
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> BlockSettings:
@@ -96,6 +109,7 @@ class BlockSettings:
             orchard=OrchardRule(orc.block_reject_enabled, orc.width_spacing_ratio_max, tuple(orc.along_period_m),
                                 orc.along_duty_max, orc.block_majority_frac),
             too_few_issue_min_rows=blk.too_few_rows_issue_min,
+            regularize=RegularizeOptions.from_config(blk.regularize),
         )
 
 
@@ -377,21 +391,67 @@ def block_issues(g: _Graph, pairs: gpd.GeoDataFrame, rejected: Sequence[tuple[in
     return tuple(out)
 
 
+# ---------------------------------------------------------------- row-frame regularisation (RC8)
+
+_FLAG_CODES: frozenset[str] = frozenset({ACTION_UNDERSHOOT, FLAG_OFF_LATTICE, FLAG_OVERSHOOT})
+
+
+def _changed_unit(unit: RowUnit, change: RowChange) -> RowUnit:
+    line = apply_span(unit.line, change.lo, change.hi)
+    lo = max(0.0, change.lo)
+    gaps = tuple((max(0.0, a - lo), min(float(line.length), b - lo)) for a, b in unit.gaps
+                 if min(float(line.length), b - lo) > max(0.0, a - lo))
+    return RowUnit(unit.src, line, gaps, unit.band_cut)
+
+
+def regularized_graph(g: _Graph, blocks: Sequence[_Block], cut: BaseGeometry | None, s: BlockSettings,
+                      evidence: Evidence, chains: gpd.GeoDataFrame) -> tuple[_Graph, tuple[QaIssue, ...]]:
+    """New graph with every kept block's rows regularised (perception.row_regularize) + one issue per change."""
+    changes: dict[int, RowChange] = {}
+    issues = []
+    for blk in blocks:
+        for c in regularize_block([g.units[i].line for i in blk.members], s.regularize, evidence):
+            unit = blk.members[c.index]
+            sev = Severity.WARNING if c.action in _FLAG_CODES else Severity.INFO
+            issues.append(_issue(sev, c.action, str(chains.chain_id.iloc[g.units[unit].src]),
+                                 f"{blk.vineyard_id}: {c.message}", Point(c.x, c.y)))
+            if c.action in REMOVALS or c.action in SPAN_ACTIONS:
+                changes[unit] = c
+    if not changes:
+        return g, tuple(issues)
+    units = tuple(u if k not in changes else _changed_unit(u, changes[k]) for k, u in enumerate(g.units)
+                  if changes.get(k) is None or changes[k].action not in REMOVALS)
+    edges = _edges(units, cut, s)
+    if s.spacing_cut.enabled:
+        lines = [u.line for u in units]
+        for comp in components(len(units), edges):
+            edges = spacing_cut_edges(lines, edges, comp, s.spacing_cut)
+    return _Graph(g.base, units, edges, components(len(units), edges), g.bands), tuple(issues)
+
+
 def _sorted_chains(rows_raw: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return rows_raw.sort_values("chain_id", kind="stable").reset_index(drop=True)
 
 
 def build_blocks(rows_raw: gpd.GeoDataFrame, passages: BaseGeometry | None, clips: Mapping[str, BaseGeometry],
-                 s: BlockSettings, *, run_id: str = "", model_version: str = "") -> BlockResult:
-    """rows_raw (UTM chains) -> rows / blocks / row_pairs / rows_rejected + QA issues (deterministic)."""
+                 s: BlockSettings, *, run_id: str = "", model_version: str = "",
+                 evidence: Evidence | None = None) -> BlockResult:
+    """rows_raw (UTM chains) -> rows / blocks / row_pairs / rows_rejected + QA issues (deterministic).
+
+    With `evidence` and blocks.regularize.enabled, the kept blocks are regularised in the row frame and the
+    graph is rebuilt from the changed rows (blocks re-selected and re-numbered)."""
     chains = _sorted_chains(rows_raw)
     cut = eroded(passages, s.passage_erode_m) if s.cut_by_passages else None
     g = build_graph(_units(chains), cut, s)
     blocks, rejected = select_blocks(g, chains, s)
+    reg_issues: tuple[QaIssue, ...] = ()
+    if evidence is not None and s.regularize is not None and s.regularize.enabled and blocks:
+        g, reg_issues = regularized_graph(g, blocks, cut, s, evidence, chains)
+        blocks, rejected = select_blocks(g, chains, s)
     prov = _Prov(run_id, model_version)
     adj = adjacent_pairs(g.edges)
     rows = rows_frame(blocks, g, chains, adj, clips, prov)
     pairs = pairs_frame(blocks, adj, prov)
     out_blocks = blocks_frame(blocks, rows, pairs, g, s, prov)
     return BlockResult(rows, out_blocks, pairs, rejected_frame(rejected, g, chains, prov),
-                       block_issues(g, pairs, rejected, chains, s.too_few_issue_min_rows))
+                       block_issues(g, pairs, rejected, chains, s.too_few_issue_min_rows) + reg_issues)

@@ -142,6 +142,38 @@ class OrchardConfig(Section):
     block_majority_frac: Frac
 
 
+class RowRegularizeConfig(Section):
+    """blocks.regularize (RC8, perception.row_regularize): row-frame headlands, lattice, strays."""
+
+    enabled: bool
+    min_block_rows: PosInt
+    collinear_tol_m: PosFloat
+    max_segments: Annotated[int, Field(ge=1, le=3)]
+    min_segment_rows: PosInt
+    segment_penalty_m: NonNegFloat
+    huber_delta_m: PosFloat
+    residual_cap_m: PosFloat
+    max_breakpoints: PosInt
+    over_m: PosFloat
+    trim_margin_m: NonNegFloat
+    trim_max_frac: Frac
+    trim_max_contrast: float
+    under_m: PosFloat
+    extend_enabled: bool
+    extend_min_contrast: float
+    lattice_enabled: bool
+    lattice_tol_frac: Frac
+    lattice_window: PosInt
+    off_lattice_max_len_m: NonNegFloat
+    off_lattice_min_contrast: float
+    off_lattice_short_max_contrast: float
+    stray_enabled: bool
+    stray_min_len_m: NonNegFloat
+    min_evidence_len_m: NonNegFloat
+    evidence_band_m: PosFloat
+    evidence_step_m: PosFloat
+
+
 class BlocksConfig(Section):
     neighbour_max_m: PosFloat
     parallel_max_deg: PosFloat
@@ -167,6 +199,7 @@ class BlocksConfig(Section):
     spacing_cut_side_rows: PosInt
     too_few_rows_issue_min: PosInt
     override_match_tol_m: PosFloat
+    regularize: RowRegularizeConfig
 
 
 class CanopyConfig(Section):
