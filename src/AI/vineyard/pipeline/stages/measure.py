@@ -1,13 +1,19 @@
-"""Stage `measure`: AnnSet (+ derive `rows`, `targets` when present) -> exports/measurements.{csv,json}.
+"""Stage `measure`: AnnSet (+ derive `rows`, `interrow_pieces_linked`, `targets` when present) ->
+exports/measurements.{csv,json}.
 
 The CSV is exactly the web data contract (src/Web/CLAUDE.md §6.4); it is self-checked with the same
-checker `publish` uses before it is written. The JSON carries the same values plus extras.
+checker `publish` uses before it is written. The JSON carries the same values plus extras. Interrow areas
+come from derive's overlap-free pieces, so the block lines add up to the survey line; the AnnSet's own
+pieces are used (with a warning) only when derive did not run in this post run.
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
+
+import geopandas as gpd
 
 from vineyard.errors import StageError
 from vineyard.logging_setup import get_logger, log_event
@@ -33,20 +39,32 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 STAGE_NAME: Final = "measure"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"  # 2: interrow areas from derive's interrow_pieces_linked
 CFG_KEYS: Final = ("measure", "publish.sum_check_tol_m")
 CSV_NAME: Final = "measurements.csv"
 JSON_NAME: Final = "measurements.json"
 METRICS_NAME: Final = "measure.json"
 QA_NAME: Final = "issues_measure.parquet"
 EVENT_WRITTEN: Final = "measure.written"
+EVENT_ANNSET_INTERROWS: Final = "measure.interrows_from_annset"
+LINKED_LAYER: Final = "interrow_pieces_linked"
 
 _log = get_logger("pipeline.stages.measure")
 
 
+def _interrow_pieces(ctx: RunContext, annset: AnnSet) -> gpd.GeoDataFrame:
+    """derive's overlap-free pieces of this run; the AnnSet's pieces (warned) when derive did not run here."""
+    path = layer_path(ctx.paths, LINKED_LAYER)
+    linked = read_optional_layer(path, LINKED_LAYER)
+    if linked is not None:
+        return linked
+    log_event(_log, EVENT_ANNSET_INTERROWS, level=logging.WARNING, stage=STAGE_NAME, missing=str(path))
+    return annset.interrow_pieces
+
+
 def _inputs(ctx: RunContext, annset: AnnSet) -> MeasureInputs:
     return MeasureInputs(canopies=annset.canopies, row_pieces=annset.row_pieces,
-                         interrow_pieces=annset.interrow_pieces, waste=annset.waste,
+                         interrow_pieces=_interrow_pieces(ctx, annset), waste=annset.waste,
                          rows=read_optional_layer(layer_path(ctx.paths, "rows"), "rows"),
                          targets=read_optional_layer(layer_path(ctx.paths, "targets"), "targets"))
 

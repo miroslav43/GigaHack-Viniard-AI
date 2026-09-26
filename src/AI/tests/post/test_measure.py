@@ -301,6 +301,17 @@ def test_measure_stage_writes_csv_and_json(tmp_path, fake_runner):
     assert (ctx.paths.metrics_dir / "measure.json").is_file()
 
 
+def test_measure_stage_reads_derive_interrows(tmp_path, fake_runner):
+    ann = make_annset(BlockSpec(n_rows=3), prov=Prov(Source.MARCAJ, "20260926T0100-marcaj-aaaaaa", "m"))
+    ctx = _post_ctx(tmp_path, ann)
+    write_layer(rows_from_pieces(ann), "rows", ctx.paths.layers_dir / "rows.parquet")
+    linked = ann.interrow_pieces.iloc[:1]  # derive's pieces (overlap-free), not the AnnSet's
+    write_layer(linked, "interrow_pieces_linked", ctx.paths.layers_dir / "interrow_pieces_linked.parquet")
+    result = load_stage("measure").run(ctx)
+    assert result.metrics["interrow_area_m2"] == pytest.approx(linked.geometry.iloc[0].area)
+    assert result.metrics["interrow_area_m2"] < union_area(ann.interrow_pieces)
+
+
 def test_measure_stage_without_annset_ref_fails(tmp_path, fake_runner):
     cfg = load_config(environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
     ctx = new_run_context(cfg, source=Source.MARCAJ, kind="post", run_id="20260926T0310-post-abcdef")

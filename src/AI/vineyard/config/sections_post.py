@@ -33,6 +33,8 @@ class DeriveConfig(Section):
     interrow_link_max_m: PosFloat
     garden_forbidden_dist_m: NonNegFloat
     garden_max_rows: NonNegInt
+    interrow_overlap_min_m2: NonNegFloat
+    interrow_overlap_support_m: NonNegFloat
 
 
 class TargetsConfig(Section):

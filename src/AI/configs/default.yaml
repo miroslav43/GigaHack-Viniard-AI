@@ -416,6 +416,12 @@ derive:                                    # D4 §4 (outline buffer, min rows an
   interrow_link_max_m: 3.8
   garden_forbidden_dist_m: 20.0
   garden_max_rows: 15
+  # Inter-row pieces of different blocks must not overlap, so the block areas add up to the survey total.
+  # A cross-block overlap above interrow_overlap_min_m2 goes to the block with the most own canopy area within
+  # interrow_overlap_support_m of the contested area (ties: lower vineyard_id); the other pieces are cut, and
+  # parts below export.min_interrow_piece_m2 are dropped.
+  interrow_overlap_min_m2: 0.0001
+  interrow_overlap_support_m: 1.0
 
 targets:
   gap_min_m: 5.0

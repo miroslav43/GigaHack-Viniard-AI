@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.runner import StageResult
 
 STAGE_NAME: Final = "web_bundle"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"  # 2: computed measurements use derive's overlap-free interrows
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m",
                    "grid.gsd_m", "grid.expected_tiles", "project.crs", "logging.tz")
 # WebInputs field -> (layer file in <run>/layers, contract layer name)

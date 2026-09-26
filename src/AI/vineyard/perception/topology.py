@@ -64,12 +64,14 @@ def overlap_by_tile(canopies: gpd.GeoDataFrame, interrows: gpd.GeoDataFrame) -> 
     return out
 
 
-def _cut(geom: BaseGeometry, cutter: BaseGeometry, min_piece_m2: float) -> list[Polygon]:
+def cut_parts(geom: BaseGeometry, cutter: BaseGeometry, min_piece_m2: float) -> list[Polygon]:
+    """Polygonal parts of geom - cutter of at least min_piece_m2, largest first (ties by position)."""
     parts = [orient_ccw(p) for p in make_valid_polygonal(shapely.difference(geom, cutter)) if p.area >= min_piece_m2]
     return sorted(parts, key=lambda p: (-round(p.area, 9), p.representative_point().x, p.representative_point().y))
 
 
-def _next_ids(piece_ids: Sequence[str]) -> dict[tuple[str, str], int]:
+def used_piece_dups(piece_ids: Sequence[str]) -> dict[tuple[str, str], int]:
+    """(interrow base id, tile_id) -> largest `#k` in use, for split_piece_id."""
     used: dict[tuple[str, str], int] = {}
     for pid in piece_ids:
         try:
@@ -80,7 +82,8 @@ def _next_ids(piece_ids: Sequence[str]) -> dict[tuple[str, str], int]:
     return used
 
 
-def _split_id(pid: str, k: int, used: dict[tuple[str, str], int]) -> str:
+def split_piece_id(pid: str, k: int, used: dict[tuple[str, str], int]) -> str:
+    """Id of the k-th part of a split piece: the next free `#k` (updates `used`), raw `pid#k` for relaxed ids."""
     try:
         base, tile_id, _ = parse_interrow_piece_id(pid)
     except SchemaError:
@@ -102,14 +105,14 @@ def remove_canopy_overlap(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame, 
     # A clearance keeps the shared edges apart, so 0.1 px rounding at export cannot re-create overlap.
     cutters = {t: _union(canopies, t).buffer(clearance_m) if clearance_m > 0.0 else _union(canopies, t)
                for t in fixed}
-    used = _next_ids(list(pieces["piece_id"]))
+    used = used_piece_dups(list(pieces["piece_id"]))
     positions, geoms, ids = [], [], []
     for pos, (pid, tile_id, geom) in enumerate(zip(pieces["piece_id"], pieces[TILE], pieces.geometry, strict=True)):
-        parts = _cut(geom, cutters[tile_id], min_piece_m2) if tile_id in cutters else [geom]
+        parts = cut_parts(geom, cutters[tile_id], min_piece_m2) if tile_id in cutters else [geom]
         for k, part in enumerate(parts, start=1):
             positions.append(pos)
             geoms.append(part)
-            ids.append(pid if k == 1 else _split_id(pid, k, used))
+            ids.append(pid if k == 1 else split_piece_id(pid, k, used))
     base = pieces.iloc[positions].drop(columns=pieces.geometry.name).reset_index(drop=True)
     out = gpd.GeoDataFrame(base.assign(piece_id=ids, area_m2=[g.area for g in geoms]), geometry=geoms,
                            crs=pieces.crs)

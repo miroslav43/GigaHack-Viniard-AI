@@ -36,11 +36,12 @@ if TYPE_CHECKING:
     from vineyard.pipeline.runner import StageResult
 
 STAGE_NAME: Final = "derive"
-STAGE_VERSION: Final = "1"
+STAGE_VERSION: Final = "2"  # 2: interrow pieces lose their cross-block overlap (perception.block_overlap)
 CFG_KEYS: Final = (
     "derive", "blocks.outline_buffer_m", "blocks.min_rows_per_block", "canopy.corridor_half_m",
     "row_structure.gap_disrupted_m", "import.require_all_tiles", "import.accept_enum_synonyms",
     "import.enum_synonyms", "export.cvat.max_canopy_interrow_overlap_m2", "route.domain.seam_close_m",
+    "export.min_interrow_piece_m2",
 )
 QA_FILE: Final = "issues_derive.parquet"
 METRICS_FILE: Final = "derive.json"
