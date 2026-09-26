@@ -555,6 +555,8 @@ publish:
 
 web:
   out_dir: ../Web/data
+  survey_id: siret3                        # bundle dir surveys/<survey_id>/pipeline/ (e.g. siret3-nn1 for a versioned run)
+  survey_name: Sireț3
   geojson_decimals_4326: 7
   utm_decimals: 3
   ortho_mode: auto

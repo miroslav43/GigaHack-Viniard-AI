@@ -72,6 +72,12 @@ def _finite_or_nan(value: object) -> float:
     return number if math.isfinite(number) else math.nan
 
 
+def finite_or_none(value: object) -> float | None:
+    """A finite number as float, else None (None, NA, NaN and inf are all written as JSON null)."""
+    number = _finite_or_nan(value)
+    return None if math.isnan(number) else number
+
+
 def _pieces_by_row(row_pieces: gpd.GeoDataFrame) -> dict[str, list[_Piece]]:
     """row_id -> its pieces in (tile, piece id) order; pieces without a row_id are ignored."""
     columns = ("row_id", "tile_id", "piece_id", "vineyard_id", "row_structure", "max_gap_m")
@@ -135,6 +141,6 @@ def physical_rows(row_pieces: gpd.GeoDataFrame, canopies: pd.DataFrame, *,
 
 
 __all__ = [
-    "ROW_COLUMNS", "aggregate_structure", "features_frame", "majority", "merged_line", "natural_key",
-    "normalize_enum", "physical_rows", "text_or_none",
+    "ROW_COLUMNS", "aggregate_structure", "features_frame", "finite_or_none", "majority", "merged_line",
+    "natural_key", "normalize_enum", "physical_rows", "text_or_none",
 ]

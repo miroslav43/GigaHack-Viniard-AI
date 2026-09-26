@@ -10,28 +10,34 @@ from typing import Any, Final
 import geopandas as gpd
 import pandas as pd
 import pytest
-from shapely.geometry import LineString, Point, box
+import shapely
+from shapely.geometry import LineString, Point, box, shape
 
 from tests.post.factories import BlockSpec, layer_frame, make_annset
 from tests.post.web_oracle import CRS_MEMBER, CSV_HEADER, features_of
 from vineyard.config import load_config
 from vineyard.contracts.enums import Source
 from vineyard.errors import ConfigError, SchemaError, StageError
+from vineyard.geo.vector_io import write_geojson
 from vineyard.measure.measurements import union_area
 from vineyard.pipeline.context import new_run_context
 from vineyard.pipeline.stages.web_bundle import find_layers_run, read_route_export
+from vineyard.route import budget, candidates, stops
 from vineyard.web.bundle import (
     WebInputs,
     block_features,
     build_web_bundle,
+    bundle_bbox,
     decimals_of,
     measurements_bytes,
     rounded_properties,
+    tiles_with_objects,
     web_params,
     write_geojsonseq,
 )
 from vineyard.web.objects_export import RouteInfo, target_features
 from vineyard.web.rows_export import features_frame
+from vineyard.web.targets_export import PLANNER_SKIP_NOTES, UNREACHABLE_NOTES
 
 START: Final = (629504.70, 5220250.75)
 GEN: Final = "2026-09-26T03:10:00+03:00"
@@ -81,6 +87,7 @@ def _targets() -> gpd.GeoDataFrame:
 def test_targets_null_dangling_ids_and_keep_them_in_the_note() -> None:
     t = target_features(_targets(), route=None, visit_radius_m=2.0, known_rows={"V01-R001"}, known_waste=set())
     assert (t.row_id[0], t.waste_id[0], t.route_order[0], t.reachable[0]) == (None, None, None, False)
+    assert (t.skip_reason[0], t.priority[0], t.route_role[0]) == ("no_route", 1, None)
     assert t.note[0] == "row_gap; interior gap; row=V09-R001; waste=W0042"
     assert t.gap_length_m[0] == pytest.approx(5.4) and t.tile[0] == "siret3_r018_c011"
     empty = target_features(None, route=None, visit_radius_m=2.0)
@@ -183,6 +190,20 @@ def test_bundle_uses_derive_layers_when_given(tmp_path: Path) -> None:
     assert by_row["V01-R001"]["length_m"] == pytest.approx(60.0)
     assert math.isclose(sum(f["properties"]["area_m2"] for f in interrows),
                         float(linked.geometry.area.sum()), abs_tol=0.01)
+    assert features_of(tmp_path / "waste.geojson") == [] and result.counts["waste"] == 0
+
+
+def test_manifest_carries_model_version_tiles_and_bbox(tmp_path: Path) -> None:
+    ann = make_annset(BlockSpec(n_rows=3))
+    params = web_params(load_config(environ={}))
+    build_web_bundle(WebInputs(annset=ann), tmp_path, params, generated_at=GEN, pipeline_version="x", run_id="r")
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    tiles = {*ann.canopies.tile_id, *ann.row_pieces.tile_id, *ann.interrow_pieces.tile_id}
+    assert manifest["model_version"] == ann.meta.model_version and manifest["tiles_with_objects"] == len(tiles) == 2
+    written = [f for name in ("blocks.geojson", "rows.geojson", "canopies.geojsonl", "interrows.geojson")
+               for f in features_of(tmp_path / name)]
+    bounds = shapely.total_bounds([shape(f["geometry"]) for f in written])
+    assert manifest["bbox_32635"] == pytest.approx([round(float(v), 3) for v in bounds], abs=1e-9)
 
 
 def test_rounding_keeps_the_precision_of_fractions() -> None:
@@ -190,6 +211,47 @@ def test_rounding_keeps_the_precision_of_fractions() -> None:
                            ("length_m", "outside_share"))
     rounded = rounded_properties(frame, 3)
     assert (rounded.length_m[0], rounded.outside_share[0]) == (1.235, 0.00467)
+
+
+def test_rounding_keeps_integers_next_to_nulls(tmp_path: Path) -> None:
+    frame = features_frame([{"route_order": 1, "area_m2": 2.34567}, {"route_order": None, "area_m2": math.nan}],
+                           [Point(X0, Y0), Point(X0 + 1, Y0)], ("route_order", "area_m2"))
+    rounded = rounded_properties(frame, 3)
+    assert list(rounded.route_order) == [1, None] and type(rounded.route_order[0]) is int
+    assert rounded.area_m2[0] == 2.346 and math.isnan(rounded.area_m2[1])
+    assert list(frame.area_m2) == pytest.approx([2.34567, math.nan], nan_ok=True)  # input untouched
+    props = [f["properties"] for f in features_of(write_geojson(rounded, tmp_path / "t.geojson", decimals=3))]
+    assert props == [{"route_order": 1, "area_m2": 2.346}, {"route_order": None, "area_m2": None}]
+
+
+def test_reach_note_classes_match_the_route_stage() -> None:
+    unreachable = {candidates.NOTE_DISCONNECTED, candidates.NOTE_TOO_FAR}
+    skipped = {stops.NOTE_OPTIONAL_DETOUR, stops.NOTE_TRUNCATED, stops.NOTE_NOT_ROUTED, budget.NOTE_OUTSIDE_BUDGET,
+               candidates.NOTE_OUTSIDE_ONLY}
+    assert (set(UNREACHABLE_NOTES), set(PLANNER_SKIP_NOTES)) == (unreachable, skipped)
+
+
+def _tile_frame(tiles: list[str], column: str = "tile") -> gpd.GeoDataFrame:
+    return features_frame([{column: t} for t in tiles], [Point(X0 + k, Y0 + k) for k in range(len(tiles))],
+                          (column,))
+
+
+def test_tiles_with_objects_counts_rows_canopies_and_interrows_only() -> None:
+    rows = features_frame([{"tile_structures": {"a": "regular", "b": "disrupted"}}, {"tile_structures": {}}],
+                          [LineString([(X0, Y0), (X0 + 1, Y0)])] * 2, ("tile_structures",))
+    layers = {"rows": rows, "canopies": _tile_frame(["b", "c"]), "interrows": _tile_frame(["c", "d"]),
+              "waste": _tile_frame(["e"]), "targets": _tile_frame(["f"]), "route": None}
+    assert tiles_with_objects(layers) == 4
+    empty = {name: _tile_frame([]) for name in ("canopies", "interrows")} | {"rows": features_frame(
+        [], [], ("tile_structures",))}
+    assert tiles_with_objects(empty) == 0
+
+
+def test_bundle_bbox_spans_every_layer_and_is_none_when_empty() -> None:
+    layers = {"canopies": _tile_frame(["a"]), "waste": features_frame([], [], ("w",)), "route": None,
+              "targets": features_frame([{"t": 1}], [Point(X0 - 5.00049, Y0 + 7.12351)], ("t",))}
+    assert bundle_bbox(layers, decimals=3) == [round(X0 - 5.00049, 3), Y0, X0, round(Y0 + 7.12351, 3)]
+    assert bundle_bbox({"waste": features_frame([], [], ("w",)), "route": None}, decimals=3) is None
 
 
 def test_find_layers_run_matches_a_latest_alias_of_the_same_annset(tmp_path: Path) -> None:

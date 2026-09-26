@@ -16,8 +16,6 @@ from vineyard.errors import SchemaError
 if TYPE_CHECKING:
     from vineyard.config import AppConfig
 
-SURVEY_ID: Final = "siret3"  # CONFIG-REQUEST: web.survey_id = "siret3"
-SURVEY_NAME: Final = "Sireț3"  # CONFIG-REQUEST: web.survey_name = "Sireț3"
 CAPTURED_AT: Final = "2025-05-20"  # CONFIG-REQUEST: web.captured_at = "2025-05-20"
 IMAGERY_SOURCE: Final = "3DATA COLLECT / OpenAerialMap"  # CONFIG-REQUEST: web.imagery_source = "3DATA COLLECT / OpenAerialMap"
 IMAGERY_LICENSE: Final = "CC BY 4.0"  # CONFIG-REQUEST: web.imagery_license = "CC BY 4.0"
@@ -57,9 +55,10 @@ class SurveyInfo:
 
 
 def survey_info(cfg: AppConfig) -> SurveyInfo:
+    """Survey identity from `web.survey_id` / `web.survey_name`, imagery facts from the grid and constants."""
     return SurveyInfo(
-        survey_id=SURVEY_ID, name=SURVEY_NAME, captured_at=CAPTURED_AT, gsd_m=cfg.grid.gsd_m, crs=cfg.project.crs,
-        source=IMAGERY_SOURCE, license=IMAGERY_LICENSE, tiles=cfg.grid.expected_tiles,
+        survey_id=cfg.web.survey_id, name=cfg.web.survey_name, captured_at=CAPTURED_AT, gsd_m=cfg.grid.gsd_m,
+        crs=cfg.project.crs, source=IMAGERY_SOURCE, license=IMAGERY_LICENSE, tiles=cfg.grid.expected_tiles,
     )
 
 

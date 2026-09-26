@@ -126,7 +126,7 @@ qa/          render review overview   tests/<area>/…  (pytest --import-mode=im
   - Teammates pushed `src/Web` in the meantime. We rebased on top of it, with no overlap.
 - **Deviation: Phase 0 and Phase 1 agents work in the same checkout, on strictly disjoint files, instead of one worktree per WP.** Phase 1 packages import each other's live code (for example `corridor.py`), and merge round-trips would cost time. Ownership is checked with `git status` at each gate.
 - **Deviation: the post-Marcaj chain was pulled forward.** It started Fri 23:45 in its own worktree, `/Users/maleticimiroslav/wt-siret3/post` (branch `wp/post`), and merges after G1. This protects the route, which is 25% of the score.
-- **Web data contract.** `src/Web/CLAUDE.md` §6 (web team) wins over contract §7. `web_bundle` writes an EPSG:32635 bundle to `src/Web/data/surveys/siret3/pipeline/` (`manifest.json`, blocks/rows/canopies.geojsonl/interrows/waste/targets/route, `measurements.csv`). The web team builds the 4326/PMTiles output itself.
+- **Web data contract.** `src/Web/CLAUDE.md` §6 (web team) wins over contract §7. `web_bundle` writes an EPSG:32635 bundle to `src/Web/data/surveys/<web.survey_id>/pipeline/` (default `siret3`; `manifest.json`, blocks/rows/canopies.geojsonl/interrows/waste/targets/route, `measurements.csv`). The web team builds the 4326/PMTiles output itself.
 - **`measurements.csv` (root deliverable) uses the web contract §6.4 format:**
   - columns `level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canopy_area_ha,interrow_area_m2,interrow_area_ha,plant_count,row_structure`;
   - levels `survey`/`block`/`row`;

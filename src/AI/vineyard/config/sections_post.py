@@ -154,6 +154,9 @@ class Gdal2TilesConfig(Section):
 
 class WebConfig(Section):
     out_dir: Path
+    # Bundle directory name and manifest identity (`surveys/<survey_id>/pipeline/`, web contract §6.1).
+    survey_id: Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_-]*$")]
+    survey_name: Annotated[str, Field(min_length=1)]
     geojson_decimals_4326: Annotated[int, Field(ge=0, le=9)]
     utm_decimals: Annotated[int, Field(ge=0, le=6)]
     ortho_mode: Literal["auto", "xyz", "tiles_jpeg"]
