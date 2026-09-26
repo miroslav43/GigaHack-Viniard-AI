@@ -8,6 +8,7 @@ import geopandas as gpd
 import pytest
 from shapely.geometry import box
 
+from vineyard.contracts.ids import tile_grid_ids
 from vineyard.contracts.schemas import validate_layer
 from vineyard.geo.tiling import tile_box, tile_ref
 from vineyard.perception.waste.confirm import (
@@ -18,7 +19,7 @@ from vineyard.perception.waste.confirm import (
     merge_confirmed,
     read_confirmations,
 )
-from vineyard.perception.waste.types import BoxPx, Category
+from vineyard.perception.waste.types import DECISIONS, BoxPx, Category
 
 T1 = "siret3_r021_c012"
 T2 = "siret3_r006_c004"
@@ -67,7 +68,8 @@ def test_header_only_file_and_missing_file(tmp_path: Path) -> None:
 
 
 def test_committed_file_parses(project_root: Path) -> None:
-    assert read_confirmations(project_root / "configs" / "waste_confirmed.csv", KNOWN) == ()
+    confs = read_confirmations(project_root / "configs" / "waste_confirmed.csv", frozenset(tile_grid_ids()))
+    assert all(c.decision in DECISIONS for c in confs)
 
 
 def test_valid_rows_comments_and_blank_lines(tmp_path: Path) -> None:

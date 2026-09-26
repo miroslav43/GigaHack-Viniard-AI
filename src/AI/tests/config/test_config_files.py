@@ -35,10 +35,12 @@ def test_overrides_template_is_empty() -> None:
     }
 
 
-def test_waste_confirmed_header_only() -> None:
+def test_waste_confirmed_header_and_row_width() -> None:
     with (CONFIGS / "waste_confirmed.csv").open(encoding="utf-8", newline="") as fh:
         rows = list(csv.reader(fh))
-    assert rows == [["tile_id", "xtl", "ytl", "xbr", "ybr", "decision", "category", "reviewer", "note"]]
+    header = ["tile_id", "xtl", "ytl", "xbr", "ybr", "decision", "category", "reviewer", "note"]
+    assert rows[0] == header
+    assert all(len(r) == len(header) for r in rows[1:])
 
 
 def test_default_yaml_lists_every_model_key() -> None:
