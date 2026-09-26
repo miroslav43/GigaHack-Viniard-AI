@@ -12,6 +12,7 @@ from enum import StrEnum
 from typing import Any, Final
 
 import geopandas as gpd
+import pandas as pd
 import shapely
 from shapely.geometry import LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
@@ -33,6 +34,7 @@ class RoadClass(StrEnum):
 class RoadOrigin(StrEnum):
     OSM = "osm"
     DETECTED = "detected"
+    CADASTRE = "cadastre"
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,7 @@ class Road:
     farm_id: str | None
     origin: RoadOrigin
     geometry: BaseGeometry  # LineString | MultiLineString, EPSG:32635
+    cadastral: bool | None = None  # an official road parcel covers it (None: no cadastre snapshot)
 
     @property
     def length_m(self) -> float:
@@ -130,16 +133,9 @@ def roads_frame(roads: Sequence[Road], provenance: Mapping[str, Any]) -> gpd.Geo
             "highway": [r.highway for r in roads], "name": [r.name for r in roads],
             "surface": [r.surface for r in roads], "farm_id": [r.farm_id for r in roads],
             "origin": [r.origin.value for r in roads], "length_m": [r.length_m for r in roads],
+            "cadastral": pd.array([r.cadastral for r in roads], dtype="boolean"),
             **{k: [v] * len(roads) for k, v in provenance.items()}}
     return gpd.GeoDataFrame(data, geometry=gpd.GeoSeries([r.geometry for r in roads], crs=CRS_EPSG), crs=CRS_EPSG)
-
-
-def farms_frame(farms: Sequence[Farm], provenance: Mapping[str, Any]) -> gpd.GeoDataFrame:
-    """The `farms` layer: one outline per farm; vineyard_ids comma-joined (V03,V07)."""
-    data = {"farm_id": [f.farm_id for f in farms], "vineyard_ids": [",".join(f.vineyard_ids) for f in farms],
-            "n_blocks": [len(f.vineyard_ids) for f in farms], "area_m2": [f.area_m2 for f in farms],
-            **{k: [v] * len(farms) for k, v in provenance.items()}}
-    return gpd.GeoDataFrame(data, geometry=gpd.GeoSeries([f.outline for f in farms], crs=CRS_EPSG), crs=CRS_EPSG)
 
 
 def class_lengths(roads: Sequence[Road]) -> dict[str, float]:

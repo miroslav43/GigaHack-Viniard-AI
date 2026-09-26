@@ -75,7 +75,7 @@ GRID_LAYERS: Final = frozenset({"tiles", "roads"})
 SEQ_LAYERS: Final = frozenset({"canopies"})
 # canopies.geojson is the non-sequence spelling of the same layer: a stale copy would shadow ours.
 BUNDLE_FILES: Final = frozenset({*LAYER_FILES.values(), "canopies.geojson", MEASUREMENTS_FILE, MANIFEST_FILE})
-BLOCK_COLUMNS: Final = ("vineyard_id", "farm_id", "area_m2")
+BLOCK_COLUMNS: Final = ("vineyard_id", "farm_id", "area_m2", "n_parcels", "cadastral_codes", "landuse_counts")
 ROW_LINK_TOL_M: Final = 1.0  # CONFIG-REQUEST: web.row_link_tol_m = 1.0
 WASTE_BLOCK_MAX_M: Final = 10.0  # CONFIG-REQUEST: web.waste_block_max_m = 10.0 (contract §6.3)
 SEQ_SEPARATORS: Final = (",", ":")  # compact GeoJSONSeq: canopies are the bulk of the bundle
@@ -141,6 +141,7 @@ class WebInputs:
     cross_paths: gpd.GeoDataFrame | None = None  # passable `cross_paths` (tracks across the rows)
     farms: gpd.GeoDataFrame | None = None  # stage `farms`: groups of neighbouring blocks
     roads: gpd.GeoDataFrame | None = None  # stage `farms`: public / field / internal roads
+    farm_blocks: gpd.GeoDataFrame | None = None  # stage `farms`: block -> farm + cadastral parcels
 
 
 @dataclass(frozen=True)
@@ -193,8 +194,9 @@ def block_features(inputs: WebInputs, buffer_m: float) -> gpd.GeoDataFrame:
     ids = sorted(outlines, key=natural_key)
     geoms = [_polygonal(outlines[vid]) for vid in ids]
     farm_of = farm_of_block_ids(inputs.farms)
-    records = [{"vineyard_id": vid, "farm_id": farm_of.get(vid), "area_m2": float(g.area)}
-               for vid, g in zip(ids, geoms, strict=True)]
+    parcels = parcel_props_by(inputs.farm_blocks, "vineyard_id")
+    records = [{"vineyard_id": vid, "farm_id": farm_of.get(vid), "area_m2": float(g.area),
+                **parcels.get(vid, NO_PARCELS)} for vid, g in zip(ids, geoms, strict=True)]
     return features_frame(records, geoms, BLOCK_COLUMNS)
 
 
@@ -223,8 +225,10 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
 
 
 CROSS_PATH_PROPERTIES: Final = ("id", "vineyard_id", "n_rows", "width_m", "length_m")
-FARM_PROPERTIES: Final = ("farm_id", "vineyard_ids", "n_blocks", "area_m2")
-ROAD_PROPERTIES: Final = ("road_id", "road_class", "highway", "name", "surface", "farm_id", "length_m", "source")
+FARM_PROPERTIES: Final = ("farm_id", "vineyard_ids", "n_blocks", "area_m2", "n_parcels", "cadastral_codes",
+                          "landuse_counts")
+ROAD_PROPERTIES: Final = ("road_id", "road_class", "highway", "name", "surface", "farm_id", "length_m", "source",
+                          "cadastral")
 
 
 def cross_path_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
@@ -246,16 +250,42 @@ def farm_of_block_ids(farms: gpd.GeoDataFrame | None) -> dict[str, str]:
             for vid in str(vids).split(",") if vid}
 
 
+NO_PARCELS: Final[Mapping[str, Any]] = MappingProxyType(
+    {"n_parcels": None, "cadastral_codes": None, "landuse_counts": None})
+
+
+def _parcel_props(record: Mapping[str, Any]) -> dict[str, Any]:
+    """n_parcels / cadastral_codes (array) / landuse_counts (object) of a farms or farm_blocks row."""
+    n = record.get("n_parcels")
+    if n is None or pd.isna(n):
+        return dict(NO_PARCELS)
+    codes = text_or_none(record.get("cadastral_codes")) or ""
+    landuse = text_or_none(record.get("landuse_counts"))
+    return {"n_parcels": int(n), "cadastral_codes": [c for c in codes.split(",") if c],
+            "landuse_counts": json.loads(landuse) if landuse else {}}
+
+
+def parcel_props_by(frame: gpd.GeoDataFrame | None, key: str) -> dict[str, dict[str, Any]]:
+    if frame is None or "n_parcels" not in frame.columns:
+        return {}
+    return {str(r[key]): _parcel_props(r) for r in frame.to_dict("records")}
+
+
 def farm_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
     """farms.geojson: one outline per farm; vineyard_ids as a JSON array (None when the run has no layer)."""
     if frame is None:
         return None
     ordered = frame.sort_values("farm_id", kind="stable")
+    parcels = parcel_props_by(ordered, "farm_id")
     records = [{"farm_id": str(fid), "vineyard_ids": [v for v in str(vids).split(",") if v], "n_blocks": int(n),
-                "area_m2": float(area)}
+                "area_m2": float(area), **parcels.get(str(fid), NO_PARCELS)}
                for fid, vids, n, area in zip(ordered["farm_id"], ordered["vineyard_ids"], ordered["n_blocks"],
                                              ordered["area_m2"], strict=True)]
     return features_frame(records, list(ordered.geometry), FARM_PROPERTIES)
+
+
+def _optional_bool(value: Any) -> bool | None:
+    return None if value is None or value is pd.NA or (isinstance(value, float) and math.isnan(value)) else bool(value)
 
 
 def road_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
@@ -265,7 +295,8 @@ def road_features(frame: gpd.GeoDataFrame | None) -> gpd.GeoDataFrame | None:
     ordered = frame.sort_values("road_id", kind="stable")
     records = [{"road_id": str(r["road_id"]), "road_class": str(r["road_class"]), "highway": str(r["highway"]),
                 "name": text_or_none(r["name"]), "surface": text_or_none(r["surface"]),
-                "farm_id": text_or_none(r["farm_id"]), "length_m": float(r["length_m"]), "source": str(r["origin"])}
+                "farm_id": text_or_none(r["farm_id"]), "length_m": float(r["length_m"]), "source": str(r["origin"]),
+                "cadastral": _optional_bool(r.get("cadastral"))}
                for r in ordered.to_dict("records")]
     return features_frame(records, list(ordered.geometry), ROAD_PROPERTIES)
 

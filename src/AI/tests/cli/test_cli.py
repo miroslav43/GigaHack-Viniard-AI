@@ -23,7 +23,8 @@ runner = CliRunner()
 FAKE_RUNNER = "vineyard.pipeline._fake_runner_for_cli_tests"
 EXPECTED_COMMANDS = (
     "ingest", "run", "all", "export-cvat", "import-marcaj", "from-marcaj", "import-reference", "derive",
-    "passable", "targets", "route", "measure", "post", "final", "publish", "eval-examples", "qa", "nn", "waste",
+    "passable", "targets", "route", "measure", "farms", "post", "final", "publish", "eval-examples", "qa", "nn", "waste",
+    "osm-fetch", "cadastre-fetch",
     "web", "bench", "cvat", "config", "doctor",
 )
 

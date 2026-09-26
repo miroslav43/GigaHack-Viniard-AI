@@ -7,6 +7,7 @@ reads the snapshot, so `docker run --network none` still works. OSM data: ODbL 1
 from __future__ import annotations
 
 import json
+import ssl
 import urllib.parse
 import urllib.request
 from collections.abc import Iterable, Mapping
@@ -30,6 +31,15 @@ CRS_4326: Final = "EPSG:4326"
 TIMEOUT_S: Final = 90
 
 Bbox = tuple[float, float, float, float]  # (west, south, east, north), degrees
+
+
+def https_context() -> ssl.SSLContext:
+    """TLS context on certifi's CA bundle when installed (uv's Python may ship without system CA paths)."""
+    try:
+        import certifi
+    except ImportError:
+        return ssl.create_default_context()
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 def bbox_4326(bounds_utm: Bbox, pad_m: float) -> Bbox:
@@ -67,7 +77,7 @@ def fetch_highways(bbox: Bbox, fetched_at: str, *, timeout_s: int = TIMEOUT_S) -
     """Every OSM way tagged highway=* in `bbox`, from the Overpass API (network)."""
     body = urllib.parse.urlencode({"data": overpass_query(bbox, timeout_s)}).encode()
     request = urllib.request.Request(OVERPASS_URL, data=body, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout_s + 30) as response:  # noqa: S310 - fixed https URL
+    with urllib.request.urlopen(request, timeout=timeout_s + 30, context=https_context()) as response:  # noqa: S310 - fixed https URL
         payload = json.load(response)
     return highways_collection(payload.get("elements") or (), bbox, fetched_at)
 

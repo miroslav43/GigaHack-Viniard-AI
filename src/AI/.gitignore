@@ -10,3 +10,5 @@ dist/
 __pycache__/
 models/
 data/marcaj_intermediate/
+# AGCC cadastral parcels: local until the AGCC confirms the reuse terms
+data/cadastre/

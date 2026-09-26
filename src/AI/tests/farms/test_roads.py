@@ -6,13 +6,13 @@ import geopandas as gpd
 import pytest
 from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point, box
 
+from vineyard.farms.frames import farms_frame
 from vineyard.farms.grouping import Farm
 from vineyard.farms.roads import (
     CROSS_PATH_HIGHWAY,
     RoadClass,
     class_lengths,
     classify_roads,
-    farms_frame,
     lineal,
     public_union,
     road_ids,

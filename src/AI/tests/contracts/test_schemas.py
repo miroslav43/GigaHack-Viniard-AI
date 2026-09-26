@@ -28,7 +28,7 @@ EXPECTED_LAYERS = {
     "row_candidates", "rows_raw", "rows", "row_pairs", "rows_rejected", "blocks", "canopies", "row_pieces",
     "interrows", "interrow_pieces", "interrow_pieces_linked", "waste_candidates", "waste", "targets",
     "target_extents", "target_visits", "cross_paths", "cross_path_lines", "passable_parts", "passable_domain", "walk_nodes", "walk_edges",
-    "route", "route_stops", "qa_issues",
+    "route", "route_stops", "qa_issues", "farms", "farm_blocks", "roads",
 }
 
 

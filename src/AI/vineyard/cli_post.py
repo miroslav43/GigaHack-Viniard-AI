@@ -112,6 +112,13 @@ def measure(opts: CommonOptions) -> None:
     _run_on_annset(opts, ("measure",))
 
 
+@app.command("farms")
+@with_common_options
+def farms(opts: CommonOptions) -> None:
+    """Ferme (blocuri vecine) + clase de drumuri (+ parcele cadastrale AGCC, dacă există instantaneul)."""
+    _run_on_annset(opts, ("farms",))
+
+
 @app.command("post")
 @with_common_options
 def post(opts: CommonOptions, final: FinalOpt = False) -> None:

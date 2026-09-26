@@ -41,7 +41,8 @@ STAGE_NAME: Final = "web_bundle"
 # counts.tiles / masks
 # 5: + cross_paths.geojson (passable's tracks across the rows) + its manifest count
 # 6: + farms.geojson / roads.geojson (stage farms) + blocks.geojson farm_id
-STAGE_VERSION: Final = "6"
+# 7: + cadastral parcels (n_parcels, cadastral_codes, landuse_counts) on farms / blocks, roads `cadastral`
+STAGE_VERSION: Final = "7"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
                    "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
@@ -55,6 +56,7 @@ OPTIONAL_LAYERS: Final = {
     "visits": ("target_visits.parquet", "target_visits"),
     "cross_paths": ("cross_paths.parquet", "cross_paths"),
     "farms": ("farms.parquet", "farms"), "roads": ("roads.parquet", "roads"),
+    "farm_blocks": ("farm_blocks.parquet", "farm_blocks"),
 }
 ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"

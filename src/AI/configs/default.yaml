@@ -656,6 +656,18 @@ farms:                                     # farms and road classes (vineyard.fa
   public_highways: [motorway, trunk, primary, secondary, tertiary, unclassified, residential, living_street, service]
   internal_min_len_m: 5.0                  # a field track's stretch inside a farm counts as internal from this length
   osm_fetch_pad_m: 300.0                   # osm-fetch: the study area's bbox grown by this
+  # AGCC cadastral parcels (vineyard cadastre-fetch; gitignored until the AGCC confirms reuse): optional, the
+  # stage runs without them. A parcel belongs to a block / farm when their overlap reaches either threshold.
+  cadastre_parcels: data/cadastre/siret3_parcels.geojson
+  parcel_min_overlap_m2: 20.0
+  parcel_min_overlap_frac: 0.5              # ... or this share of the parcel (small garden strips)
+  road_landuses: ["Cale de comunicație"]   # land use of the road parcels (ţ / ț and case are normalised)
+  road_cover_frac: 0.5                     # an OSM road is cadastral when this share of it lies in road parcels
+  road_parcel_buffer_m: 2.0                # ... grown by this (parcel edges vs road centrelines)
+  cadastre_road_min_len_m: 25.0            # road parcels away from every OSM road: centreline from this length on
+  cadastre_road_res_m: 0.5                 # raster step of that centreline (skeleton)
+  cadastre_road_max_width_m: 20.0          # wider road parcels (a national-road corridor) give no centreline
+  cadastre_road_osm_gap_m: 15.0            # ... nor pieces running alongside an OSM road this close (same road, offset)
 
 publish:
   require_source: null                     # `make final` sets marcaj

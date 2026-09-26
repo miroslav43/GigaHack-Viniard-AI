@@ -224,6 +224,10 @@ _ANNSET: Final = (
     ),
 )
 
+# Cadastral parcels under a farm / block (stage farms); null without the AGCC snapshot.
+_PARCEL_COLUMNS: Final = (C("n_parcels", "int32", nullable=True), C("cadastral_codes", "str", nullable=True),
+                          C("landuse_counts", "str", nullable=True))
+
 _POST: Final = (
     LayerSchema(
         "targets", POINT, ("target_id",),
@@ -257,13 +261,18 @@ _POST: Final = (
     ),
     LayerSchema(
         "farms", POLY_MULTI, ("farm_id",),
-        (C("farm_id", "str"), C("vineyard_ids", "str"), C("n_blocks", "int32"), C("area_m2", "float64")),
+        (C("farm_id", "str"), C("vineyard_ids", "str"), C("n_blocks", "int32"), C("area_m2", "float64"),
+         *_PARCEL_COLUMNS),
+    ),
+    LayerSchema(
+        "farm_blocks", POLY_MULTI, ("vineyard_id",),
+        (_block(), C("farm_id", "str"), *_PARCEL_COLUMNS),
     ),
     LayerSchema(
         "roads", ("LineString", "MultiLineString"), ("road_id",),
         (C("road_id", "str"), C("road_class", "str"), C("highway", "str"), C("name", "str", nullable=True),
          C("surface", "str", nullable=True), C("farm_id", "str", nullable=True), C("origin", "str"),
-         C("length_m", "float64")),
+         C("length_m", "float64"), C("cadastral", "bool", nullable=True)),
         line_rules=False,
     ),
     LayerSchema(

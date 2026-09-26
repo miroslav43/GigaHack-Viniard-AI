@@ -197,6 +197,16 @@ class FarmsConfig(Section):
     public_highways: Annotated[tuple[str, ...], Field(min_length=1)]
     internal_min_len_m: NonNegFloat
     osm_fetch_pad_m: NonNegFloat
+    cadastre_parcels: Path | None = None
+    parcel_min_overlap_m2: NonNegFloat
+    parcel_min_overlap_frac: Frac
+    road_landuses: Annotated[tuple[str, ...], Field(min_length=1)]
+    road_cover_frac: Frac
+    road_parcel_buffer_m: NonNegFloat
+    cadastre_road_min_len_m: NonNegFloat
+    cadastre_road_res_m: PosFloat
+    cadastre_road_max_width_m: PosFloat
+    cadastre_road_osm_gap_m: NonNegFloat
 
     @model_validator(mode="after")
     def _touch_below_gap(self) -> FarmsConfig:

@@ -192,6 +192,36 @@ def osm_fetch(opts: CommonOptions) -> None:
     typer.echo(f"{len(collection['features'])} OSM highways, bbox {bbox} -> {path}")
 
 
+@app.command("cadastre-fetch")
+@with_config_options
+def cadastre_fetch(opts: CommonOptions) -> None:
+    """Descarcă parcelele cadastrale AGCC (WFS) din jurul celor 311 tile-uri în `farms.cadastre_parcels`."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    import shapely
+
+    from vineyard.contracts.ids import tile_grid_ids
+    from vineyard.farms.cadastre import fetch_parcels, write_snapshot
+    from vineyard.farms.osm import bbox_4326
+    from vineyard.geo.tiling import tile_box, tile_ref
+
+    try:
+        cfg = load_cli_config(opts)
+        if cfg.farms.cadastre_parcels is None:
+            raise ConfigError("farms.cadastre_parcels is null: nowhere to write the snapshot")
+        bounds = shapely.union_all([tile_box(tile_ref(t)) for t in tile_grid_ids()]).bounds
+        bbox = bbox_4326(bounds, cfg.farms.osm_fetch_pad_m)
+        stamp = datetime.now(ZoneInfo(cfg.logging.tz)).isoformat(timespec="seconds")
+        collection = fetch_parcels(bbox, stamp)
+        path = write_snapshot(collection, cfg.farms.cadastre_parcels)
+    except VineyardError as exc:
+        raise fail(exc) from exc
+    except (OSError, ValueError) as exc:  # network / HTTP / JSON errors of the WFS request
+        raise fail(IngestError("cadastre download failed", error=f"{type(exc).__name__}: {exc}")) from exc
+    typer.echo(f"{len(collection['features'])} parcels, bbox {bbox} -> {path}")
+
+
 @config_app.command("show")
 @with_config_options
 def config_show(
