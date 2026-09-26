@@ -37,6 +37,9 @@ import type { OverlayFiles } from "@/lib/types";
 import { useSurveyOverlays } from "./overlays/useSurveyOverlays";
 import { SurveyOverlayLayers, TILE_FILL } from "./overlays/SurveyOverlayLayers";
 import { OverlayLegend, OverlayToggles } from "./overlays/OverlayControls";
+import { useFarmsRoads } from "./overlays/useFarmsRoads";
+import { FARMS_FILL, FarmLabels, FarmRoadLayers, ROADS_HIT } from "./overlays/FarmRoadLayers";
+import { FarmRoadLegend, FarmRoadToggles } from "./overlays/FarmRoadControls";
 
 /** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
@@ -107,7 +110,14 @@ export function MapExplorer({
   // arrowReady is set in onLoad: the style is loaded, so the relief can add its sources and set the terrain
   const relief = useRelief(mapRef, terrain, dataBase, arrowReady);
   const overlays = useSurveyOverlays(dataBase, overlayFiles);
-  const interactiveLayerIds = useMemo(() => (overlays.available.tiles ? [...INTERACTIVE, TILE_FILL] : INTERACTIVE), [overlays.available.tiles]);
+  const farmsRoads = useFarmsRoads(dataBase, overlayFiles, summary.roads);
+  const [zoom, setZoom] = useState(15);
+  const { tiles: hasTiles } = overlays.available;
+  const { farms: hasFarms, roads: hasRoads } = farmsRoads.available;
+  const interactiveLayerIds = useMemo(
+    () => [...INTERACTIVE, ...(hasTiles ? [TILE_FILL] : []), ...(hasRoads ? [ROADS_HIT] : []), ...(hasFarms ? [FARMS_FILL] : [])],
+    [hasTiles, hasRoads, hasFarms],
+  );
 
   useEffect(() => {
     // `absent`: an optional layer a bundle may not ship (no waste.geojson before the waste model runs) — used only on 404
@@ -162,6 +172,7 @@ export function MapExplorer({
     const zoom = map.getZoom();
     const b = map.getBounds();
     const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+    setZoom(zoom);
     setDetailTiles(zoom < ZOOM.orthoDetail ? [] : tileBoxes.filter((t) => intersects(t.bbox, view)).slice(0, MAX_DETAIL_TILES));
     setTargetLabels(
       zoom < TARGET_LABEL_ZOOM
@@ -187,6 +198,15 @@ export function MapExplorer({
       fit(bboxOf([f]), 19);
     },
     [blocksFc, fit],
+  );
+  const selectFarm = useCallback(
+    (id: string, zoom = true) => {
+      const f = farmsRoads.farms?.features.find((x) => x.properties.farm_id === id);
+      if (!f) return;
+      setSelection({ layer: "farms", props: f.properties as unknown as Record<string, unknown> });
+      if (zoom) fit(bboxOf([f]), 18.5);
+    },
+    [farmsRoads.farms, fit],
   );
 
   const selectTarget = useCallback(
@@ -292,6 +312,12 @@ export function MapExplorer({
             overlays={overlays}
             detailTiles={detailTiles}
             selectedTile={selection?.layer === "tiles" ? String(selection.props.tile) : null}
+          />
+          {/* ---- optional farms and roads: above the orthophoto and the tiles, under blocks, canopies and rows ---- */}
+          <FarmRoadLayers
+            data={farmsRoads}
+            selectedRoad={selection?.layer === "roads" ? String(selection.props.road_id) : null}
+            selectedFarm={selection?.layer === "farms" ? String(selection.props.farm_id) : null}
           />
 
           {/* ---- vectors ---- */}
@@ -430,7 +456,8 @@ export function MapExplorer({
               </Source>
             ))}
 
-          {/* ---- markers: numbered route stops in view (refreshDetail) ---- */}
+          {/* ---- markers: farm labels (medium zoom and closer), numbered route stops in view (refreshDetail) ---- */}
+          <FarmLabels data={farmsRoads} zoom={zoom} onPick={(id) => selectFarm(id, false)} />
           {visible.route &&
             targetLabels.map((f) => {
               const [lon, lat] = f.geometry.coordinates;
@@ -473,8 +500,18 @@ export function MapExplorer({
           onPickRow={selectRow}
           onPickBlock={selectBlock}
           onFitAll={() => fit(studyBbox, 17)}
-          extraLayers={<OverlayToggles overlays={overlays} />}
-          extraLegend={<OverlayLegend overlays={overlays} />}
+          extraLayers={
+            <>
+              <FarmRoadToggles data={farmsRoads} />
+              <OverlayToggles overlays={overlays} />
+            </>
+          }
+          extraLegend={
+            <>
+              <FarmRoadLegend data={farmsRoads} />
+              <OverlayLegend overlays={overlays} />
+            </>
+          }
         />
         <MeasureTool
           active={measuring}
@@ -496,6 +533,8 @@ export function MapExplorer({
             summary={summary}
             onClose={() => setSelection(null)}
             onZoomRow={(id) => selectRow(id)}
+            onPickBlock={selectBlock}
+            onPickFarm={selectFarm}
           />
         )}
         {!rowsFc && (

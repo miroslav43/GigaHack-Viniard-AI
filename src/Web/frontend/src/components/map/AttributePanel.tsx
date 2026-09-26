@@ -13,9 +13,11 @@ import { mapPalette, type InterrowCover, type RowStructure } from "@/theme/mapPa
 import { useFormat } from "@/lib/useFormat";
 import type { SurveySummary } from "@/lib/types";
 import { TileAttributes, tileTitle } from "./overlays/TileAttributes";
+import { FarmAttributes, farmTitle, RoadAttributes, roadTitle } from "./overlays/FarmRoadAttributes";
+import { CadastreSnapshot } from "./overlays/CadastreSnapshot";
 
 export type Selection = {
-  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks" | "tiles";
+  layer: "rows" | "canopies" | "interrows" | "waste" | "targets" | "blocks" | "tiles" | "farms" | "roads";
   props: Record<string, unknown>;
 };
 
@@ -41,11 +43,15 @@ export function AttributePanel({
   summary,
   onClose,
   onZoomRow,
+  onPickBlock,
+  onPickFarm,
 }: {
   selection: Selection;
   summary: SurveySummary;
   onClose: () => void;
   onZoomRow: (rowId: string) => void;
+  onPickBlock?: (vineyardId: string) => void;
+  onPickFarm?: (farmId: string) => void;
 }) {
   const t = useTranslations("map.fields");
   const tc = useTranslations();
@@ -152,14 +158,21 @@ export function AttributePanel({
     case "blocks": {
       const b = summary.blocks.find((x) => x.vineyard_id === p.vineyard_id);
       title = t("block", { id: s("vineyard_id") });
+      const farmId = typeof p.farm_id === "string" ? p.farm_id : null;
       body = b && (
         <>
+          {farmId && (
+            <Field label={tc("map.farm.id")}>
+              {onPickFarm ? <Chip size="small" label={farmId} onClick={() => onPickFarm(farmId)} clickable /> : farmId}
+            </Field>
+          )}
           <Field label={t("rows")}>{f.int(b.row_count)}</Field>
           <Field label={t("rowLength")}>{f.m(b.row_length_m)}</Field>
           <Field label={t("canopyCount")}>{f.int(b.canopy_count)}</Field>
           <Field label={t("canopyArea")}>{f.area(b.canopy_area_m2)}</Field>
           <Field label={t("interrowArea")}>{f.area(b.interrow_area_m2)}</Field>
           <Field label={t("disrupted")}>{f.int(b.disrupted_rows)}</Field>
+          <CadastreSnapshot props={p} />
         </>
       );
       break;
@@ -167,6 +180,14 @@ export function AttributePanel({
     case "tiles":
       title = tileTitle(p);
       body = <TileAttributes props={p} />;
+      break;
+    case "farms":
+      title = tc("map.farm.title", { id: farmTitle(p) });
+      body = <FarmAttributes props={p} farm={summary.farms?.find((x) => x.farm_id === p.farm_id)} onPickBlock={onPickBlock} />;
+      break;
+    case "roads":
+      title = roadTitle(p);
+      body = <RoadAttributes props={p} onPickFarm={onPickFarm} />;
       break;
   }
 

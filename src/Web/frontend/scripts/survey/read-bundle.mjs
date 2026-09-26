@@ -1,9 +1,10 @@
 // Loads an AI survey bundle (src/Web/data/surveys/<id>/pipeline, src/Web/CLAUDE.md §6.2–6.4, EPSG:32635)
 // and validates it. Every problem names the bundle file it comes from. tiles.geojson is optional (web bundle v3);
-// its masks/ PNGs are checked by masks.mjs (async, headers only).
+// its masks/ PNGs are checked by masks.mjs (async, headers only). farms.geojson and roads.geojson are optional too.
 import fs from "node:fs";
 import path from "node:path";
-import { CANOPY_FILES, CSV_FILE, CSV_HEADER, LAYERS, MANIFEST_FILE, TILES, TILES_TOTAL } from "./contract.mjs";
+import { CANOPY_FILES, CSV_FILE, CSV_HEADER, FARMS, LAYERS, MANIFEST_FILE, ROADS, TILES, TILES_TOTAL } from "./contract.mjs";
+import { validateFarmsRoads } from "./farms.mjs";
 import { validateTiles } from "./tiles.mjs";
 import { validateBundle } from "./validate.mjs";
 
@@ -94,6 +95,8 @@ export const loadBundle = (dir) => {
     canopies: readCanopies(dir),
     csv: readText(dir, CSV_FILE),
     tiles: readOptionalJson(dir, TILES.file),
+    farms: readOptionalJson(dir, FARMS.file),
+    roads: readOptionalJson(dir, ROADS.file),
   };
   const problems = Object.values(reads).flatMap((r) => (r.problem ? [r.problem] : []));
   const layers = Object.fromEntries(Object.keys(LAYER_FILES).map((key) => [key, reads[key].value ?? null]));
@@ -107,6 +110,9 @@ export const loadBundle = (dir) => {
     csv: reads.csv.text === undefined ? null : parseMeasurements(reads.csv.text),
     // null = an older bundle without the tile layer
     tiles: reads.tiles.value ?? null,
+    // null = a bundle without farms / road classes
+    farms: reads.farms.value ?? null,
+    roads: reads.roads.value ?? null,
   };
   return { bundle, problems };
 };
@@ -128,7 +134,10 @@ export const readBundle = (dir, opts) => {
   if (problems.length) throw new BundleError(dir, problems);
   const layers = validateBundle(bundle, opts);
   const tiles = tileChecks(bundle);
-  const errors = [...layers.errors, ...tiles.errors];
+  // farm membership is checked against the block ids, so only once blocks.geojson passed its own checks
+  const blocksOk = !layers.errors.some((e) => e.file === LAYERS.blocks.file);
+  const farms = blocksOk ? validateFarmsRoads(bundle) : { errors: [], warnings: [] };
+  const errors = [...layers.errors, ...tiles.errors, ...farms.errors];
   if (errors.length) throw new BundleError(dir, errors);
-  return { bundle, warnings: [...layers.warnings, ...tiles.warnings] };
+  return { bundle, warnings: [...layers.warnings, ...tiles.warnings, ...farms.warnings] };
 };

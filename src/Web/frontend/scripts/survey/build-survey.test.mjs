@@ -49,6 +49,21 @@ test("--targets route writes only routed targets and counts them in the summary"
   assert.match(res.stdout, /2 targets \(routed only, of 5\)/);
 });
 
+test("farms + roads: writes both layers, the summary blocks, and counts only the routed targets per farm", { skip: NEEDS_DATA }, (t) => {
+  const bundle = copyBundle(t, { farms: true });
+  const out = tempDir(t);
+  const res = run(["--bundle", bundle, "--out", out, "--targets", "route"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /farms: 2 \(2 of 2 blocks\)\n {2}roads: 3 \(public 100 m, field 30 m, internal 20 m\)/);
+  const dir = path.join(out, "siret3");
+  assert.deepEqual(fs.readdirSync(dir).sort(), [...OUTPUTS_WITH_TILES, "farms.geojson", "roads.geojson"].sort());
+  const summary = readOut(dir, "summary.json");
+  assert.equal(summary.totals.farm_count, 2);
+  assert.deepEqual(summary.farms.map((f) => [f.farm_id, f.target_count]), [["F01", 1], ["F02", 1]]);
+  assert.deepEqual(summary.roads, { public_m: 100, field_m: 30, internal_m: 20 });
+  assert.match(run(["--bundle", MINI_BUNDLE, "--out", out]).stdout, /farms: none in this bundle[\s\S]*roads: none in this bundle/);
+});
+
 test("--check validates without writing", { skip: NEEDS_DATA }, (t) => {
   const out = tempDir(t);
   const res = run(["--bundle", MINI_BUNDLE, "--out", out, "--check"]);

@@ -2,6 +2,7 @@
 //   public/data/<id>/{summary.json, rows.json, rows|blocks|canopies|interrows|waste|targets|route.geojson,
 //                     route_EPSG32635.geojson, route.gpx, measurements.csv}          (EPSG:4326, 7 decimals)
 //   + when the bundle ships them (web bundle v3): tiles.geojson and masks/{<tile>.png, index.json}
+//   + when the bundle ships them: farms.geojson and roads.geojson (summary.json "farms", "roads", totals.farm_count)
 // Run after `pnpm data` (public/data/uats.json; --emit-seed also needs public/data/ref/study_area.geojson).
 // Usage: node scripts/build-survey.mjs [--survey siret3] [--bundle <dir>] [--out <dir>] [--interrow-tol 0.0125]
 //                                      [--targets all|route] [--check] [--emit-seed]
@@ -101,7 +102,8 @@ const readAndCheck = async (opts, geofence) => {
 
 const buildFiles = async (bundle, opts, { uatAreaHa, maskRgba }) => {
   const { files: layers, stats } = buildLayers(bundle, opts);
-  const summary = buildSummary({ bundle, targetCount: layers["targets.geojson"].features.length, uatAreaHa });
+  const targets = layers["targets.geojson"];
+  const summary = buildSummary({ bundle, targetCount: targets.features.length, uatAreaHa, targets });
   const files = {
     "summary.json": { json: summary },
     "rows.json": { json: buildRowsJson(layers["rows.geojson"]) },
@@ -149,6 +151,13 @@ const printCounts = (bundle, summary, stats, opts) => {
     ? `  tiles: ${tiles.total} (${tiles.vineyard} vineyard, ${tiles.no_vineyard} no_vineyard, ${tiles.to_complete} to complete in Marcaj), ` +
       `${bundle.tiles.features.filter((f) => f.properties.has_mask === true).length} vegetation masks`
     : "  tiles: none in this bundle (no tiles.geojson): the map hides the tile and mask layers");
+  console.log(summary.farms
+    ? `  farms: ${summary.totals.farm_count} (${summary.farms.reduce((s, f) => s + f.n_blocks, 0)} of ${t.block_count} blocks)`
+    : "  farms: none in this bundle (no farms.geojson): the map hides the farm layer");
+  const roads = summary.roads;
+  console.log(roads
+    ? `  roads: ${bundle.roads.features.length} (public ${roads.public_m} m, field ${roads.field_m} m, internal ${roads.internal_m} m)`
+    : "  roads: none in this bundle (no roads.geojson): the map hides the road layers");
 };
 
 const main = async (argv) => {

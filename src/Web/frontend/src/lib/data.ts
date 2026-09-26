@@ -23,8 +23,10 @@ export const getTerrain = (): Promise<TerrainMeta | null> =>
 
 /** The optional layers scripts/build-survey.mjs writes for a bundle that ships them (none on the mock). */
 export const getOverlayFiles = async (): Promise<OverlayFiles> => {
-  const [tiles, masks] = await Promise.all([exists("tiles.geojson"), exists("masks/index.json")]);
-  return { tiles, masks };
+  const [tiles, masks, farms, roads] = await Promise.all(
+    ["tiles.geojson", "masks/index.json", "farms.geojson", "roads.geojson"].map(exists),
+  );
+  return { tiles, masks, farms, roads };
 };
 
 export const dataUrl = (file: string) => `/data/${SURVEY_ID}/${file}`;

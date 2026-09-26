@@ -1,6 +1,7 @@
 // summary.json (SurveySummary, src/lib/types.ts) and rows.json (RowRecord[]) of a real survey.
 // Measurements come from the measurements.csv survey / block lines (§6.5); counts come from the layers.
 import { TILE_M, TILES_TOTAL } from "./contract.mjs";
+import { farmsSummary, roadsSummary } from "./farms.mjs";
 import { isNum, naturalCompare, polygonArea, r2, r4 } from "./geo.mjs";
 import { tilesSummary } from "./tiles.mjs";
 
@@ -108,20 +109,26 @@ const blockSummaries = (bundle, csvBlocks) => {
 };
 
 /**
- * summary.json; targetCount = targets written (all, or only routed ones with --targets route).
- * "tiles" ({ total, vineyard, no_vineyard, to_complete }) only when the bundle ships tiles.geojson.
+ * summary.json; targetCount = targets written (all, or only routed ones with --targets route), `targets` = that
+ * layer (per-farm target counts; defaults to the bundle's). "tiles" ({ total, vineyard, no_vineyard, to_complete })
+ * only when the bundle ships tiles.geojson; "farms" + totals.farm_count with farms.geojson; "roads" with roads.geojson.
  */
-export const buildSummary = ({ bundle, targetCount, uatAreaHa }) => {
+export const buildSummary = ({ bundle, targetCount, uatAreaHa, targets = bundle.targets }) => {
   const lines = bundle.csv.lines;
+  const survey = lines.find((l) => l.level === "survey");
+  const blocks = blockSummaries(bundle, lines.filter((l) => l.level === "block"));
+  const farms = bundle.farms ? farmsSummary({ farms: bundle.farms, blocks, survey, targets }) : null;
   return {
     survey: surveyInfo(bundle),
     uat: { ...UAT, area_ha: uatAreaHa },
-    totals: totals(bundle, lines.find((l) => l.level === "survey"), targetCount),
+    totals: { ...totals(bundle, survey, targetCount), ...(farms ? { farm_count: farms.length } : {}) },
     structure_counts: countBy(props(bundle.rows), (p) => p.row_structure),
     cover_counts: coverCounts(bundle.interrows),
     route: routeSummary(bundle.route.features[0].properties),
-    blocks: blockSummaries(bundle, lines.filter((l) => l.level === "block")),
+    blocks,
     ...(bundle.tiles ? { tiles: tilesSummary(bundle.tiles) } : {}),
+    ...(farms ? { farms } : {}),
+    ...(bundle.roads ? { roads: roadsSummary(bundle.roads) } : {}),
   };
 };
 

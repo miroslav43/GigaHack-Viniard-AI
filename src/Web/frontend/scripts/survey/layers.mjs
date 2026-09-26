@@ -1,7 +1,8 @@
 // The EPSG:4326 layers the map reads (public/data/<id>/*.geojson), built from the bundle's EPSG:32635 layers:
 // reprojected at 7 decimals, bundle properties kept, numeric feature id = i+1 (same shapes as build-data.mjs).
 // Areas missing from the bundle are measured in UTM before reprojection.
-import { isNum, polygonArea, positions, r2, r4, simplifyPolygonal, toWgs84 } from "./geo.mjs";
+import { farmOfBlock, labelPoint, roadLength } from "./farms.mjs";
+import { isNum, ll, polygonArea, positions, r2, r4, simplifyPolygonal, toWgs84 } from "./geo.mjs";
 
 export const TARGET_MODES = ["all", "route"];
 
@@ -92,13 +93,44 @@ export const targetsLayer = (targets, mode = "all") => {
   return fc([...kept].sort(byRouteOrder).map((f, i) => feature(f.properties, f.geometry, i)));
 };
 
+/** Blocks with farm_id when the bundle ships farms: from the farms' vineyard_ids (they win), else the block's own, else null. */
+export const blocksLayer = (blocks, farms) => {
+  if (!farms) return reproject(blocks);
+  const farmOf = farmOfBlock(farms);
+  return reproject(blocks, (p) => ({ ...p, farm_id: farmOf.get(p.vineyard_id) ?? p.farm_id ?? null }));
+};
+
+/** Farm outlines: n_blocks from vineyard_ids, area_m2 measured in UTM when absent, label_point = [lon, lat] inside the outline. */
+export const farmsLayer = (farms) =>
+  reproject(farms, (p, f) => {
+    const label = labelPoint(f.geometry);
+    return {
+      ...p,
+      n_blocks: p.vineyard_ids.length,
+      area_m2: r2(isNum(p.area_m2) ? p.area_m2 : polygonArea(f.geometry)),
+      label_point: label ? ll(label) : null,
+    };
+  });
+
+/** Roads: every optional property present (null when absent), length_m rounded to 2 decimals (measured when absent). */
+export const roadsLayer = (roads) =>
+  reproject(roads, (p, f) => ({
+    ...p,
+    highway: p.highway ?? null,
+    name: p.name ?? null,
+    surface: p.surface ?? null,
+    farm_id: p.farm_id ?? null,
+    source: p.source ?? null,
+    length_m: r2(roadLength(p, f.geometry)),
+  }));
+
 /** Every 4326 layer file, keyed by output file name, plus the inter-row simplification stats. */
 export const buildLayers = (bundle, { interrowTol, targets = "all" }) => {
   const interrows = interrowsLayer(bundle.interrows, interrowTol);
   return {
     files: {
       "rows.geojson": rowsLayer(bundle.rows, bundle.csv),
-      "blocks.geojson": reproject(bundle.blocks),
+      "blocks.geojson": blocksLayer(bundle.blocks, bundle.farms),
       "canopies.geojson": canopiesLayer(bundle.canopies),
       "interrows.geojson": interrows.layer,
       "waste.geojson": reproject(bundle.waste),
@@ -106,6 +138,9 @@ export const buildLayers = (bundle, { interrowTol, targets = "all" }) => {
       "route.geojson": reproject(bundle.route, (p) => ({ ...p, mock: false })),
       // optional (web bundle v3): the survey tile footprints
       ...(bundle.tiles ? { "tiles.geojson": reproject(bundle.tiles) } : {}),
+      // optional: farms and road classes
+      ...(bundle.farms ? { "farms.geojson": farmsLayer(bundle.farms) } : {}),
+      ...(bundle.roads ? { "roads.geojson": roadsLayer(bundle.roads) } : {}),
     },
     stats: { interrows: interrows.stats },
   };

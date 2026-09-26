@@ -37,6 +37,7 @@ export function KpiStrip({ summary }: { summary: SurveySummary }) {
         flexShrink: 0,
       }}
     >
+      {tt.farm_count != null && <Kpi value={f.int(tt.farm_count)} label={t("map.kpiFarms")} />}
       <Kpi value={f.int(tt.block_count)} label={t("map.kpiBlocks")} />
       <Kpi value={f.int(tt.row_count)} label={t("map.kpiRows")} />
       <Kpi value={f.length(tt.row_length_m)} label={t("map.kpiRowLength")} />

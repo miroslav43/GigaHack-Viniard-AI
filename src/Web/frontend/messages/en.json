@@ -84,7 +84,9 @@
     "targets": "Inspection target",
     "waste": "Waste",
     "blocks": "Block",
-    "tiles": "Tile"
+    "tiles": "Tile",
+    "farms": "Farm",
+    "roads": "Road"
   },
   "dashboard": {
     "subtitle": "Vineyard inventory within the commune boundary · {source}",
@@ -236,6 +238,58 @@
       "vegetation": "Vegetation",
       "nodata": "No data",
       "note": "Note: {note}"
+    },
+    "layerFarms": "Farms",
+    "layerRoads": "Roads",
+    "layerRoadsInternal": "Internal roads",
+    "roadsNote": "public and field roads (OpenStreetMap)",
+    "roadsInternalNote": "inside a farm, including detected paths across the rows",
+    "legendFarm": "Farm (blocks ≤ 10 m apart, no public road between them)",
+    "legendRoadPublic": "Public road",
+    "legendRoadField": "Field road",
+    "legendRoadInternal": "Farm internal road",
+    "kpiFarms": "farms",
+    "farm": {
+      "title": "Farm {id}",
+      "id": "Farm",
+      "blocks": "Blocks ({n})",
+      "area": "Farm area",
+      "rows": "Rows",
+      "rowLength": "Row length",
+      "canopyArea": "Canopy area",
+      "interrowArea": "Inter-row area",
+      "plants": "Plants",
+      "targets": "Inspection targets",
+      "note": "Area = the farm outline; the other figures are the sum of its blocks (from measurements.csv)."
+    },
+    "road": {
+      "class": "Class",
+      "classes": {
+        "public": "public",
+        "field": "field",
+        "internal": "internal"
+      },
+      "highway": "OSM type",
+      "crossPath": "path across the rows (detected by the AI)",
+      "name": "Name",
+      "surface": "Surface",
+      "length": "Length",
+      "farm": "Farm",
+      "source": "Source",
+      "sources": {
+        "osm": "OpenStreetMap",
+        "detected": "detected by the AI",
+        "cadastre": "cadastre (AGCC)"
+      },
+      "cadastre": "Cadastre",
+      "cadastralConfirmed": "confirmed in the cadastre"
+    },
+    "cadastreSnapshot": {
+      "parcels": "Cadastral parcels",
+      "landuse": "· {use}",
+      "showCodes": "Cadastral numbers ({n})",
+      "hideCodes": "Hide cadastral numbers ({n})",
+      "more": "+{n}"
     }
   },
   "blocks": {

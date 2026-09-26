@@ -43,7 +43,8 @@ test("overlay switches follow the files the survey ships; the map loads either w
     if (ships) await expect(box).toBeEnabled();
     else await expect(box).toBeDisabled();
   }
-  const hint = page.getByText("indisponibil pentru acest survey");
+  // the hints of these two switches only (the farm / road switches have their own, see farms-roads.spec.ts)
+  const hint = page.locator("#overlay-hint-tiles, #overlay-hint-vegMask").getByText("indisponibil pentru acest survey");
   await expect(hint).toHaveCount(Number(!shipsTiles) + Number(!shipsMasks));
   // off by default: nothing is fetched until a switch is turned on
   expect(overlayRequests).toEqual([]);
