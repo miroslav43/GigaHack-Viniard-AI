@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext, RunPaths
 
 NAME: Final = "assemble"
-VERSION: Final = "1"
+VERSION: Final = "2"
 # AnnSet layer -> the tile stage whose cache holds it.
 LAYER_STAGES: Final[Mapping[str, str]] = MappingProxyType(
     {"canopies": "canopy", "row_pieces": "row_attrs", "interrow_pieces": "interrow"}

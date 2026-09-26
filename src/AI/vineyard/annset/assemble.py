@@ -77,6 +77,7 @@ class TileEvidence:
 class AssembleSettings:
     max_overlap_m2: float
     min_interrow_piece_m2: float
+    canopy_clearance_m: float
     snr_min: float  # below it a tile has no row periodicity: canopies there are suspect
     snr_review_max: float  # rows on a tile below it go to priority-1 review
     min_vine_score: float
@@ -86,6 +87,7 @@ class AssembleSettings:
         return cls(
             max_overlap_m2=cfg.export.cvat.max_canopy_interrow_overlap_m2,
             min_interrow_piece_m2=cfg.export.min_interrow_piece_m2,
+            canopy_clearance_m=cfg.interrow.canopy_clearance_m,
             snr_min=cfg.rows.detect.periodicity_min_snr,
             snr_review_max=cfg.qa.snr_review_max,
             min_vine_score=cfg.rows.filter.min_vine_score,
@@ -143,7 +145,8 @@ def _prepare_layers(inputs: AssembleInputs, settings: AssembleSettings
               for name, frame in raw.items()}
     irs, fixed = remove_canopy_overlap(layers["interrow_pieces"], layers["canopies"],
                                        max_overlap_m2=settings.max_overlap_m2,
-                                       min_piece_m2=settings.min_interrow_piece_m2)
+                                       min_piece_m2=settings.min_interrow_piece_m2,
+                                       clearance_m=settings.canopy_clearance_m)
     layers["interrow_pieces"] = coerce_layer(irs, "interrow_pieces")
     for name in ANNSET_LAYERS:
         validate_layer(layers[name], name)

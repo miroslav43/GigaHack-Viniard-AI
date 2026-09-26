@@ -165,6 +165,7 @@ class InterrowConfig(Section):
     hole_sources: tuple[Literal["forbidden", "tree_mask"], ...]
     edge_extend_m: NonNegFloat
     edge_tol_m: NonNegFloat
+    canopy_clearance_m: NonNegFloat
 
     @model_validator(mode="after")
     def _cover_ordered(self) -> InterrowConfig:

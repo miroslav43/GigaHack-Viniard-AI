@@ -25,6 +25,7 @@ class CvatExportConfig(Section):
     max_canopy_interrow_overlap_m2: NonNegFloat
     roundtrip_max_dev_px: NonNegFloat
     selfcheck_min_union_iou: Frac
+    selfcheck_max_row_dev_m: NonNegFloat
     xml_deflate_level: Annotated[int, Field(ge=0, le=9)]
     manual_row_start: PosInt
     allow_qa_errors: bool

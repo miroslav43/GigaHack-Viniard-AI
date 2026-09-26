@@ -90,7 +90,7 @@ def _split_id(pid: str, k: int, used: dict[tuple[str, str], int]) -> str:
 
 
 def remove_canopy_overlap(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame, *, max_overlap_m2: float,
-                          min_piece_m2: float) -> tuple[gpd.GeoDataFrame, tuple[str, ...]]:
+                          min_piece_m2: float, clearance_m: float) -> tuple[gpd.GeoDataFrame, tuple[str, ...]]:
     """New interrow pieces with canopies subtracted in the tiles over the limit; also those tile ids.
 
     Split pieces keep their id on the largest part; the other parts get the next free `#k`.
@@ -99,7 +99,9 @@ def remove_canopy_overlap(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame, 
     fixed = tuple(t for t in sorted(overlap) if overlap[t] > max_overlap_m2)
     if not fixed:
         return pieces, ()
-    cutters = {t: _union(canopies, t) for t in fixed}
+    # A clearance keeps the shared edges apart, so 0.1 px rounding at export cannot re-create overlap.
+    cutters = {t: _union(canopies, t).buffer(clearance_m) if clearance_m > 0.0 else _union(canopies, t)
+               for t in fixed}
     used = _next_ids(list(pieces["piece_id"]))
     positions, geoms, ids = [], [], []
     for pos, (pid, tile_id, geom) in enumerate(zip(pieces["piece_id"], pieces[TILE], pieces.geometry, strict=True)):

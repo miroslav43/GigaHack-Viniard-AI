@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+import shapely
 
 from tests.qa import annset_factory as af
 from vineyard.contracts.enums import Severity
@@ -47,7 +48,7 @@ def test_overlap_by_tile_measures_intersection() -> None:
 def test_small_overlap_is_left_alone() -> None:
     can = _canopies((A, "V01", af.rect(A, 0, 9.8, 0.2, 10.4)))  # 0.02 m2, like the reference
     irs = _irs()
-    out, fixed = topology.remove_canopy_overlap(irs, can, max_overlap_m2=LIMIT, min_piece_m2=0.25)
+    out, fixed = topology.remove_canopy_overlap(irs, can, max_overlap_m2=LIMIT, min_piece_m2=0.25, clearance_m=0.0)
     assert fixed == ()
     assert out.geometry.geom_equals(irs.geometry).all()
     ann = af.annset([A], can=can, rows=_rows(), irs=irs)
@@ -60,7 +61,7 @@ def test_large_overlap_is_error_until_removed() -> None:
     issues = topology.check_invariants(ann, CLIPS, max_overlap_m2=LIMIT)
     assert _codes(issues) == ["canopy_interrow_overlap"]
     assert issues[0].severity == Severity.ERROR and issues[0].x is not None
-    out, fixed = topology.remove_canopy_overlap(_irs(), can, max_overlap_m2=LIMIT, min_piece_m2=0.25)
+    out, fixed = topology.remove_canopy_overlap(_irs(), can, max_overlap_m2=LIMIT, min_piece_m2=0.25, clearance_m=0.0)
     assert fixed == (A,)
     assert topology.overlap_by_tile(can, out)[A] < 1e-9
     assert list(out["piece_id"]) == list(_irs()["piece_id"])
@@ -71,7 +72,7 @@ def test_large_overlap_is_error_until_removed() -> None:
 
 def test_split_piece_gets_dup_suffix() -> None:
     can = _canopies((A, "V01", af.rect(A, 20, 10.2, 21, 12.3)))
-    out, fixed = topology.remove_canopy_overlap(_irs(), can, max_overlap_m2=LIMIT, min_piece_m2=0.25)
+    out, fixed = topology.remove_canopy_overlap(_irs(), can, max_overlap_m2=LIMIT, min_piece_m2=0.25, clearance_m=0.0)
     assert fixed == (A,)
     ids = sorted(out["piece_id"])
     assert ids == [f"V01-I001@{A}", f"V01-I001@{A}#2", f"V01-I002@{A}"]
@@ -137,3 +138,13 @@ def test_issue_order_is_stable() -> None:
     first = topology.check_invariants(ann, CLIPS, max_overlap_m2=LIMIT)
     assert first == topology.check_invariants(ann, CLIPS, max_overlap_m2=LIMIT)
     assert _codes(first) == sorted(_codes(first))
+
+
+def test_removed_overlap_keeps_a_clearance_from_canopies() -> None:
+    can = _canopies((A, "V01", af.rect(A, 0, 9.8, 0.8, 10.4)))
+    out, fixed = topology.remove_canopy_overlap(_irs(), can, max_overlap_m2=LIMIT, min_piece_m2=0.25,
+                                                clearance_m=0.01)
+    assert fixed == (A,)
+    gap = shapely.distance(shapely.union_all(can.geometry.values), shapely.union_all(out.geometry.values))
+    assert gap == pytest.approx(0.01, abs=1e-3)
+    assert topology.overlap_by_tile(can, out)[A] == 0.0

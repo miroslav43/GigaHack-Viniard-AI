@@ -7,6 +7,7 @@ import re
 import zipfile
 from pathlib import Path
 
+import numpy as np
 import pytest
 from shapely.geometry import LineString
 
@@ -25,7 +26,7 @@ from vineyard.cvat.packer import write_upload_zip
 from vineyard.cvat.selfcheck import compare_documents, selfcheck_upload
 from vineyard.cvat.to_cvat import annset_to_images
 from vineyard.cvat.writer import serialize_document
-from vineyard.geo.tiling import tile_ref
+from vineyard.geo.tiling import px_to_utm, tile_ref
 
 T1, T2 = "siret3_r006_c004", "siret3_r021_c012"
 PX = 2048
@@ -133,8 +134,29 @@ def test_geometry_mismatch_against_annset_is_detected(tmp_path: Path, cfg: CvatE
     )
     rep = selfcheck_upload([(path, doc)], expected_sha256=shas, expected_tiles=frozenset({T1, T2}), cfg=cfg,
                            annset=moved)
-    assert [i.code for i in rep.errors] == ["selfcheck_union_iou"]
+    assert "selfcheck_union_iou" in {i.code for i in rep.errors}
     assert hashlib.sha256(b"x").hexdigest()
+
+
+def test_row_simplification_is_tolerated_but_an_offset_row_is_not(tmp_path: Path, cfg: CvatExportConfig) -> None:
+    doc = _doc(cfg)
+    path, shas = _write(tmp_path, doc)
+    written = [s for s in doc.images[1].shapes if s.label == "row"][0]
+    (u0, v0), (u1, v1) = written.points[0], written.points[-1]
+    kink = (u0 + 0.1 * (u1 - u0), v0 + 0.1 * (v1 - v0) + 0.2)  # 0.2 px = 5 mm, removed by the 0.5 px simplify
+    base = _annset()
+
+    def with_row(line: LineString):
+        rows = base.row_pieces.assign(geometry=[line] + list(base.row_pieces.geometry.iloc[1:]))
+        return base.with_layer("row_pieces", rows)
+
+    t = tile_ref(T2)
+    near = LineString(px_to_utm(t, np.array([(u0, v0), kink, (u1, v1)])))
+    far = LineString(px_to_utm(t, np.array([(u0, v0 + 40.0), (u1, v1 + 40.0)])))  # 1 m off
+    kwargs = {"expected_sha256": shas, "expected_tiles": frozenset({T1, T2}), "cfg": cfg}
+    assert selfcheck_upload([(path, doc)], **kwargs, annset=with_row(near)).ok
+    bad = selfcheck_upload([(path, doc)], **kwargs, annset=with_row(far))
+    assert "selfcheck_row_deviation" in {i.code for i in bad.errors}
 
 
 def test_deliberately_emptied_tiles_skip_the_geometry_check(tmp_path: Path, cfg: CvatExportConfig) -> None:

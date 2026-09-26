@@ -263,6 +263,7 @@ interrow:
   hole_sources: [forbidden]
   edge_extend_m: 10.0                      # row ends on the data boundary are extended for the bands
   edge_tol_m: 0.05
+  canopy_clearance_m: 0.01                 # gap kept when canopies are cut out of interrows (> 0.1 px export rounding)
 
 row_structure:
   gap_disrupted_m: 5.0
@@ -474,7 +475,8 @@ export:
     notch_width_px: 1.0                    # >= 1 px so 0.1 px rounding cannot close it (C7)
     max_canopy_interrow_overlap_m2: 0.05   # checked after px conversion (C2)
     roundtrip_max_dev_px: 0.06
-    selfcheck_min_union_iou: 0.98
+    selfcheck_min_union_iou: 0.98          # polygons and boxes
+    selfcheck_max_row_dev_m: 0.02          # rows: Hausdorff; export simplify 0.5 px = 1.25 cm + 0.1 px rounding
     xml_deflate_level: 9
     manual_row_start: 900
     allow_qa_errors: false                 # CLI --allow-qa-errors
