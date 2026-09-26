@@ -209,29 +209,81 @@ def _pieces_m(length_m: float, gaps_m: tuple[tuple[float, float], ...], cut_gap_
     return [*pieces, (start, length_m)]
 
 
-def continued_segment(line_px: LineString, gaps_m: tuple[tuple[float, float], ...], inp: GuidedInputs,
-                      g: RowsGuidedConfig) -> LineString | None:
-    """The piece of a guided line (split at empty runs >= cut_gap_m, e.g. a road) that continues an accepted
-    neighbour row (gap <= continue_max_m); None when no piece does. A row stops where its vines stop."""
-    best, best_d = None, math.inf
-    for a, b in _pieces_m(line_px.length * GSD_M, gaps_m, g.cut_gap_m):
+def _pieces_px(line_px: LineString, gaps_m: tuple[tuple[float, float], ...], cut_gap_m: float
+               ) -> tuple[LineString, ...]:
+    """The pieces (>= MIN_LINE_PX) of a line split at its empty runs >= cut_gap_m (the line itself if uncut)."""
+    total_m = line_px.length * GSD_M
+    out = []
+    for a, b in _pieces_m(total_m, gaps_m, cut_gap_m):
         if (b - a) / GSD_M < MIN_LINE_PX:
             continue
-        piece = line_px if (a <= 0.0 and b >= line_px.length * GSD_M) else substring(line_px, a / GSD_M, b / GSD_M)
-        piece_utm = _to_utm(piece, inp.tile)
-        d = min((piece_utm.distance(o) for o in inp.neighbour_utm), default=math.inf)
-        if d < best_d:
-            best, best_d = piece, d
-    return best if best_d <= g.continue_max_m else None
+        out.append(line_px if (a <= 0.0 and b >= total_m) else substring(line_px, a / GSD_M, b / GSD_M))
+    return tuple(out)
+
+
+def _nearest_m(line_utm: LineString, others: tuple[LineString, ...] | list[LineString]) -> float:
+    return min((line_utm.distance(o) for o in others), default=math.inf)
+
+
+def anchor_score(piece_utm: LineString, neighbour_utm: tuple[LineString, ...], lateral_utm: list[LineString],
+                 spacing_m: float, g: RowsGuidedConfig) -> float:
+    """Distance of a piece to its best anchor, normalised so that <= 1 means anchored: an accepted neighbour
+    row it continues (gap <= continue_max_m) or, with lateral_enabled, an accepted row of its own tile it runs
+    beside (<= lateral_max_factor x spacing: the next row of the same block)."""
+    d_cont = _nearest_m(piece_utm, neighbour_utm)
+    cont = d_cont / g.continue_max_m if g.continue_max_m > 0 else (0.0 if d_cont == 0.0 else math.inf)
+    if not g.lateral_enabled or not lateral_utm:
+        return cont
+    return min(cont, _nearest_m(piece_utm, lateral_utm) / (g.lateral_max_factor * spacing_m))
+
+
+def anchored_piece(pieces: tuple[LineString, ...], tile: TileRef, neighbour_utm: tuple[LineString, ...],
+                   lateral_utm: list[LineString], spacing_m: float, g: RowsGuidedConfig) -> LineString | None:
+    """The best-anchored piece of a guided line (split at empty runs, e.g. a road); None when no piece is
+    anchored. A row stops where its vines stop."""
+    best, best_s = None, math.inf
+    for piece in pieces:
+        s = anchor_score(_to_utm(piece, tile), neighbour_utm, lateral_utm, spacing_m, g)
+        if s < best_s:
+            best, best_s = piece, s
+    return best if best_s <= 1.0 else None
+
+
+def continued_segment(line_px: LineString, gaps_m: tuple[tuple[float, float], ...], inp: GuidedInputs,
+                      g: RowsGuidedConfig) -> LineString | None:
+    """The piece of a guided line that continues an accepted neighbour row (gap <= continue_max_m)."""
+    return anchored_piece(_pieces_px(line_px, gaps_m, g.cut_gap_m), inp.tile, inp.neighbour_utm, [], 1.0, g)
 
 
 def _far_from(line_utm: LineString, others: list[LineString], min_sep_m: float) -> bool:
     return all(not line_utm.intersects(o) and line_utm.distance(o) >= min_sep_m for o in others)
 
 
-def _prior_candidates(pts: F32, prior: LatticePrior, inp: GuidedInputs, p: DetectParams, g: RowsGuidedConfig,
-                      orientation: int, taken: list[LineString]
-                      ) -> tuple[OrientationResult, list[RowCandidate], list[LineString]]:
+def _utm_angle_deg(line: LineString) -> float:
+    (x0, y0), (x1, y1) = line.coords[0], line.coords[-1]
+    return math.degrees(math.atan2(y1 - y0, x1 - x0)) % AXIAL_DEG
+
+
+def parallel_rows(lines: list[LineString], angle_utm_deg: float, tol_deg: float) -> list[LineString]:
+    """The lines within tol_deg of the axial angle (lateral anchors: never a row of another block orientation)."""
+    return [ln for ln in lines if ln.length > 0 and axial_diff_deg(_utm_angle_deg(ln), angle_utm_deg) < tol_deg]
+
+
+@dataclass(frozen=True)
+class _Proposal:
+    """One on-lattice fitted line of a prior trial, before the anchor test."""
+
+    line: LineString
+    pieces: tuple[LineString, ...]
+    features: RowFeatures
+    angle_px_deg: float
+    peak_offset_px: float
+    lattice_dev_frac: float
+    residual_p95_m: float
+
+
+def _proposals(pts: F32, prior: LatticePrior, inp: GuidedInputs, p: DetectParams, g: RowsGuidedConfig,
+               lateral: bool) -> tuple[OrientationResult, list[_Proposal]]:
     d = p.rows.detect
     bin_px = d.profile_bin_m / GSD_M
     angle = search_angle_px(subsample(pts, d.max_sample_points, p.seed), angle_px_to_utm(prior.angle_utm_deg),
@@ -242,11 +294,10 @@ def _prior_candidates(pts: F32, prior: LatticePrior, inp: GuidedInputs, p: Detec
     result = OrientationResult(angle_px_deg=angle, angle_utm_deg=angle_px_to_utm(angle), spacing=sp,
                                n_points=len(pts), n_peaks=0, n_kept=0)
     if snr < g.min_snr:
-        return result, [], []
+        return result, []
     slabs = SlabIndex.build(pts, angle)
     snap_px = d.snap_to_edge_m / GSD_M
-    found: list[RowCandidate] = []
-    lines: list[LineString] = []
+    out: list[_Proposal] = []
     for peak in find_row_offsets(prof, sp, d):
         if peak.lattice_dev_frac > g.lattice_tol_frac:
             continue
@@ -261,28 +312,55 @@ def _prior_candidates(pts: F32, prior: LatticePrior, inp: GuidedInputs, p: Detec
         full_utm = _to_utm(line, inp.tile)
         if phase_dev_frac(line_offset_m(full_utm, prior.angle_utm_deg), prior) > g.phase_tol_frac:
             continue
-        if not any(full_utm.distance(o) <= g.continue_max_m for o in inp.neighbour_utm):
+        if not lateral and not any(full_utm.distance(o) <= g.continue_max_m for o in inp.neighbour_utm):
             continue  # cheap pre-check: no piece of the line can continue a neighbour row
         feats = _features(line, prior, inp, p)
-        seg = continued_segment(line, feats.gaps, inp, g)
-        if seg is None:
-            continue
-        if seg is not line:
-            line, feats = seg, _features(seg, prior, inp, p)
-        line_utm = _to_utm(line, inp.tile)
-        if not _far_from(line_utm, taken + lines, g.min_sep_m):
-            continue
-        if guided_reject(feats, g, p.orchard.along_duty_max) is not None:
-            continue
-        coords = line.coords
-        found.append(RowCandidate(
-            k=0, orientation=orientation, line_px=line, angle_px_deg=fit.angle_px_deg,
-            peak_offset_px=peak.offset_px, features=feats, lattice_dev_frac=peak.lattice_dev_frac,
-            residual_p95_m=fit.residual_p95_px * GSD_M, is_curved=False, local_spacing_m=prior.spacing_m,
-            rejected_reason=None, soft_flags=(FLAG_GUIDED,),
-            near_edge_start=near_edge(coords[0], inp.clip_px, snap_px),
-            near_edge_end=near_edge(coords[-1], inp.clip_px, snap_px)))
-        lines.append(line_utm)
+        out.append(_Proposal(line=line, pieces=_pieces_px(line, feats.gaps, g.cut_gap_m), features=feats,
+                             angle_px_deg=fit.angle_px_deg, peak_offset_px=peak.offset_px,
+                             lattice_dev_frac=peak.lattice_dev_frac, residual_p95_m=fit.residual_p95_px * GSD_M))
+    return result, out
+
+
+def _candidate(prop: _Proposal, line: LineString, feats: RowFeatures, prior: LatticePrior, inp: GuidedInputs,
+               orientation: int, snap_px: float) -> RowCandidate:
+    coords = line.coords
+    return RowCandidate(
+        k=0, orientation=orientation, line_px=line, angle_px_deg=prop.angle_px_deg,
+        peak_offset_px=prop.peak_offset_px, features=feats, lattice_dev_frac=prop.lattice_dev_frac,
+        residual_p95_m=prop.residual_p95_m, is_curved=False, local_spacing_m=prior.spacing_m,
+        rejected_reason=None, soft_flags=(FLAG_GUIDED,),
+        near_edge_start=near_edge(coords[0], inp.clip_px, snap_px),
+        near_edge_end=near_edge(coords[-1], inp.clip_px, snap_px))
+
+
+def _prior_candidates(pts: F32, prior: LatticePrior, inp: GuidedInputs, p: DetectParams, g: RowsGuidedConfig,
+                      orientation: int, taken: list[LineString]
+                      ) -> tuple[OrientationResult, list[RowCandidate], list[LineString]]:
+    """Guided rows of one prior. With lateral_enabled the block grows row by row: sweeps repeat while a
+    proposal becomes anchored beside a row accepted in an earlier sweep (deterministic offset order)."""
+    anchors = parallel_rows(taken, prior.angle_utm_deg, g.prior_angle_merge_deg) if g.lateral_enabled else []
+    result, props = _proposals(pts, prior, inp, p, g, lateral=g.lateral_enabled)
+    snap_px = p.rows.detect.snap_to_edge_m / GSD_M
+    found: list[RowCandidate] = []
+    lines: list[LineString] = []
+    pending = list(props)
+    progress = True
+    while progress and pending:
+        progress = False
+        for prop in list(pending):
+            piece = anchored_piece(prop.pieces, inp.tile, inp.neighbour_utm, anchors + lines, prior.spacing_m, g)
+            if piece is None:
+                continue
+            pending.remove(prop)
+            feats = prop.features if piece is prop.line else _features(piece, prior, inp, p)
+            line_utm = _to_utm(piece, inp.tile)
+            if not _far_from(line_utm, taken + lines, g.min_sep_m):
+                continue
+            if guided_reject(feats, g, p.orchard.along_duty_max) is not None:
+                continue
+            found.append(_candidate(prop, piece, feats, prior, inp, orientation, snap_px))
+            lines.append(line_utm)
+            progress = True
     return replace(result, n_kept=len(found)), found, lines
 
 
@@ -292,9 +370,11 @@ def guided_detect(inp: GuidedInputs, priors: tuple[LatticePrior, ...], existing_
 
     Only rows that continue an accepted neighbour row (inp.neighbour_utm, gap <= continue_max_m) count:
     a lattice that merely lines up with a far-away block (ploughed field, orchard) is not a vineyard.
+    With lateral_enabled a row may instead run beside an accepted row of the tile (see anchor_score).
     Priors are clustered by angle; inside a cluster every member (neighbours may disagree on spacing or
     phase) is tried and the one with the most accepted rows wins (ties: the stronger prior). A cluster
-    counts only with >= min_rows rows.
+    counts only with >= min_rows rows (lateral_min_rows when the tile already holds >= min_rows rows at
+    that angle: the block exists, its missing rows complete it).
     """
     pts = mask_points(inp.veg)
     if len(pts) < 2 or not priors:
@@ -304,9 +384,11 @@ def guided_detect(inp: GuidedInputs, priors: tuple[LatticePrior, ...], existing_
     cands: list[RowCandidate] = []
     for cluster in cluster_priors(list(priors), g.prior_angle_merge_deg, g.max_priors_per_cluster):
         best: tuple[OrientationResult, list[RowCandidate], list[LineString]] | None = None
+        own = parallel_rows(list(existing_utm), cluster[0].angle_utm_deg, g.prior_angle_merge_deg)
+        need = g.lateral_min_rows if g.lateral_enabled and len(own) >= g.min_rows else g.min_rows
         for prior in cluster:
             trial = _prior_candidates(pts, prior, inp, p, g, len(orientations), taken)
-            if len(trial[1]) >= g.min_rows and (best is None or len(trial[1]) > len(best[1])):
+            if len(trial[1]) >= need and (best is None or len(trial[1]) > len(best[1])):
                 best = trial
         if best is None:
             continue

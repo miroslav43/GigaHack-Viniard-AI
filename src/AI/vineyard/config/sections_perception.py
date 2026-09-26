@@ -116,6 +116,11 @@ class RowsGuidedConfig(Section):
     min_sep_m: NonNegFloat
     continue_max_m: NonNegFloat
     cut_gap_m: PosFloat
+    self_prior: bool                       # the tile's own accepted lattice is a prior too (partial tiles)
+    lateral_enabled: bool                  # a guided row may also run beside an accepted row of its tile
+    lateral_max_factor: PosFloat           # ... at <= this x spacing (block grows row by row)
+    lateral_min_rows: PosInt               # rows a cluster needs when the tile already holds >= min_rows rows
+    rounds: PosInt                         # round k uses the rows of round k-1 as priors/anchors
 
 
 class OrchardConfig(Section):

@@ -88,7 +88,10 @@ def test_guided_needs_continuation_of_a_neighbour_row(stripes: np.ndarray, param
     alone = guided_detect(GuidedInputs(veg=stripes, clip_px=FRAME, tile=TILE), (prior,), [], params, g)
     assert alone.candidates == ()
     few = GuidedInputs(veg=stripes, clip_px=FRAME, tile=TILE, neighbour_utm=NEIGHBOURS[:6])
-    assert len(guided_detect(few, (prior,), [], params, g).candidates) <= 6
+    no_lateral = g.model_copy(update={"lateral_enabled": False})
+    assert len(guided_detect(few, (prior,), [], params, no_lateral).candidates) <= 6
+    # with lateral anchoring the continued rows seed the block, which then grows beside them
+    assert len(guided_detect(few, (prior,), [], params, g).candidates) > 6
 
 
 def test_guided_rows_stop_at_a_bare_band(params: DetectParams, g: RowsGuidedConfig) -> None:
