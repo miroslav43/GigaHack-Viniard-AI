@@ -2,7 +2,12 @@
 # Order of application: exclude_areas -> force_empty_tiles -> delete_rows -> extend_rows -> add_rows.
 # Every entry carries an `id` so QA issues (override_applied / override_unmatched) can point at it.
 version: 1
-force_empty_tiles: []   # e.g. [siret3_r010_c005]
+force_empty_tiles:      # rows at the wrong angle across a 150-degree block (visual review 26.09): annotate by hand
+  - siret3_r012_c003
+  - siret3_r012_c004
+  - siret3_r028_c020   # black-mulch vegetable garden (visual review)
+  - siret3_r033_c027   # rows on a meadow across a field track (visual review)
+  - siret3_r034_c022   # rows across a road and scrub, perpendicular to the real vines (visual review)
 exclude_areas: []       # e.g. [{id: X001, wkt: "POLYGON ((...))", note: "orchard"}]
 delete_rows: []         # e.g. [{id: D001, wkt: "POINT (629500 5220250)", note: "hedge"}]
 extend_rows: []         # e.g. [{id: E001, row_hint_wkt: "POINT (...)", to_wkt: "POINT (...)"}]

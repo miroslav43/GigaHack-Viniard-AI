@@ -1,0 +1,73 @@
+tile_id,action,confidence,row_angle_deg,spacing_m,region_px,note
+siret3_r007_c003,complete_partial_block,high,,,,left half of the vineyard unmapped (13 rows mapped on the right)
+siret3_r010_c003,complete_partial_block,high,,,,left strip of the vineyard south of the road unmapped
+siret3_r023_c015,complete_partial_block,high,,,,left block (other orientation) unmapped; right block only 3 rows
+siret3_r025_c016,complete_partial_block,high,,,,tan strip (possible young vines) unmapped
+siret3_r026_c017,complete_partial_block,high,,,,tan strip partly mapped
+siret3_r031_c018,complete_partial_block,high,,,,most of the vineyard unmapped (3 row pieces in the bottom-right only)
+siret3_r033_c019,complete_partial_block,high,,,,upper-left rows of the block unmapped (5 rows mapped)
+siret3_r033_c022,complete_partial_block,high,,,,tan-soil block rows partly mapped
+siret3_r034_c022,complete_partial_block,high,,,,left tan block partly mapped
+siret3_r035_c026,complete_partial_block,high,,,,bottom-left block with another orientation unmapped
+siret3_r036_c024,complete_partial_block,high,,,,left half of the young-vine block unmapped (7 rows mapped)
+siret3_r038_c024,complete_partial_block,high,,,,vine patch in the top-right unmapped
+siret3_r038_c025,complete_partial_block,high,,,,only 1 row piece; the rest of the vine area at the top is unmapped
+siret3_r009_c005,draw_missing_vineyard,high,112,2.8,0 0;1200 0;1000 330;560 540;300 720;0 900,young vines + stakes on grassy rows N of road; continues rows of r008_c004/r008_c005/r009_c004
+siret3_r011_c003,draw_missing_vineyard,high,149,2.2,2000 1635;2048 1630;2048 2048;1830 2048;1880 1890;1950 1740,SE corner: young vines + end posts on tilled soil; same block as r012_c003/r012_c004 (whose model rows look PERPENDICULAR to the true ~148-150 deg rows)
+siret3_r011_c004,draw_missing_vineyard,high,151.5,2.2,0 1579;188 1664;282 1877;375 1963;444 2048;0 2048,young vines on tilled soil + white tubes in bottom-left corner west of dirt road/tree; continues toward r011_c003/r012_c003
+siret3_r012_c009,draw_missing_vineyard,medium,13,1.9,340 0;1300 0;1150 130;800 175;700 290;340 290,backyard garden vineyard >=4 rows: gnarled vine trunks on stakes with fresh shoots; rows irregular; angle uncertain (FFT); tiles N/E outside AOI; lower-right garden rows are vegetables (excluded)
+siret3_r013_c003,draw_missing_vineyard,high,152,2.25,330 470;900 540;1450 790;2048 1070;2048 1790;1180 1290;600 1050;330 640,pruned vines with fresh shoots on bare soil + trellis posts (some fallen); ~7 rows; FFT 150-153 deg 2.2-2.3 m
+siret3_r013_c003,draw_missing_vineyard,medium,151,,1100 1640;1500 1767;1987 2048;1434 2048;1229 1802,vine rows with posts continuing in grassy ground below a ~9 m grass band; same direction as upper block
+siret3_r013_c004,draw_missing_vineyard,high,152,2.35,0 1140;560 1505;1110 1740;1330 1880;1380 2048;380 2048;0 1830,SW block: young vines + white stakes on tilled soil; continues into r013_c003/r014_c004 (no model rows there)
+siret3_r013_c004,draw_missing_vineyard,medium,152,2.35,0 0;950 0;950 380;700 390;330 290;0 190,NW band: vines + stakes in grassy rows; continuation of r012_c004 block (model rows there look perpendicular)
+siret3_r013_c009,draw_missing_vineyard,high,14,2.1,120 280;1270 0;2048 0;2048 1990;1450 1995;420 1560;200 1250;60 560,whole-tile vineyard: trellis stakes + leafy vines (NW) and sparse vines/stumps on bare soil (centre); continues north into r012_c009; big tree at x1450-1950 y1000-1400 inside
+siret3_r014_c004,draw_missing_vineyard,high,151,2.24,0 0;1390 0;1420 430;1200 680;1200 1000;1460 1150;1080 2048;0 845,large young vineyard with stakes on tilled soil; tractor in block; all neighbours empty too - whole block missed; excludes road/trees on E and nodata SW
+siret3_r015_c011,draw_missing_vineyard,medium,38,2.0,1640 560;1990 280;2048 280;2048 850;1850 850;1700 700,garden vineyard: >=4 rows of young vines with stakes + white tubes (right of shed); FFT 40 deg 1.9 m
+siret3_r021_c015,draw_missing_vineyard,high,127,2.6,0 420;350 870;345 905;120 960;0 1000,W edge: 3-4 rows of young vines with stakes (ends of block in r021_c014); S part is a young orchard (not vines)
+siret3_r021_c016,draw_missing_vineyard,medium,130.5,2.05,640 0;1170 0;1560 430;1450 560;1100 640;560 200,garden vineyard ~7 rows of leafy young vines with white stakes on dark tilled soil
+siret3_r023_c012,draw_missing_vineyard,high,127,2.6,1690 0;2048 0;2048 170;2005 215;1905 250;1745 80,NE corner: young vines + stakes on sandy tilled soil; row ends against shrubs
+siret3_r023_c013,draw_missing_vineyard,medium,127.3,2.9,0 0;290 0;110 230;0 290,rows of block V12 (r022_c013/r022_c012) continue ~6 m past top edge into NW corner
+siret3_r023_c013,draw_missing_vineyard,medium,127.3,2.9,1780 0;2048 0;2048 330;1900 210,rows of V12 (r022_c013/r023_c014) continue past top edge in NE corner
+siret3_r025_c019,draw_missing_vineyard,high,130,1.95,1505 0;2048 0;2048 460;1900 430;1840 410,NE: village-plot vineyard; >=5 leafy vine rows on bare sandy soil
+siret3_r028_c015,draw_missing_vineyard,medium,125,,1440 2048;1560 1900;1700 1840;1900 1840;2048 1880;2048 2048,SE corner: upper ends of the rows the model found in r029_c015 (model stops at the tile edge)
+siret3_r029_c019,draw_missing_vineyard,high,40,2.7,0 1866;530 1430;760 1640;280 2048;0 2048,SW corner: 3-row strip of pruned vines with stakes on bare sandy soil; continues into r030_c019/r029_c018; big field to NE has only scattered weed clumps (not vines)
+siret3_r029_c020,draw_missing_vineyard,medium,125,3.0,1640 980;2048 960;2048 1600;1650 1060,3 rows of young vines on tilled strips in SE part; continue V24-R001..R003 of r029_c021 (125 deg); top-centre green lines are vegetable rows (not vines); rest ploughed field
+siret3_r030_c016,draw_missing_vineyard,high,52,2.5,800 1040;1170 460;1620 95;2048 282;2048 1229;1434 1664;1280 1638;1050 1280,~12 rows of young vines on sandy tilled soil; very clear; no model rows here or in neighbours
+siret3_r030_c017,draw_missing_vineyard,high,47.5,2.25,789 923;1178 1210;490 2048;0 2048;0 1840,sandy strip of vines with stakes (continues SW into r031_c016/r031_c017)
+siret3_r030_c017,draw_missing_vineyard,medium,47.5,2.25,1178 1210;1450 1330;1650 1700;1450 2048;490 2048,same rows continue SE overgrown with grass: vine lines + stakes/white tubes in grass; east limit uncertain
+siret3_r030_c017,draw_missing_vineyard,medium,47.5,,0 420;250 540;320 610;100 850;0 950,small sandy strip of vine rows at W edge (continues into r030_c016)
+siret3_r030_c018,draw_missing_vineyard,high,43,2.9,256 1434;1843 0;2048 0;2048 333;538 1741,narrow NE-running block: 3-4 rows of young vines with stakes on tilled strip between scrub; FFT lines align with rows
+siret3_r030_c019,draw_missing_vineyard,high,50,2.5,1230 2048;1640 1590;2048 1130;2048 2048,young vines + trellis posts in SE corner; first row = NW edge of block; no neighbour rows drawn so block likely missed in neighbours too
+siret3_r030_c020,draw_missing_vineyard,medium,47,2.5,0 1150;130 1150;260 1330;230 1480;120 1650;40 1900;0 1950,SW edge: young vines + stakes on sandy soil (block continues into r030_c019/r031_c019); weedy area to the E has stakes but rows unclear - excluded
+siret3_r031_c017,draw_missing_vineyard,high,50,2.5,784 1370;1182 839;1846 80;2048 60;2048 461;1075 1536;973 1690;768 1560,diagonal sandy strip ~16 m wide with young vines + stakes; rows parallel to the strip; next to r030_c016 block
+siret3_r031_c019,draw_missing_vineyard,high,50,2.5,1180 0;1900 0;800 1300;400 1030,bare sandy rows with stakes + young vines in NW half (continues into r030_c019/r030_c020)
+siret3_r031_c019,draw_missing_vineyard,medium,50,2.5,1900 0;2048 0;2048 2048;1230 2048;800 1300,same block continues SE: vine rows with stakes in grass; some flowering shrubs among rows (exclude shrubs)
+siret3_r032_c020,draw_missing_vineyard,high,51,2.67,0 1330;300 1240;520 1330;650 1520;780 1650;950 1850;950 2048;0 2048,young vines with stakes on tilled soil in SW corner; continues V33 rows of r033_c020/r033_c019 (45-50 deg) that end on this tile's S edge
+siret3_r032_c022,draw_missing_vineyard,high,52,3.0,0 1000;330 790;1230 1630;1440 1800;1430 2048;0 2048,young vines + trellis posts; A-anchored end posts along NE headland (perpendicular to rows); FFT 52 deg 3.1 m
+siret3_r033_c021,draw_missing_vineyard,high,52,2.9,1075 0;2048 0;2048 1331;1792 1203;1536 998;1280 768;1075 589;1024 307,NE: young vines with stakes on sandy soil; many rows; no model rows here
+siret3_r034_c019,draw_missing_vineyard,high,135,2.3,1063 1010;1304 1000;1587 1304;1797 1524;2048 1765;2048 2048;1922 1996;1461 1419,2-3 vine rows with shoots + posts on bare strip along nodata edge; FFT 132-135 deg; same block as r035_c020 top-left
+siret3_r034_c021,draw_missing_vineyard,high,51.5,3.0,1527 2048;1790 1720;2048 1400;2048 2048,SE corner: 4-5 rows of vines with stakes on bare soil; block continues into r034_c022/r035_c021/r035_c022 (also missed there); rest is meadow with trees
+siret3_r034_c025,draw_missing_vineyard,high,40,2.46,1490 1730;2048 1280;2048 2048;1790 2048;1640 1880,young vines + A-anchored end posts on SW headland; overlay at 40 deg / 2.46 m fits; tilled unplanted soil NW of first row
+siret3_r034_c026,draw_missing_vineyard,high,40,2.45,0 1203;589 742;947 461;1126 1024;1203 1536;1203 2048;0 2048,W half: young vines + stakes/end braces on sandy soil (two walnut-type trees inside excluded poorly - small); E half is a dense ~1 m grid plantation (nursery/crop); NOT vines
+siret3_r035_c020,draw_missing_vineyard,high,146,2.37,0 0;300 0;560 200;470 340;300 400;115 273;150 210;0 88,4 vine rows on trellis (wires + posts) in NW corner; overlay 146 deg fits
+siret3_r035_c021,draw_missing_vineyard,high,51,3.05,614 1101;1434 0;2048 0;2048 102;1510 768;1024 1318;768 1306,central strip: 5 rows of young vines with stakes on tilled soil
+siret3_r035_c021,draw_missing_vineyard,medium,50,,1434 1638;2048 870;2048 1330;1690 1792;1485 1792,SE strip: young vines + stakes on tilled soil; same direction as central strip
+siret3_r036_c022,draw_missing_vineyard,high,53,2.6,384 256;614 0;1050 0;998 154;742 499;640 512;384 282,N: 4-5 short rows of young vines + stakes (end of r035_c021/r035_c022 strip)
+siret3_r036_c023,draw_missing_vineyard,high,58,2.7,1100 2048;1480 1260;1830 800;2048 520;2048 2048,SE half: tilled vineyard with stakes + young vines (continues into r036_c024/r037_c023/r037_c024); NW is meadow with shrubs
+siret3_r036_c027,draw_missing_vineyard,high,11,3.3,430 510;780 490;780 690;640 960;560 1010;440 980,4 rows of young vines with A-frame end posts on tilled soil; W of nodata edge; small SW corner (x<190;y 1100-1500) also shows vines/posts but not added
+siret3_r037_c022,draw_missing_vineyard,high,141,2.3,40 760;404 1050;876 1482;1380 2048;1011 2048;647 1562;256 1104;40 800,2-3 vine rows with shoots + posts on bare strip along nodata edge; overlay 141 deg fits
+siret3_r037_c026,draw_missing_vineyard,high,50,2.2,333 602;742 0;1357 0;691 1011;512 845,N: ~8 vine rows with stakes and grassy inter-rows; cut by mosaic edge
+siret3_r012_c003,redraw_after_false_rows_removed,high,,,,model rows at the wrong angle removed; draw the 150-degree block
+siret3_r012_c004,redraw_after_false_rows_removed,high,,,,model rows at the wrong angle removed; draw the 150-degree block
+siret3_r028_c020,redraw_after_false_rows_removed,high,,,,false rows on a vegetable garden removed; check nothing else
+siret3_r033_c027,redraw_after_false_rows_removed,high,,,,false rows on a meadow removed; check the field at the bottom-right
+siret3_r034_c022,redraw_after_false_rows_removed,high,,,,false rows across a road removed; draw the vines at the bottom-left (about 40 degrees)
+siret3_r013_c008,verify_maybe_vineyard,low,73,2.1,980 380;1250 420;1240 900;1100 1030;950 1010,village garden: 3-4 rows of small leafy plants ~1 m apart with white pipes; could be vines or berry/young trees
+siret3_r015_c011,verify_maybe_vineyard,low,130,1.7,1380 0;1720 0;1720 240;1580 300;1420 190,3-4 leafy rows with white tubes in garden at top; could be vines or berry bushes; continues into r014_c011
+siret3_r021_c016,verify_maybe_vineyard,medium,128,,1860 900;1990 800;2048 800;2048 1200;1990 1190,3 partial rows young vines with stakes + string at east edge (mosaic edge beyond)
+siret3_r027_c031,verify_maybe_vineyard,low,110,1.8,1400 1010;2048 760;2048 2048;1790 2048,SE: black plastic mulch beds ~1.8-2 m apart; no plants visible; new vineyard or vegetable beds - check r028_c031
+siret3_r028_c031,verify_maybe_vineyard,low,110,1.8,1790 0;2048 0;2048 640;1990 560,NE corner: continuation of the black mulch beds of r027_c031 (no plants visible); rest is a seeded crop field
+siret3_r031_c020,verify_maybe_vineyard,low,50,2.2,0 0;760 0;760 420;420 1000;0 1000,abandoned-looking plot: grid of stakes/posts in weedy sand (FFT 50 deg; matches V33/V28 blocks nearby); a few dark vine stumps with sparse shoots; rows barely visible
+siret3_r031_c020,verify_maybe_vineyard,low,53,2.4,760 1350;1550 1350;1700 2048;760 2048,same abandoned stake field (S part): stakes in lines + dry vine-like stumps; almost no foliage
+siret3_r032_c020,verify_maybe_vineyard,low,53,2.4,450 0;1450 0;1450 300;1000 560;450 560,N part: same abandoned stake field as r031_c020 (posts + faint 53 deg stripes; almost no foliage); E edge near V28 is overgrown scrub; not added
+siret3_r037_c026,verify_maybe_vineyard,medium,148,,30 1470;230 1260;520 1240;330 1760;130 1700,SW fragment at mosaic edge: end posts with anchor wires + few small plants; separate block; direction uncertain
