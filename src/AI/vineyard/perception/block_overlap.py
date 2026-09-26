@@ -8,8 +8,14 @@ counted in both block totals. Every cross-block overlap is given to ONE block:
 - in a cluster, the blocks are ranked by their own canopy area within `support_buffer_m` of the contested
   area (the vines flanking the ground tell whose inter-row it is), ties by the lower vineyard_id;
 - each piece loses what it shares with the overlapping pieces of higher-ranked blocks; parts below
-  `min_piece_m2` are dropped. The top block of every overlap keeps it, so the union of all pieces is
-  unchanged (up to the dropped parts) and no two blocks share area afterwards.
+  `min_piece_m2`, and parts nowhere `min_width_m` wide, are dropped. The top block of every overlap keeps
+  it, so the union of all pieces is unchanged (up to the dropped parts) and no two blocks share area
+  afterwards.
+
+The width floor matters where a spurious row family crosses a real block at a small angle (r009_c002: V01
+over V03 at 11°): the real block's bands cover its inter-rows, and what the spurious bands keep are the
+strips along the real vine rows (2 × interrow.offset_m = 0.6 m at most) that no inter-row may cover. Those
+strips are dropped, not given to the winner: they are row ground, not inter-row ground.
 
 Pieces of one block are never cut against each other: their overlaps do not double count a block total.
 Deterministic: the result does not depend on the order of the input rows.
@@ -40,6 +46,7 @@ if TYPE_CHECKING:
 
 BLOCK_OVERLAP_CODE: Final = "interrow_block_overlap"
 SUPPORT_DECIMALS: Final = 6  # support compared at 1e-6 m²: float summation order never decides the winner
+MSG_DECIMALS: Final = 2  # m² in the QA messages
 PIECE_ID: Final = "piece_id"
 BLOCK: Final = "vineyard_id"
 TILE: Final = "tile_id"
@@ -50,12 +57,14 @@ class BlockOverlapParams:
     min_overlap_m2: float  # cross-block intersections up to this are shared edges or float noise
     support_buffer_m: float  # canopies within this of the contested area vote for their block
     min_piece_m2: float  # parts of a cut piece smaller than this are dropped
+    min_width_m: float  # parts of a cut piece nowhere this wide are dropped (0 = no width floor)
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> BlockOverlapParams:
         return cls(min_overlap_m2=cfg.derive.interrow_overlap_min_m2,
                    support_buffer_m=cfg.derive.interrow_overlap_support_m,
-                   min_piece_m2=cfg.export.min_interrow_piece_m2)
+                   min_piece_m2=cfg.export.min_interrow_piece_m2,
+                   min_width_m=cfg.derive.interrow_overlap_min_width_m)
 
 
 @dataclass(frozen=True)
@@ -63,10 +72,10 @@ class BlockOverlapResult:
     pieces: gpd.GeoDataFrame  # input rows in input order; cut pieces replaced by their parts
     issues: tuple[QaIssue, ...]  # one warning per piece that lost area, sorted by piece_id
     n_cut: int = 0  # pieces that lost area and kept at least one part
-    n_dropped: int = 0  # pieces with no part left of at least min_piece_m2
+    n_dropped: int = 0  # pieces with no part left (every part below min_piece_m2 or min_width_m)
     n_split: int = 0  # extra parts (new `#k` ids)
     moved_m2: float = 0.0  # overlap area left to the higher-ranked block
-    dropped_m2: float = 0.0  # area of the parts dropped below min_piece_m2
+    dropped_m2: float = 0.0  # area of the parts dropped below min_piece_m2 or min_width_m
 
     def metrics(self) -> dict[str, float]:
         return {"n_interrow_overlap_cut": float(self.n_cut), "n_interrow_overlap_dropped": float(self.n_dropped),
@@ -80,6 +89,7 @@ class _Cut:
     winners: tuple[int, ...]  # overlapping pieces of higher-ranked blocks, piece_id order
     lost: BaseGeometry  # piece ∩ union(winners)
     parts: tuple[Polygon, ...]  # what the piece keeps
+    dropped_m2: float  # piece area neither lost nor kept (parts too small or too narrow)
 
 
 # ------------------------------------------------------------------ pairs, clusters, ranking
@@ -127,6 +137,26 @@ def rank_blocks(support: Mapping[str, float]) -> dict[str, int]:
 # ------------------------------------------------------------------ cutting
 
 
+def wide_enough(part: BaseGeometry, min_width_m: float) -> bool:
+    """True when some point of `part` lies at least min_width_m / 2 inside it (a min_width_m disc fits)."""
+    return min_width_m <= 0.0 or not part.buffer(-min_width_m / 2.0).is_empty
+
+
+def kept_parts(geom: BaseGeometry, cutter: BaseGeometry, params: BlockOverlapParams) -> tuple[Polygon, ...]:
+    """Parts of geom - cutter of at least min_piece_m2 and min_width_m, largest first."""
+    parts = cut_parts(geom, cutter, params.min_piece_m2)
+    return tuple(p for p in parts if wide_enough(p, params.min_width_m))
+
+
+def _cut(pos: int, won: tuple[int, ...], geoms: np.ndarray, params: BlockOverlapParams) -> _Cut:
+    geom = geoms[pos]
+    cutter = shapely.union_all(geoms[list(won)])
+    lost = shapely.intersection(geom, cutter)
+    parts = kept_parts(geom, cutter, params)
+    dropped = max(float(geom.area - lost.area - sum(p.area for p in parts)), 0.0)
+    return _Cut(pos, won, lost, parts, dropped)
+
+
 def _cluster_cuts(pairs: Sequence[tuple[int, int]], vids: np.ndarray, geoms: np.ndarray,
                   canopies: gpd.GeoDataFrame, tree: STRtree, params: BlockOverlapParams) -> list[_Cut]:
     contested = shapely.union_all([shapely.intersection(geoms[a], geoms[b]) for a, b in pairs])
@@ -136,22 +166,19 @@ def _cluster_cuts(pairs: Sequence[tuple[int, int]], vids: np.ndarray, geoms: np.
     for a, b in pairs:
         loser, winner = (a, b) if rank[str(vids[a])] > rank[str(vids[b])] else (b, a)
         winners.setdefault(loser, set()).add(winner)
-    cuts = []
-    for pos in sorted(winners):
-        won = tuple(sorted(winners[pos]))
-        cutter = shapely.union_all(geoms[list(won)])
-        cuts.append(_Cut(pos, won, shapely.intersection(geoms[pos], cutter),
-                         tuple(cut_parts(geoms[pos], cutter, params.min_piece_m2))))
-    return cuts
+    return [_cut(pos, tuple(sorted(winners[pos])), geoms, params) for pos in sorted(winners)]
 
 
-def _issue(cut: _Cut, frame: gpd.GeoDataFrame, min_piece_m2: float) -> QaIssue:
+def _issue(cut: _Cut, frame: gpd.GeoDataFrame, params: BlockOverlapParams) -> QaIssue:
     pid, vid, tile = (str(frame[c].iloc[cut.position]) for c in (PIECE_ID, BLOCK, TILE))
     others = ", ".join(sorted({str(frame[BLOCK].iloc[w]) for w in cut.winners}))
     msg = (f"Inter-rândul {pid} (bloc {vid}) se suprapunea {cut.lost.area:.2f} m² cu blocul {others}; "
            f"suprapunerea a rămas blocului {others}")
+    small = f"sub {params.min_piece_m2} m² sau mai înguste de {params.min_width_m} m"
     if not cut.parts:
-        msg += f"; restul, sub {min_piece_m2} m², a fost eliminat"
+        msg += f"; restul ({cut.dropped_m2:.{MSG_DECIMALS}f} m², părți {small}) a fost eliminat"
+    elif round(cut.dropped_m2, MSG_DECIMALS) > 0.0:
+        msg += f"; părțile {small} ({cut.dropped_m2:.{MSG_DECIMALS}f} m²) au fost eliminate"
     point = None if cut.lost.is_empty else cut.lost.representative_point()
     return QaIssue(Severity.WARNING, BLOCK_OVERLAP_CODE, tile, pid, msg,
                    None if point is None else float(point.x), None if point is None else float(point.y))
@@ -188,10 +215,6 @@ def _rebuild(pieces: gpd.GeoDataFrame, split: Mapping[str, list[tuple[str, BaseG
                             geometry=gpd.GeoSeries(geoms, crs=pieces.crs), crs=pieces.crs)
 
 
-def _dropped_m2(cut: _Cut, geom: BaseGeometry) -> float:
-    return max(float(geom.area - cut.lost.area - sum(p.area for p in cut.parts)), 0.0)
-
-
 def remove_block_overlap(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame,
                          params: BlockOverlapParams) -> BlockOverlapResult:
     """Interrow pieces without cross-block overlap (module docstring); `pieces` itself when there is none.
@@ -212,9 +235,9 @@ def remove_block_overlap(pieces: gpd.GeoDataFrame, canopies: gpd.GeoDataFrame,
     kept = [cuts[pos] for pos in sorted(cuts)]
     return BlockOverlapResult(
         pieces=_rebuild(pieces, _split_ids(frame, cuts)),
-        issues=tuple(_issue(c, frame, params.min_piece_m2) for c in kept),
+        issues=tuple(_issue(c, frame, params) for c in kept),
         n_cut=sum(1 for c in kept if c.parts), n_dropped=sum(1 for c in kept if not c.parts),
         n_split=sum(max(len(c.parts) - 1, 0) for c in kept),
         moved_m2=float(sum(c.lost.area for c in kept)),
-        dropped_m2=float(sum(_dropped_m2(c, geoms[c.position]) for c in kept)),
+        dropped_m2=float(sum(c.dropped_m2 for c in kept)),
     )

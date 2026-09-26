@@ -36,7 +36,9 @@ if TYPE_CHECKING:
     from vineyard.pipeline.runner import StageResult
 
 STAGE_NAME: Final = "derive"
-STAGE_VERSION: Final = "2"  # 2: interrow pieces lose their cross-block overlap (perception.block_overlap)
+# 2: interrow pieces lose their cross-block overlap (perception.block_overlap); 3: cut parts nowhere
+# derive.interrow_overlap_min_width_m wide are dropped
+STAGE_VERSION: Final = "3"
 CFG_KEYS: Final = (
     "derive", "blocks.outline_buffer_m", "blocks.min_rows_per_block", "canopy.corridor_half_m",
     "row_structure.gap_disrupted_m", "import.require_all_tiles", "import.accept_enum_synonyms",

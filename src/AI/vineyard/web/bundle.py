@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
@@ -33,6 +33,7 @@ from vineyard.measure.csv_format import (
     format_measurements_csv,
 )
 from vineyard.measure.measurements import MeasureInputs, compute_measurements
+from vineyard.perception.block_overlap import BlockOverlapParams, remove_block_overlap
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json, atomic_write_text
 from vineyard.web.manifest import SurveyInfo, build_manifest, manifest_stage, survey_info
 from vineyard.web.objects_export import (
@@ -75,6 +76,8 @@ class WebParams:
     m_decimals: int
     ha_decimals: int
     sum_tol_m: float
+    sum_tol_m2: float
+    overlap: BlockOverlapParams  # computed measurements without derive's pieces remove the overlap here
     visit_radius_m: float
     speed_kmh: float
     row_link_tol_m: float
@@ -96,7 +99,9 @@ def web_params(cfg: AppConfig) -> WebParams:
         survey=survey_info(cfg), utm_decimals=cfg.web.utm_decimals,
         m_decimals=decimals_of(cfg.measure.round_m, "measure.round_m"),
         ha_decimals=decimals_of(cfg.measure.round_ha, "measure.round_ha"),
-        sum_tol_m=cfg.publish.sum_check_tol_m, visit_radius_m=cfg.route.visit_radius_m, speed_kmh=cfg.route.walking_speed_kmh,
+        sum_tol_m=cfg.publish.sum_check_tol_m, sum_tol_m2=cfg.publish.sum_check_tol_m2,
+        overlap=BlockOverlapParams.from_config(cfg), visit_radius_m=cfg.route.visit_radius_m,
+        speed_kmh=cfg.route.walking_speed_kmh,
         row_link_tol_m=ROW_LINK_TOL_M, waste_block_max_m=WASTE_BLOCK_MAX_M,
         block_buffer_m=cfg.blocks.outline_buffer_m, tz=cfg.logging.tz,
     )
@@ -223,20 +228,29 @@ def manifest_extras(inputs: WebInputs, layers: Mapping[str, gpd.GeoDataFrame | N
             "bbox_32635": bundle_bbox(layers, params.utm_decimals)}
 
 
+def overlap_free_interrows(inputs: WebInputs, params: WebParams) -> gpd.GeoDataFrame:
+    """derive's overlap-free pieces when given, else the AnnSet's pieces without their cross-block overlap
+    (like `measure`): the block interrow areas then add up to the survey line."""
+    linked = inputs.interrows
+    if linked is not None and not linked.empty:
+        return linked
+    ann = inputs.annset
+    return remove_block_overlap(ann.interrow_pieces, ann.canopies, params.overlap).pieces
+
+
 def measurements_bytes(inputs: WebInputs, params: WebParams) -> bytes:
-    """measure's CSV when given (copied verbatim), else computed by the same `vineyard.measure` writer (on
-    derive's overlap-free interrow pieces when given, like `measure`); either way it must pass the checks
-    `publish` applies (SchemaError otherwise)."""
+    """measure's CSV when given (copied verbatim), else computed by the same `vineyard.measure` writer on
+    overlap-free interrow pieces; either way it must pass the checks `publish` applies (SchemaError
+    otherwise)."""
     data = inputs.measurements_csv
     if data is None:
         ann = inputs.annset
-        linked = inputs.interrows
-        pieces = linked if linked is not None and not linked.empty else ann.interrow_pieces
         m = compute_measurements(MeasureInputs(canopies=ann.canopies, row_pieces=ann.row_pieces,
-                                               interrow_pieces=pieces, waste=ann.waste))
+                                               interrow_pieces=overlap_free_interrows(inputs, params),
+                                               waste=ann.waste))
         text = format_measurements_csv(m.records(), m_decimals=params.m_decimals, ha_decimals=params.ha_decimals)
         data = text.encode("utf-8")
-    failed = check_measurements_bytes(data, sum_tol_m=params.sum_tol_m)
+    failed = check_measurements_bytes(data, sum_tol_m=params.sum_tol_m, sum_tol_m2=params.sum_tol_m2)
     if failed:
         raise SchemaError("measurements.csv fails the web contract checks (§6.4)", failed=describe_failed(failed))
     return data
@@ -295,10 +309,13 @@ def _remove_stale(out: Path, keep: frozenset[str]) -> tuple[Path, ...]:
 
 def build_web_bundle(inputs: WebInputs, out_dir: Path, params: WebParams, *, generated_at: str,
                      pipeline_version: str, run_id: str) -> BundleResult:
-    """Write the whole bundle into `out_dir` (see the module docstring)."""
-    layers = build_layers(inputs, params)
-    csv_bytes = measurements_bytes(inputs, params)
-    extras = manifest_extras(inputs, layers, params, run_id=run_id)
+    """Write the whole bundle into `out_dir` (see the module docstring). Without derive's interrows, the
+    interrow features and the computed measurements both use the AnnSet's pieces without their cross-block
+    overlap (resolved once)."""
+    resolved = replace(inputs, interrows=overlap_free_interrows(inputs, params))
+    layers = build_layers(resolved, params)
+    csv_bytes = measurements_bytes(resolved, params)
+    extras = manifest_extras(resolved, layers, params, run_id=run_id)
     counts = extras["counts"]
     manifest = build_manifest(params.survey, stage=manifest_stage(inputs.annset.meta.source),
                               generated_at=generated_at, pipeline_version=pipeline_version, extras=extras)
