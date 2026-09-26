@@ -183,6 +183,11 @@ class CanopyConfig(Section):
     axis_refine_max_m: NonNegFloat
     axis_refine_min_px: PosInt
     gap_evidence_min_area_m2: NonNegFloat
+    neck_split_enabled: bool = False
+    neck_split_min_along_m: PosFloat = 1.6
+    neck_split_ratio: Frac = 0.5
+    neck_split_min_piece_m: PosFloat = 0.5
+    neck_split_window_m: PosFloat = 0.6
 
 
 class InterrowConfig(Section):

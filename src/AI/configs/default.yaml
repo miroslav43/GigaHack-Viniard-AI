@@ -294,6 +294,15 @@ canopy:
   # they are never exported. 0 (or >= min_area_m2) = off. 51/51 reference labels for 0.10-0.13 (0.09 lets
   # weed blobs close real r006 gaps, 0.14 misses the faint plant of r021 R16).
   gap_evidence_min_area_m2: 0.11
+  # Annotation rules §2.2: touching plants are split where the foliage visibly narrows. A canopy component at
+  # least min_along_m long is profiled along its main direction (width per 5 cm slice, 3-slice mean); a slice that
+  # is the narrowest within +-min_piece_m and at most ratio x the widest slice within window_m on both sides is
+  # cleared (both parts >= min_piece_m and >= min_area_m2). Every ratio in 0.2-0.4 improves both example tiles.
+  neck_split_enabled: true
+  neck_split_min_along_m: 1.6
+  neck_split_ratio: 0.3
+  neck_split_min_piece_m: 0.5
+  neck_split_window_m: 0.6
 
 interrow:
   offset_m: 0.30
