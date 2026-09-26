@@ -763,3 +763,20 @@ logging:
   jsonl: true
   console: rich
   tz: Europe/Chisinau
+
+rows_seeded:                               # seeded rows from reviewed tile seeds (rows_link, after the guided pass)
+  enabled: true
+  path: configs/row_seeds.csv              # tile_id,vines,confidence,polygon_px,angle_deg,spacing_m,kind,note
+  use_confidence: [high, medium]           # only vines=yes seeds with these confidences are used
+  angle_search_deg: 3.0                    # +- around the reviewed row angle
+  angle_step_deg: 0.25
+  spacing_range_m: [1.8, 3.8]              # autocorrelation window without a seed spacing
+  spacing_rel_tol: 0.15                    # ... or seed spacing +- 15 %
+  lattice_tol_frac: 0.3                    # a profile peak within 0.3 x spacing refines its lattice line
+  fit_max_angle_dev_deg: 2.0               # band fits further from the region angle fall back to the lattice line
+  occupancy_min: 0.2                       # reviewed region: lower than the automatic path
+  min_row_len_m: 4.0
+  min_rows: 3
+  min_sep_m: 1.0                           # never on top of an accepted row
+  cut_gap_m: 4.0                           # rows end at empty runs >= this (road, headland)
+  min_points: 200

@@ -33,8 +33,8 @@ def test_project_root_and_default_path() -> None:
 def test_root_sections_in_plan_order() -> None:
     assert list(AppConfig.model_fields) == [
         "contract_version", "project", "paths", "grid", "runtime", "nodata", "veg", "nn", "rows",
-        "orchard", "rows_guided", "blocks", "canopy", "interrow", "row_structure", "waste", "qa", "derive", "targets",
-        "cross_paths",
+        "orchard", "rows_guided", "rows_seeded", "blocks", "canopy", "interrow", "row_structure", "waste", "qa", "derive",
+        "targets", "cross_paths",
         "route", "export", "import_", "measure", "farms", "publish", "web", "eval", "logging",
     ]
 
