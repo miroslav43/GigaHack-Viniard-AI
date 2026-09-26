@@ -112,7 +112,6 @@ export function LoginForm() {
         variant="body2"
         underline="hover"
         onClick={() => setForgot(true)}
-        disabled={!AUTH_ENABLED}
         sx={{ alignSelf: "flex-end", mt: -3, fontWeight: 500 }}
       >
         {t("forgot")}

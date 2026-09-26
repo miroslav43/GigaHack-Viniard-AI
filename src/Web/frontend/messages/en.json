@@ -722,5 +722,18 @@
         "caption": "After Marcaj: walkable domain, must and optional targets, GTSP with OR-Tools, validation (≤ 1.5 % outside, closure at START) and measurements."
       }
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "openUnread": "Notifications, {n} unread",
+    "markAll": "Mark all as read",
+    "empty": "You have no notifications.",
+    "taskAssigned": "New task assigned",
+    "by": "from {name}",
+    "due": "due {date}",
+    "unread": "unread",
+    "allTasks": "All tasks",
+    "view": "Open",
+    "toast": "A task was assigned to you: {title}"
   }
 }

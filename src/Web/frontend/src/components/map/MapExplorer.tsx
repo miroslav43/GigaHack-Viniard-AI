@@ -38,9 +38,10 @@ import { useSurveyOverlays } from "./overlays/useSurveyOverlays";
 import { SurveyOverlayLayers, TILE_FILL } from "./overlays/SurveyOverlayLayers";
 import { OverlayLegend, OverlayToggles } from "./overlays/OverlayControls";
 
+/** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
-  overview: { url: string; corners: [number, number][] };
-  tiles: { id: string; url: string; corners: [number, number][] }[];
+  overview: { url: string; corners: [number, number][] } | null;
+  tiles: { id: string; url: string | null; corners: [number, number][] }[];
 }
 
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -91,7 +92,7 @@ export function MapExplorer({
   );
   const [start, setStart] = useState<[number, number] | null>(null);
   const [studyBbox, setStudyBbox] = useState<BBox | null>(null);
-  const [detailTiles, setDetailTiles] = useState<TileIndex["tiles"]>([]);
+  const [detailTiles, setDetailTiles] = useState<(TileIndex["tiles"][number] & { url: string })[]>([]);
   const [targetLabels, setTargetLabels] = useState<Feature<Point, TargetProps>[]>([]);
   const [visible, setVisible] = useState<Record<LayerKey, boolean>>(DEFAULT_VISIBILITY);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -142,7 +143,10 @@ export function MapExplorer({
 
   const mask = useMemo(() => (geofence ? maskOutside(geofence) : null), [geofence]);
   const tileBoxes = useMemo(
-    () => tileIndex?.tiles.map((t) => ({ ...t, bbox: bboxOf([{ type: "Polygon", coordinates: [[...t.corners, t.corners[0]]] }])! })) ?? [],
+    () =>
+      tileIndex?.tiles
+        .filter((t): t is TileIndex["tiles"][number] & { url: string } => t.url !== null)
+        .map((t) => ({ ...t, bbox: bboxOf([{ type: "Polygon", coordinates: [[...t.corners, t.corners[0]]] }])! })) ?? [],
     [tileIndex],
   );
 
@@ -253,7 +257,7 @@ export function MapExplorer({
   const selectedFilter = (key: string, layer: Selection["layer"]) =>
     ["==", ["get", key], selection?.layer === layer ? String(selection.props[key]) : "__none__"] as const;
 
-  const overviewCoords = tileIndex?.overview.corners as [[number, number], [number, number], [number, number], [number, number]] | undefined;
+  const overviewCoords = tileIndex?.overview?.corners as [[number, number], [number, number], [number, number], [number, number]] | undefined;
 
   return (
     <Box sx={{ position: "relative", height: { xs: "calc(100dvh - 64px - 56px)", md: "100dvh" }, display: "flex", flexDirection: "column" }}>
@@ -415,7 +419,7 @@ export function MapExplorer({
 
           {/* ---- orthophoto: overview mosaic + full-resolution tiles in view ---- */}
           {overviewCoords && visible.ortho && (
-            <Source id="ortho-overview" type="image" url={tileIndex!.overview.url} coordinates={overviewCoords}>
+            <Source id="ortho-overview" type="image" url={tileIndex!.overview!.url} coordinates={overviewCoords}>
               <Layer id="ortho-overview" type="raster" beforeId={ORTHO_ANCHOR} paint={{ "raster-fade-duration": 0 }} />
             </Source>
           )}

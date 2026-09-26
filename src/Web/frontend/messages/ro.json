@@ -722,5 +722,18 @@
         "caption": "După Marcaj: domeniul de mers, țintele obligatorii și opționale, rezolvarea GTSP cu OR-Tools, validarea (≤ 1,5 % în afara zonei, închidere la START) și măsurătorile."
       }
     }
+  },
+  "notifications": {
+    "title": "Notificări",
+    "openUnread": "Notificări, {n, plural, one {# necitită} few {# necitite} other {# necitite}}",
+    "markAll": "Marchează toate ca citite",
+    "empty": "Nu aveți notificări.",
+    "taskAssigned": "Sarcină nouă alocată",
+    "by": "de la {name}",
+    "due": "termen {date}",
+    "unread": "necitită",
+    "allTasks": "Toate sarcinile",
+    "view": "Deschide",
+    "toast": "V-a fost alocată o sarcină: {title}"
   }
 }

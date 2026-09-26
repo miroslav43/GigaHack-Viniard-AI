@@ -27,6 +27,8 @@ import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import AccountTreeOutlined from "@mui/icons-material/AccountTreeOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { Logo } from "./Logo";
 import { UserCard } from "./UserCard";
 import type { ShellViewer } from "./types";
@@ -91,6 +93,8 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
   const collapsed = !open;
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   // /super-admin is intentionally not in the menu: reachable only by URL (and only for platform admins)
+  // "a task was assigned to you" and future in-app notifications (signed-in users only)
+  const bell = viewer.kind === "user" && viewer.userId && AUTH_ENABLED ? <NotificationBell userId={viewer.userId} /> : null;
   const NAV = [
     ...BASE_NAV,
     ...(viewer.kind === "user" && viewer.uat ? [TASKS_NAV] : []),
@@ -114,6 +118,7 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
         >
           <Logo />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {bell}
             <LanguageSwitch dense />
             <UserCard viewer={viewer} collapsed />
           </Box>
@@ -165,9 +170,12 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
           }}
         >
           <Logo collapsed={collapsed} />
-          <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? t("shell.collapse") : t("shell.expand")}>
-            {open ? <MenuOpen /> : <Menu />}
-          </IconButton>
+          <Box sx={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: 1 }}>
+            {bell}
+            <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={open ? t("shell.collapse") : t("shell.expand")}>
+              {open ? <MenuOpen /> : <Menu />}
+            </IconButton>
+          </Box>
         </Box>
         <Divider sx={{ mx: 5 }} />
         {!collapsed && (

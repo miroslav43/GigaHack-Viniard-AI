@@ -274,3 +274,17 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - codarea `mapbox` (pas 0,1 m): ~11 trepte vizibile pe 1,1 m;
   - tile-uri doar unde sunt coroane: MapLibre ar cere și restul din `bounds` → 404 în consolă.
 - **Consecințe:** `build-survey.mjs` înlocuiește tot folderul survey-ului, deci după `pnpm data:survey` se rulează din nou `pnpm data:terrain --survey <id>`; `pnpm data` / `data:fast` generează relieful mock-ului (inclusiv în CI). Performanță măsurată pe siret3 (M3 Pro, Chromium): 60 fps la pan în 2D și în 3D, 3D gata în ~4 s cu ~45 tile-uri de relief. Fără dependențe noi (`sharp` exista deja).
+
+### ADR-026 — Notificări în aplicație (sarcină alocată), live prin Supabase Realtime
+- **Context:** inspectorul trebuie să afle imediat că a primit o sarcină, fără să reîncarce pagina și fără să depindă de email (SMTP-ul nu e configurat, iar serverul implicit Supabase are o limită mică).
+- **Decizie:**
+  - tabel `public.notification` (`user_id`, `kind`, `task_id`, `payload` jsonb, `read_at`), cu RLS: fiecare își citește, marchează ca citite (doar coloana `read_at`) și șterge doar notificările lui; clienții nu pot insera;
+  - rândurile le scrie doar trigger-ul `task_notify_assignee` (`after insert or update of assignee` pe `public.task`), cu o funcție `security definer` în schema neexpusă `private`, neexecutabilă de rolurile API. Nu notifică auto-atribuirea; la realocare șterge notificarea necitită a fostului responsabil;
+  - `payload` îngheață datele de afișare (tipul sarcinii, rând, bloc, lungimea golului, termen, cine a alocat), iar titlul se traduce în client (RO / EN / RU);
+  - tabelul e în publicația `supabase_realtime`: clopoțelul din meniu (`NotificationBell`) ascultă `INSERT` / `UPDATE` filtrat pe `user_id` (Realtime aplică RLS-ul), arată un toast, crește contorul și reîncarcă lista pe `/sarcini`; se reîncarcă și la revenirea în tab;
+  - notificarea deschide `/sarcini?sarcina=<id>`: filtrele pornesc astfel încât sarcina să fie vizibilă, rândul e evidențiat și adus în centrul ecranului.
+- **Respins:**
+  - polling la câteva secunde: cereri inutile și întârziere;
+  - notificări scrise din server actions: o atribuire făcută altfel (API, SQL, alt ecran) n-ar notifica pe nimeni;
+  - Realtime Broadcast cu canale private: mai multă configurare (politici pe `realtime.messages`) pentru același rezultat.
+- **Consecințe:** tipuri noi (ex. „sarcină rezolvată” către administrator) = o valoare nouă în `kind` + un trigger; email / push pot citi același tabel mai târziu. Migrația: `supabase/migrations/20260926000400_notifications.sql`.
