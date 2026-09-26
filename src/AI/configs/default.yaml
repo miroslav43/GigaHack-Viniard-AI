@@ -366,7 +366,7 @@ waste:                                     # D3 §4
     clip_neg_prompts: ["a white plastic vine tube", "a wooden stake", "a stone", "bare soil", "grass", "a grapevine",
                        "an irrigation hose", "a car"]
   sam3:
-    enabled: true
+    enabled: false                         # ~15 s/crop on CPU: enabled only for the dedicated waste run
     model_ids: [facebook/sam3]             # 3.1 has no transformers weights (P facts)
     local_checkpoint: ../../models/sam3.1/sam3.1_multiplex.pt
     device: cpu
