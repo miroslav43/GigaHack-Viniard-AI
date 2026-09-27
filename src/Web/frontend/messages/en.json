@@ -310,20 +310,28 @@
       "zoomIn": "Zoom in (zoom {zoom}+) to see the parcels."
     },
     "farmRoute": {
-      "title": "Shortest route",
+      "title": "Route through a farm",
       "compute": "Plan the route through {n, plural, one {# target} other {# targets}}",
-      "pickHint": "Click the map to set the start point. The route leaves from there, visits every target of the farm and returns to the same point.",
-      "cancel": "Cancel",
+      "pickHint": "Click inside the farm where you want to start. The route visits every target of the farm, only inside it, and returns to the same point. A click outside the farm moves onto its edge.",
       "computing": "Planning the route through {n, plural, one {# target} other {# targets}}…",
       "stops": "Targets visited",
       "length": "Route length",
       "duration": "Estimated duration (4 km/h)",
-      "offNetwork": "Of which {length} in a straight line, off the known roads and rows (to the start point or between unconnected areas).",
+      "offNetwork": "Of which {length} in a straight line across the farm, between areas with no known road or row.",
       "newStart": "Another start point",
-      "clear": "Clear route",
       "error": "The route could not be planned: {detail}",
       "noTargets": "This farm has no inspection targets.",
-      "note": "Along roads and rows; rows are crossed only at their ends. Planar computation in UTM 35N, indicative (the official route is on the Route page)."
+      "note": "Inside the farm only: along rows, its internal roads and its edge; rows are crossed only at their ends. Planar computation in UTM 35N, indicative (the official route is on the Route page).",
+      "tool": "Farm route",
+      "close": "Close the route",
+      "step1": "Farm",
+      "step2": "Start",
+      "step3": "Route",
+      "chooseFarmHint": "Click a farm on the map (the pink outline or its F… label) or choose it from the list.",
+      "farmSelect": "Choose the farm",
+      "farmLine": "Farm {id} · {n, plural, one {# target} other {# targets}}",
+      "otherFarm": "Another farm",
+      "startMoved": "The point you chose was outside the farm: the start moved onto its edge ({length} away)."
     }
   },
   "blocks": {

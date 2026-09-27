@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 import { buildWalkGraph, type WalkLine } from "./graph.ts";
 import { pathTo, shortestPaths } from "./dijkstra.ts";
 import { solveTour, tourLength, TOUR_LIMITS } from "./tour.ts";
-import { planFarmRoute, START_ID } from "./plan.ts";
-import { unprojectUtm } from "../utm.ts";
+import { FARM_MARGIN_M, planFarmRoute, START_ID } from "./plan.ts";
+import { withinFarm } from "./area.ts";
+import { projectUtm, unprojectUtm } from "../utm.ts";
 
 // two parallel 100 m rows 3 m apart (headland at both ends) and a road 10 m below their west ends
 const rows: WalkLine[] = [
@@ -77,15 +78,25 @@ test("large tours visit every stop once and beat nearest neighbour order", () =>
   assert.ok(tourLength(d, order) < tourLength(d, d.map((_, i) => i)));
 });
 
+const ll = (x: number, y: number) => unprojectUtm([629500 + x, 5220250 + y]);
+const local = (p: readonly [number, number]) => {
+  const [x, y] = projectUtm([p[0], p[1]]);
+  return [x - 629500, y - 5220250] as const;
+};
+const line = (pts: [number, number][], row_id: string | null) => ({
+  type: "Feature" as const,
+  properties: { row_id },
+  geometry: { type: "LineString" as const, coordinates: pts.map(([x, y]) => ll(x, y)) },
+});
+const box = (x0: number, y0: number, x1: number, y1: number) => ({
+  type: "Polygon" as const,
+  coordinates: [[ll(x0, y0), ll(x1, y0), ll(x1, y1), ll(x0, y1), ll(x0, y0)]],
+});
+
 test("planFarmRoute closes the loop at the start and orders every target", () => {
-  const ll = (x: number, y: number) => unprojectUtm([629500 + x, 5220250 + y]);
-  const line = (pts: [number, number][], row_id: string | null) => ({
-    type: "Feature" as const,
-    properties: { row_id },
-    geometry: { type: "LineString" as const, coordinates: pts.map(([x, y]) => ll(x, y)) },
-  });
   const r = planFarmRoute({
     start: ll(-10, 0),
+    farm: box(-12, -2, 102, 5),
     roads: [line([[-10, -50], [-10, 50]], null)],
     rows: [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")],
     targets: [
@@ -99,4 +110,24 @@ test("planFarmRoute closes the loop at the start and orders every target", () =>
   // rows are crossed only at their ends: 10 to R1, 80 + 20 to its east end, 3 across, 20 + 80 back along R2,
   // 10 to the road and 3 down to the start = 226 (±0.5 m of projection error)
   assert.ok(Math.abs(r.lengthM - 226) < 0.5, `got ${r.lengthM}`);
+});
+
+test("the walk stays inside the farm and a start clicked outside moves onto its edge", () => {
+  const rows = [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")];
+  const r = planFarmRoute({
+    start: ll(50, 60),
+    farm: box(-2, -2, 102, 5),
+    // a road 40 m north would be a shortcut between the row ends, but it lies outside the farm
+    roads: [line([[-5, 5], [-5, 40], [105, 40], [105, 5]], null)],
+    rows,
+    targets: [
+      { type: "Feature", properties: { target_id: "T1", row_id: "R1" }, geometry: { type: "Point", coordinates: ll(20, 0) } },
+      { type: "Feature", properties: { target_id: "T2", row_id: "R2" }, geometry: { type: "Point", coordinates: ll(80, 3) } },
+    ],
+  });
+  assert.ok(Math.abs(r.startMovedM - 55) < 0.5, `moved ${r.startMovedM}`);
+  const [sx, sy] = local(r.start);
+  assert.ok(Math.abs(sx - 50) < 0.5 && Math.abs(sy - 5) < 0.5, `start ${sx},${sy}`);
+  const rings = [[[-2, -2], [102, -2], [102, 5], [-2, 5], [-2, -2]] as [number, number][]];
+  for (const p of r.line) assert.ok(withinFarm(local(p), rings, FARM_MARGIN_M + 0.5), `off the farm: ${local(p)}`);
 });

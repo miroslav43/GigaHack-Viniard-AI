@@ -303,35 +303,31 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - unelte (function calling) care execută acțiuni: asistentul doar explică și trimite la pagină; acțiunile rămân în UI, sub RLS.
 - **Consecințe:** fără `GEMINI_API_KEY` panoul spune că nu e configurat. Întrebările, rolul, numele primăriei și cifrele agregate ale zborului ajung la Google (Gemini API); nu se trimit emailuri, parole sau date personale ale altor utilizatori. O funcție nouă în aplicație trebuie descrisă și în `prompt.ts`.
 
-### ADR-028 — Traseu pe fermă calculat în browser, cu punct de plecare ales pe hartă
-- **Context:** pe teren, inspectorul nu pleacă mereu de la START-ul oficial și lucrează fermă cu fermă. Vrea să aleagă singur punctul de plecare (= sosire) și să primească cel mai scurt traseu închis prin toate țintele unei ferme. Ruta oficială (`route.geojson`) e una singură, precalculată de pipeline pentru tot survey-ul.
+### ADR-028 — Traseu prin fermă calculat în browser, cu punct de plecare ales pe hartă
+- **Context:** pe teren, inspectorul lucrează fermă cu fermă și nu pleacă mereu de la START-ul oficial. Vrea să aleagă punctul de plecare (= sosire) și să primească cel mai scurt traseu închis prin toate țintele unei ferme, **mergând doar prin ferma respectivă**. Ruta oficială (`route.geojson`) e una singură, precalculată de pipeline pentru tot survey-ul.
 - **Decizie:**
-  - pe hartă, în panoul fermei: „Traseu cel mai scurt” → „Calculează traseul prin N ținte” → click pe hartă pentru start. Pe ecranele mici, panoul se ascunde cât timp alegi punctul (banner cu „Renunță”);
-  - calculul rulează în browser, într-un Web Worker (`src/lib/farmRoute/`, TypeScript pur, fără dependențe noi):
-    - **graf de mers** (`graph.ts`): drumurile din `roads.geojson` (toate clasele, într-un bbox cu marjă de 500 m) și rândurile fermei, unite unde se ating (grilă de 0,5 m). Conectori scurți: capăt de rând → capetele rândurilor vecine (≤ 8 m, întoarcerea pe la capăt), capăt de rând → cel mai apropiat drum (≤ 120 m), capăt de drum → drumul de lângă (≤ 5 m). Rândurile se traversează doar pe la capete;
-    - **terminale:** startul și țintele sunt inserate pe segmentul cel mai apropiat (ținta, întâi pe rândul ei). O componentă deconectată care conține un terminal se leagă de restul cu cel mai scurt segment drept; aceste bucăți se raportează separat („din care X m în linie dreaptă”);
-    - **distanțe:** Dijkstra (heap binar) din fiecare terminal (`dijkstra.ts`);
+  - **UI:** buton propriu pe hartă, „Traseu fermă” (dreapta jos, deasupra riglei), care deschide un ghid în 3 pași:
+    1. **Ferma:** click pe o fermă de pe hartă sau alegerea ei din listă (doar fermele cu ținte). Harta face zoom pe fermă, exteriorul e estompat, iar conturul fermei e evidențiat;
+    2. **Start:** click în fermă. Un click în afara fermei se mută pe cel mai apropiat punct al conturului, iar cardul spune cât s-a mutat;
+    3. **Traseu:** lungime, durată, GPX, „Alt punct de plecare”, „Altă fermă”.
+
+    Panoul fermei are o scurtătură care sare direct la pasul 2. Cât timp unealta e activă, linia și numerele rutei oficiale se ascund, iar rigla se ascunde și ea (cele două unelte se exclud). Pe telefon, cardul stă sus, cu înălțime limitată, ca harta să rămână clickabilă;
+  - **calcul în browser,** într-un Web Worker (`src/lib/farmRoute/`, TypeScript pur, fără dependențe noi):
+    - **doar în fermă** (`area.ts`, `plan.ts`): rândurile fermei, plus drumurile (toate clasele) tăiate la conturul fermei cu o marjă de 10 m (`FARM_MARGIN_M`, densificate la 2 m). Rămân drumurile interne și cele de pe margine; un drum public din afară nu mai e o scurtătură;
+    - **graf de mers** (`graph.ts`): liniile se unesc unde se ating (grilă de 0,5 m). Conectori scurți: capăt de rând → capetele rândurilor vecine (≤ 8 m, întoarcerea pe la capăt), capăt de rând → cel mai apropiat drum (≤ 120 m), capăt de drum → drumul de lângă (≤ 5 m). Rândurile se traversează doar pe la capete;
+    - **terminale:** startul și țintele sunt inserate pe segmentul cel mai apropiat (ținta, întâi pe rândul ei). Bucățile deconectate ale fermei (de exemplu, blocuri la ≤ 10 m unul de altul) se leagă prin cel mai scurt segment drept, raportat separat („din care X m în linie dreaptă prin fermă”);
+    - **distanțe:** Dijkstra (`dijkstra.ts`);
     - **tur:** exact (Held–Karp) până la 10 ținte; peste, nearest neighbour + 2-opt + Or-opt, cu buget de 1,5 s (`tour.ts`);
-  - calcul plan în UTM 35N cu proj4, ca unealta de măsurare (ADR-010). Rezultatul e **orientativ**: lungimea nu e o cifră oficială și nu înlocuiește ruta pipeline-ului;
-  - afișare: linie violet (`map.farmRoute`) cu săgeți, opriri numerotate (toate până la 40, altfel doar în cadru de la zoom 18), marker S/F. Cât timp e afișat traseul fermei, linia rutei oficiale și numerele ei se ascund; țintele rămân. Export GPX (track + waypoint-uri în ordinea vizitei).
-- **Performanță** (siret3, Node, M3 Pro): 12–292 ms pe fermă; F01 are 355 de ținte (292 ms, 11,2 km).
+  - calcul plan în UTM 35N cu proj4, ca unealta de măsurare (ADR-010). Rezultatul e **orientativ**: nu e o cifră oficială și nu înlocuiește ruta pipeline-ului;
+  - **afișare:** linie violet (`map.farmRoute`) cu săgeți, opriri numerotate (toate până la 40, altfel doar în cadru, de la zoom 18), marker S/F, GPX (track + waypoint-uri în ordinea vizitei).
+- **Performanță** (siret3, 21 de ferme cu ținte, Node, M3 Pro): 2–419 ms pe fermă; cea mai mare are 451 de ținte (419 ms, 13,2 km).
 - **Respins:**
   - endpoint în Python cu solver-ul pipeline-ului (`src/AI/vineyard/route/`, OR-Tools): API-ul nu există încă, iar site-ul trebuie să meargă static și offline;
   - graful de mers al pipeline-ului (`walk_nodes/edges.parquet`): nu e exportat în web și e construit pentru START-ul oficial;
-  - turf / graphology: pentru un graf de câteva mii de noduri, o implementare de ~300 de linii ajunge.
+  - drumurile pe o rază fixă în jurul fermei (prima versiune, 500 m): traseul ieșea din fermă pe drumuri publice;
+  - turf / graphology: pentru grafuri de câteva mii de noduri, câteva sute de linii ajung.
 - **Consecințe:**
-  - fără `farms.geojson` + `roads.geojson` (mock-ul), unealta nu apare;
+  - fără `farms.geojson` + `roads.geojson` (mock-ul), butonul nu apare;
   - `forbidden.geojson` nu e încă ocolit;
-  - testele unitare (`src/lib/farmRoute/farmRoute.test.ts`) rulează cu `node --test` direct pe TypeScript (Node ≥ 22.18 elimină tipurile), deci `tsconfig` are `allowImportingTsExtensions`, iar modulele din `src/lib/farmRoute/` se importă între ele cu extensia `.ts`;
+  - testele unitare (`src/lib/farmRoute/farmRoute.test.ts`, din `pnpm test:scripts`) rulează cu `node --test` direct pe TypeScript (Node ≥ 22.18), deci `tsconfig` are `allowImportingTsExtensions`, iar modulele din `src/lib/farmRoute/` se importă între ele cu extensia `.ts`;
   - e2e: `e2e/farm-route.spec.ts`.
-
-### ADR-028 — Site de prezentare la `/` pentru vizitatorii fără cont, cu cereri de pilot în baza de date
-- **Context:** aplicația deschidea direct pagina de login; cumpărătorii (primării, consilii raionale, ONVV/AIPA/MAIA) trebuie întâi să înțeleagă problema rezolvată, siguranța datelor și cum se începe. Cercetarea (surse, cifre, obiecții): `docs/PREZENTARE_CERCETARE.md`.
-- **Decizie:**
-  - `src/app/[locale]/prezentare/page.tsx` (static pe limbă); `src/proxy.ts` o servește la `/` (rewrite, URL-ul rămâne `/`) când nu există nici sesiune, nici cookie demo; cu cont sau demo, `/` rămâne panoul primăriei. `/prezentare` e deschisă tuturor;
-  - structura urmează paginile care conving instituțiile publice: problemă cu cifre și surse, cifrele reale ale pilotului Sireți (citite din `summary.json`; ascunse pe datele de test), pași, capturi reale din aplicație (`public/marketing/`), pentru cine, securitate, cum începem (pilot gratuit → abonament pe primărie sub pragul achizițiilor de valoare mică → MTender), întrebări frecvente, formular;
-  - pe pagină apar doar afirmații verificate azi (găzduire UE, RLS pe primărie, roluri, jurnal, export deschis, Legea nr. 195/2024 ca angajament scris înainte de pilot). Nu apar: integrări MPass/MSign, certificări, precizie în procente, prețuri, parteneriate cu instituții;
-  - formularul „Solicitați un pilot” → server action → `public.lead` (migrația `20260926000500_leads.sql`): fără drept de inserare pentru `anon`/`authenticated` (API-ul public nu poate fi folosit pentru spam), scriere cu cheia secretă doar din server, câmp capcană, timp minim de completare, limită pe adresă; citire și stare (`nouă / contactată / pilot / închisă`) doar pentru `platform_admin`, în `/super-admin?tab=leads`.
-- **Respins:** landing separat (alt domeniu/proiect): regula din `src/Web/` și un singur deploy; formular prin email: fără SMTP configurat și fără istoric; inserare directă din browser cu RLS: ar permite spam prin REST.
-- **Fundal video în hero** (opțional): `public/marketing/hero-drone.mp4` + cadrul `hero-drone.webp` (11 s, mut, în buclă, oprit la „reduce motion”), afișat doar dacă fișierul există. E filmare de la terți, deci **nu e în git** (`frontend/.gitignore`) până la confirmarea dreptului de publicare; fără el, hero-ul are fundalul grafic.
-- **Consecințe:** textele sunt în `messages/*.json` → `landing` (RO / EN / RU). O afirmație nouă pe site se verifică întâi și se notează în `PREZENTARE_CERCETARE.md`. Fără `SUPABASE_SECRET_KEY`, formularul spune că nu e disponibil.

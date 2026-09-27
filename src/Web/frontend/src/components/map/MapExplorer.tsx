@@ -46,7 +46,8 @@ import { CadastreLegend, CadastreToggle } from "./overlays/CadastreControls";
 import { CADASTRE_MIN_ZOOM } from "@/lib/cadastre";
 import { useFarmRoute } from "./overlays/farmRoute/useFarmRoute";
 import { FarmRouteLayers, useFarmRouteStops } from "./overlays/farmRoute/FarmRouteLayers";
-import { FarmRoutePickBanner, FarmRouteSection } from "./overlays/farmRoute/FarmRouteSection";
+import { FarmRouteSection } from "./overlays/farmRoute/FarmRouteSection";
+import { FarmRouteTool } from "./overlays/farmRoute/FarmRouteTool";
 
 /** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
@@ -123,9 +124,16 @@ export function MapExplorer({
   const [view, setView] = useState<BBox | null>(null);
   const farmRoute = useFarmRoute({ farms: farmsRoads.farms, roads: farmsRoads.roads, rows: rowsFc, targets });
   const farmRouteStops = useFarmRouteStops(farmRoute.state, targets);
+  const beginFarmRoute = farmRoute.begin;
   const pickingStart = farmRoute.state.status === "picking";
-  // a planned farm route replaces the official route line and its numbers (the targets stay)
-  const farmRouteShown = farmRoute.state.status === "done";
+  const choosingFarm = farmRoute.state.status === "choosingFarm";
+  const farmRouteActive = farmRoute.state.status !== "idle";
+  const farmRouteFarm = useMemo(
+    () => farmsRoads.farms?.features.find((f) => f.properties.farm_id === farmRoute.farmId)?.geometry ?? null,
+    [farmsRoads.farms, farmRoute.farmId],
+  );
+  // while the farm route tool is on, the official route line and its numbers step aside (the targets stay)
+  const farmRouteShown = farmRoute.state.status !== "idle";
   const { tiles: hasTiles } = overlays.available;
   const { farms: hasFarms, roads: hasRoads } = farmsRoads.available;
   const interactiveLayerIds = useMemo(
@@ -224,6 +232,19 @@ export function MapExplorer({
     [farmsRoads.farms, fit],
   );
 
+  // farm route tool, step 2 on this farm: the farm fills the view, the other panels step aside
+  const startFarmRoute = useCallback(
+    (id: string) => {
+      const f = farmsRoads.farms?.features.find((x) => x.properties.farm_id === id);
+      if (!f) return;
+      setMeasuring(false);
+      setSelection(null);
+      beginFarmRoute(id);
+      fit(bboxOf([f]), 19);
+    },
+    [farmsRoads.farms, beginFarmRoute, fit],
+  );
+
   const selectTarget = useCallback(
     (id: string) => {
       const f = targets?.features.find((x) => x.properties.target_id === id);
@@ -274,6 +295,12 @@ export function MapExplorer({
   }, [measurePts, measuring]);
 
   const onClick = (e: MapLayerMouseEvent) => {
+    if (choosingFarm) {
+      // step 1: only a farm can be picked; a click elsewhere does nothing
+      const farm = e.features?.find((x) => x.layer.id === FARMS_FILL);
+      if (farm) startFarmRoute(String(farm.properties?.farm_id));
+      return;
+    }
     if (pickingStart) {
       farmRoute.pick([e.lngLat.lng, e.lngLat.lat]);
       return;
@@ -321,7 +348,7 @@ export function MapExplorer({
           doubleClickZoom={!measuring}
           onMouseEnter={() => setCursor("pointer")}
           onMouseLeave={() => setCursor("grab")}
-          cursor={measuring || pickingStart ? "crosshair" : cursor}
+          cursor={measuring || pickingStart ? "crosshair" : choosingFarm ? "pointer" : cursor}
           onMoveEnd={refreshDetail}
           onLoad={onLoad}
           maxZoom={22}
@@ -473,7 +500,7 @@ export function MapExplorer({
           />
           {/* mounted only while in use, so its layers go on top of the targets (mounted once their file loads) */}
           {farmRoute.state.status !== "idle" && (
-            <FarmRouteLayers state={farmRoute.state} stops={farmRouteStops} arrowReady={arrowReady} zoom={zoom} view={view} />
+            <FarmRouteLayers state={farmRoute.state} stops={farmRouteStops} arrowReady={arrowReady} zoom={zoom} view={view} farm={farmRouteFarm} />
           )}
           <Source id="measure" type="geojson" data={measureFc}>
             <Layer id="measure-fill" type="fill" filter={["==", ["geometry-type"], "Polygon"]} paint={{ "fill-color": mapPalette.selected, "fill-opacity": 0.2 }} />
@@ -496,7 +523,7 @@ export function MapExplorer({
             ))}
 
           {/* ---- markers: farm labels (medium zoom and closer), numbered route stops in view (refreshDetail) ---- */}
-          <FarmLabels data={farmsRoads} zoom={zoom} onPick={(id) => selectFarm(id, false)} />
+          <FarmLabels data={farmsRoads} zoom={zoom} onPick={(id) => (choosingFarm ? startFarmRoute(id) : selectFarm(id, false))} />
           {visible.route &&
             !farmRouteShown &&
             targetLabels.map((f) => {
@@ -555,23 +582,33 @@ export function MapExplorer({
             </>
           }
         />
-        <MeasureTool
-          active={measuring}
-          points={measurePts}
-          onToggle={() => {
-            setSelection(null);
-            if (pickingStart) farmRoute.clear();
-            if (!measuring) setMeasurePts([]);
-            setMeasuring((v) => !v);
-          }}
-          onClear={() => {
-            setMeasurePts([]);
-            setMeasuring(false);
-          }}
-        />
+        {/* the ruler and the farm route tool exclude each other: only the idle one's button shows */}
+        {!farmRouteActive && (
+          <MeasureTool
+            active={measuring}
+            points={measurePts}
+            onToggle={() => {
+              setSelection(null);
+              if (!measuring) setMeasurePts([]);
+              setMeasuring((v) => !v);
+            }}
+            onClear={() => {
+              setMeasurePts([]);
+              setMeasuring(false);
+            }}
+          />
+        )}
+        {hasFarms && hasRoads && !measuring && (
+          <FarmRouteTool
+            route={farmRoute}
+            farms={summary.farms ?? []}
+            stops={farmRouteStops}
+            onChooseFarm={startFarmRoute}
+          />
+        )}
         <ReliefControl available={relief.available} ready={relief.ready} settings={relief.settings} onChange={relief.update} />
-        {pickingStart && compact && <FarmRoutePickBanner onCancel={farmRoute.clear} />}
-        {selection && !(pickingStart && compact) && (
+        {/* on a phone the farm route card is the only panel while the tool is on */}
+        {selection && !(farmRouteActive && compact) && (
           <AttributePanel
             selection={selection}
             summary={summary}
@@ -585,10 +622,9 @@ export function MapExplorer({
             cadastreQuery={cadastre.query}
             farmExtra={(farmId) => (
               <FarmRouteSection
-                farmId={farmId}
                 targetCount={summary.farms?.find((x) => x.farm_id === farmId)?.target_count ?? 0}
-                route={farmRoute}
-                stops={farmRouteStops}
+                ready={farmRoute.ready}
+                onStart={() => startFarmRoute(farmId)}
               />
             )}
           />

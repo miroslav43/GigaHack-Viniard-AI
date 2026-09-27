@@ -1,7 +1,7 @@
 "use client";
 
-// State of the farm route tool: pick a farm → click the start (= finish) on the map → the worker plans the tour
-// through every target of the farm (src/lib/farmRoute, ADR-028).
+// State of the farm route tool, a 3-step guide: choose a farm → click the start (= finish) → the worker plans the
+// tour through every target of the farm, inside the farm (src/lib/farmRoute, ADR-028).
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 import type { TargetProps } from "@/lib/types";
@@ -12,6 +12,7 @@ import type { FarmsFc, RoadsFc } from "../useFarmsRoads";
 
 export type FarmRouteState =
   | { status: "idle" }
+  | { status: "choosingFarm" }
   | { status: "picking"; farmId: string }
   | { status: "computing"; farmId: string; start: LonLat }
   | { status: "done"; farmId: string; start: LonLat; result: FarmRouteResult }
@@ -19,12 +20,20 @@ export type FarmRouteState =
 
 export interface FarmRoute {
   state: FarmRouteState;
+  /** the farm the tool works on, null before one is chosen */
+  farmId: string | null;
   /** the tool can run: farms, roads, rows and targets are loaded */
   ready: boolean;
+  /** step 1: choose a farm */
+  open: () => void;
+  /** step 2: click the start on the map */
   begin: (farmId: string) => void;
+  /** step 3: plan the route from this start */
   pick: (start: LonLat) => void;
   clear: () => void;
 }
+
+const farmIdOf = (s: FarmRouteState) => ("farmId" in s ? s.farmId : null);
 
 export function useFarmRoute({
   farms,
@@ -65,36 +74,48 @@ export function useFarmRoute({
     return worker.current;
   }, []);
 
-  const begin = useCallback((farmId: string) => setState({ status: "picking", farmId }), []);
-  const clear = useCallback(() => {
+  const cancelPending = () => {
     lastRequest.current++;
+  };
+  const open = useCallback(() => {
+    cancelPending();
+    setState({ status: "choosingFarm" });
+  }, []);
+  const begin = useCallback((farmId: string) => {
+    cancelPending();
+    setState({ status: "picking", farmId });
+  }, []);
+  const clear = useCallback(() => {
+    cancelPending();
     setState({ status: "idle" });
   }, []);
 
   const pick = useCallback(
     (start: LonLat) => {
-      if (state.status !== "picking" && state.status !== "done" && state.status !== "error") return;
-      const farm = farms?.features.find((f) => f.properties.farm_id === state.farmId);
+      const farmId = farmIdOf(state);
+      if (!farmId || state.status === "computing") return;
+      const farm = farms?.features.find((f) => f.properties.farm_id === farmId);
       if (!farm || !roads || !rows || !targets) return;
       const blocks = new Set(farm.properties.vineyard_ids);
       const request: FarmRouteRequest = {
         id: ++lastRequest.current,
         input: {
           start,
+          farm: farm.geometry,
           roads: roads.features,
           rows: rows.features.filter((f) => blocks.has(String(f.properties?.vineyard_id))) as FarmRouteRequest["input"]["rows"],
           targets: targets.features.filter((f) => f.properties.vineyard_id != null && blocks.has(f.properties.vineyard_id)),
         },
       };
-      setState({ status: "computing", farmId: state.farmId, start });
+      setState({ status: "computing", farmId, start });
       try {
         getWorker().postMessage(request);
       } catch (err) {
-        setState({ status: "error", farmId: state.farmId, start, error: err instanceof Error ? err.message : String(err) });
+        setState({ status: "error", farmId, start, error: err instanceof Error ? err.message : String(err) });
       }
     },
     [state, farms, roads, rows, targets, getWorker],
   );
 
-  return { state, ready: Boolean(farms && roads && rows && targets), begin, pick, clear };
+  return { state, farmId: farmIdOf(state), ready: Boolean(farms && roads && rows && targets), open, begin, pick, clear };
 }

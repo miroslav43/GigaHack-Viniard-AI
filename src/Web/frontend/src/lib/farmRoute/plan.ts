@@ -1,20 +1,24 @@
 // Farm route: from a start point chosen on the map, through every target of one farm, back to the start (ADR-028).
 // Input is the survey GeoJSON (EPSG:4326); the maths runs planar in UTM 35N like the measuring tool (ADR-010).
-import type { Feature, LineString, MultiLineString, Point, Position } from "geojson";
+import type { Feature, LineString, MultiLineString, MultiPolygon, Point, Polygon, Position } from "geojson";
 import { projectUtm, unprojectUtm, type LonLat } from "../utm.ts";
 import { buildWalkGraph, edgeKey, type Terminal, type WalkLine } from "./graph.ts";
 import { pathTo, shortestPaths, type ShortestPaths } from "./dijkstra.ts";
 import { solveTour } from "./tour.ts";
 import { dist, type XY } from "./geometry.ts";
+import { clipToFarm, nearestEdge, withinFarm, type FarmRings } from "./area.ts";
 
 /** walking speed of the official route (route.geojson duration_min) */
 export const WALK_KMH = 4;
-/** roads farther than this from the farm and the start are left out of the graph (m) */
-export const ROAD_MARGIN_M = 500;
+/** the walk stays inside the farm: roads count only where they run inside it or this close to its outline (m) */
+export const FARM_MARGIN_M = 10;
 export const START_ID = "__start__";
 
 export interface FarmRouteInput {
+  /** the point clicked; moved onto the farm outline when it is outside the farm */
   start: LonLat;
+  /** the farm outline (farms.geojson) */
+  farm: Polygon | MultiPolygon;
   roads: Feature<LineString | MultiLineString>[];
   /** the farm's rows (rows.geojson features with row_id) */
   rows: Feature<LineString | MultiLineString, { row_id?: string | null }>[];
@@ -23,6 +27,10 @@ export interface FarmRouteInput {
 }
 
 export interface FarmRouteResult {
+  /** where the walk starts and ends: the clicked point, or the nearest point of the farm outline */
+  start: LonLat;
+  /** how far the clicked point was moved to reach the farm (0 when it was inside) */
+  startMovedM: number;
   /** closed line start → … → start (EPSG:4326) */
   line: LonLat[];
   lengthM: number;
@@ -36,22 +44,36 @@ export interface FarmRouteResult {
 const partsOf = (g: LineString | MultiLineString): Position[][] => (g.type === "LineString" ? [g.coordinates] : g.coordinates);
 const toXY = (p: Position): XY => projectUtm([p[0], p[1]]);
 
-function bboxAround(points: readonly XY[], margin: number) {
-  const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
-  return [Math.min(...xs) - margin, Math.min(...ys) - margin, Math.max(...xs) + margin, Math.max(...ys) + margin] as const;
+const ringsOf = (g: Polygon | MultiPolygon): FarmRings =>
+  (g.type === "Polygon" ? [g.coordinates] : g.coordinates).flatMap((poly) => poly.map((ring) => ring.map(toXY)));
+
+function bboxOf(points: readonly XY[], margin: number) {
+  const b = points.reduce(
+    (acc, [x, y]) => [Math.min(acc[0], x), Math.min(acc[1], y), Math.max(acc[2], x), Math.max(acc[3], y)] as const,
+    [Infinity, Infinity, -Infinity, -Infinity] as const,
+  );
+  return [b[0] - margin, b[1] - margin, b[2] + margin, b[3] + margin] as const;
 }
 
 export function planFarmRoute(input: FarmRouteInput): FarmRouteResult {
   if (input.targets.length === 0) throw new Error("no targets");
-  const start = toXY(input.start);
+  const rings = ringsOf(input.farm);
+  const clicked = toXY(input.start);
+  const edge = withinFarm(clicked, rings, FARM_MARGIN_M) ? null : nearestEdge(clicked, rings);
+  const start = edge?.point ?? clicked;
   const rowLines: WalkLine[] = input.rows.flatMap((f) =>
     partsOf(f.geometry).map((part) => ({ kind: "row" as const, rowId: f.properties?.row_id ?? null, points: part.map(toXY) })),
   );
-  const box = bboxAround([start, ...rowLines.flatMap((l) => l.points)], ROAD_MARGIN_M);
-  const inBox = (p: XY) => p[0] >= box[0] && p[0] <= box[2] && p[1] >= box[1] && p[1] <= box[3];
+  // roads only where they run through the farm or along its edge: the inspector walks inside the farm
+  const box = bboxOf(rings.flat(), FARM_MARGIN_M);
+  const touchesBox = (pts: readonly XY[]) => {
+    const b = bboxOf(pts, 0);
+    return b[0] <= box[2] && b[2] >= box[0] && b[1] <= box[3] && b[3] >= box[1];
+  };
   const roadLines: WalkLine[] = input.roads
     .flatMap((f) => partsOf(f.geometry).map((part) => part.map(toXY)))
-    .filter((pts) => pts.some(inBox))
+    .filter(touchesBox)
+    .flatMap((pts) => clipToFarm(pts, rings, FARM_MARGIN_M))
     .map((points) => ({ kind: "road" as const, rowId: null, points }));
 
   const terminals: Terminal[] = [
@@ -76,6 +98,8 @@ export function planFarmRoute(input: FarmRouteInput): FarmRouteResult {
     0,
   );
   return {
+    start: unprojectUtm(start),
+    startMovedM: edge?.d ?? 0,
     line: xy.map(unprojectUtm),
     lengthM,
     durationMin: lengthM / ((WALK_KMH * 1000) / 60),

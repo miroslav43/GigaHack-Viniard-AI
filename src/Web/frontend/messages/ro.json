@@ -310,20 +310,28 @@
       "zoomIn": "Apropie harta (zoom {zoom}+) ca să vezi parcelele."
     },
     "farmRoute": {
-      "title": "Traseu cel mai scurt",
+      "title": "Traseu prin fermă",
       "compute": "Calculează traseul prin {n, plural, one {# țintă} few {# ținte} other {# de ținte}}",
-      "pickHint": "Click pe hartă pentru punctul de plecare. Traseul pleacă de acolo, trece pe la toate țintele fermei și se întoarce în același punct.",
-      "cancel": "Renunță",
+      "pickHint": "Click în fermă unde vrei să pornești. Traseul trece prin toate țintele fermei, doar prin interiorul ei, și se întoarce în același punct. Un click în afara fermei se mută pe marginea ei.",
       "computing": "Se calculează traseul prin {n, plural, one {# țintă} few {# ținte} other {# de ținte}}…",
       "stops": "Ținte vizitate",
       "length": "Lungime traseu",
       "duration": "Durată estimată (4 km/h)",
-      "offNetwork": "Din care {length} în linie dreaptă, în afara drumurilor și rândurilor cunoscute (până la punctul de plecare sau între zone neconectate).",
+      "offNetwork": "Din care {length} în linie dreaptă prin fermă, între zone fără drum sau rând cunoscut.",
       "newStart": "Alt punct de plecare",
-      "clear": "Șterge traseul",
       "error": "Traseul nu a putut fi calculat: {detail}",
       "noTargets": "Ferma nu are ținte de inspecție.",
-      "note": "Pe drumuri și de-a lungul rândurilor; rândurile se traversează doar pe la capete. Calcul plan în UTM 35N, orientativ (ruta oficială e în pagina Rută)."
+      "note": "Doar prin fermă: pe rânduri, pe drumurile ei interne și pe marginea ei; rândurile se traversează doar pe la capete. Calcul plan în UTM 35N, orientativ (ruta oficială e în pagina Rută).",
+      "tool": "Traseu fermă",
+      "close": "Închide traseul",
+      "step1": "Ferma",
+      "step2": "Start",
+      "step3": "Traseu",
+      "chooseFarmHint": "Click pe o fermă de pe hartă (conturul roz sau eticheta F…) sau alege-o din listă.",
+      "farmSelect": "Alege ferma",
+      "farmLine": "Ferma {id} · {n, plural, one {# țintă} few {# ținte} other {# de ținte}}",
+      "otherFarm": "Altă fermă",
+      "startMoved": "Punctul ales era în afara fermei: startul a fost mutat pe marginea ei ({length} mai încolo)."
     }
   },
   "blocks": {

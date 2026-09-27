@@ -61,6 +61,8 @@ export const mapPalette = {
   farmRoute: {
     line: color.map.farmRoute,
     casing: color.white,
+    // everything outside the chosen farm, dimmed
+    dim: color.grey[900],
   },
   // live cadastre: the WMS parcel lines (drawn by the server, legend only) and the parcel picked by a click
   cadastre: {

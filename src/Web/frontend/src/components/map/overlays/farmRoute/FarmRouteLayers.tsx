@@ -1,17 +1,18 @@
 "use client";
 
-// The planned farm route: a violet line with direction arrows, numbered stops and the start (= finish) marker.
+// The farm route tool on the map: the chosen farm stands out (the rest is dimmed), then the planned route — a violet
+// line with direction arrows, numbered stops and the start (= finish) marker.
 // Stop numbers are DOM markers (the base style has no glyphs): all of them on a small farm, only those in view
 // close up on a large one.
 import { useMemo } from "react";
 import { Layer, Marker, Source } from "@vis.gl/react-maplibre";
-import type { Feature, FeatureCollection, Point } from "geojson";
+import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from "geojson";
 import Box from "@mui/material/Box";
 import { mapPalette } from "@/theme/mapPalette";
 import type { TargetProps } from "@/lib/types";
 import type { LonLat } from "@/lib/utm";
 import { ROUTE_ARROW } from "../../arrowImage";
-import { intersects, type BBox } from "../../geo";
+import { intersects, maskOutside, type BBox } from "../../geo";
 import type { FarmRouteState } from "./useFarmRoute";
 
 /** farms with at most this many stops show every number; bigger ones only close up and in view */
@@ -44,8 +45,11 @@ export function FarmRouteLayers({
   arrowReady,
   zoom,
   view,
+  farm,
 }: {
   state: FarmRouteState;
+  /** the chosen farm's outline (null while choosing) */
+  farm: Polygon | MultiPolygon | null;
   stops: FarmRouteStop[];
   arrowReady: boolean;
   zoom: number;
@@ -71,11 +75,24 @@ export function FarmRouteLayers({
       : zoom < LABEL_ZOOM || !view
         ? []
         : stops.filter(({ at: [lon, lat] }) => intersects([lon, lat, lon, lat], view)).slice(0, MAX_LABELS);
-  const start = state.status === "computing" || state.status === "done" || state.status === "error" ? state.start : null;
+  const focus = useMemo(() => {
+    if (!farm) return { mask: EMPTY, outline: EMPTY };
+    const outline: FeatureCollection = { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: farm }] };
+    return { mask: maskOutside(outline), outline };
+  }, [farm]);
+  // done: the start actually used (moved onto the farm edge when the click was outside); before: the click itself
+  const start = state.status === "done" ? state.result.start : state.status === "computing" || state.status === "error" ? state.start : null;
   const round = { "line-join": "round", "line-cap": "round" } as const;
 
   return (
     <>
+      <Source id="farm-route-focus" type="geojson" data={focus.mask}>
+        <Layer id="farm-route-dim" type="fill" paint={{ "fill-color": mapPalette.farmRoute.dim, "fill-opacity": 0.55 }} />
+      </Source>
+      <Source id="farm-route-farm" type="geojson" data={focus.outline}>
+        <Layer id="farm-route-farm-casing" type="line" paint={{ "line-color": mapPalette.farmRoute.casing, "line-width": 5 }} />
+        <Layer id="farm-route-farm-line" type="line" paint={{ "line-color": mapPalette.farmRoute.line, "line-width": 2.5, "line-dasharray": [3, 1.5] }} />
+      </Source>
       <Source id="farm-route" type="geojson" data={line}>
         <Layer id="farm-route-halo" type="line" paint={{ "line-color": mapPalette.farmRoute.casing, "line-width": 7, "line-opacity": 0.85 }} layout={round} />
         <Layer id="farm-route-line" type="line" paint={{ "line-color": mapPalette.farmRoute.line, "line-width": 4 }} layout={round} />
