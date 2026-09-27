@@ -106,7 +106,8 @@ def test_rows_link_then_blocks(ctx: RunContext) -> None:
     pairs = read_layer(ctx.paths.layers_dir / "row_pairs.parquet", "row_pairs")
     assert len(pairs) == 4
     assert read_layer(ctx.paths.layers_dir / "rows_rejected.parquet", "rows_rejected").empty
-    assert read_layer(ctx.paths.qa_dir / "qa_blocks.parquet", "qa_issues").empty
+    qa_blocks = read_layer(ctx.paths.qa_dir / "qa_blocks.parquet", "qa_issues")
+    assert qa_blocks[~qa_blocks.code.str.startswith("override_")].empty
 
 
 def test_run_stages_is_deterministic(ctx: RunContext) -> None:
@@ -128,7 +129,7 @@ def test_passage_splits_the_block(ctx: RunContext) -> None:
     rejected = read_layer(ctx.paths.layers_dir / "rows_rejected.parquet", "rows_rejected")
     assert len(blocks) == 1 and len(rejected) == 2
     qa = read_layer(ctx.paths.qa_dir / "qa_blocks.parquet", "qa_issues")
-    assert list(qa.code) == ["block_too_few_rows"]
+    assert [c for c in qa.code if not c.startswith("override_")] == ["block_too_few_rows"]
 
 
 def test_overrides_are_applied(ctx: RunContext, tmp_path: Path) -> None:

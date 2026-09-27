@@ -229,8 +229,8 @@ rows_guided:
   phase_tol_frac: 0.25
   occupancy_min: 0.3
   min_rel_contrast: 0.15
-  width_p80_max_m: 1.4
-  wide_min_rel_contrast: 0.5               # wide (weedy) rows kept only with a strong interrow density drop
+  width_p80_max_m: 2.2                     # RC10: older vines are up to ~2 m wide (was 1.4)
+  wide_min_rel_contrast: 0.3               # wide rows kept only with an interrow density drop (RC10: was 0.5)
   orchard_along_period_m: [3.3, 6.0]       # guided pass only; young vines have a 3.0-3.1 m plant period
   min_row_len_m: 5.0
   min_rows: 3
@@ -243,7 +243,7 @@ rows_guided:
   lateral_enabled: true
   lateral_max_factor: 1.3                  # x spacing: the next row of the block, never two rows away
   lateral_min_rows: 1
-  rounds: 2                                # round 2 continues from the rows recovered in round 1
+  rounds: 6                                # each round continues from the rows recovered before (RC10: was 2)
 
 blocks:
   neighbour_max_m: 4.0
@@ -780,3 +780,5 @@ rows_seeded:                               # seeded rows from reviewed tile seed
   min_sep_m: 1.0                           # never on top of an accepted row
   cut_gap_m: 4.0                           # rows end at empty runs >= this (road, headland)
   min_points: 200
+  nn_kinds: [cadastre_auto]                # seed kinds searched in the NN canopy probability (inside the seed only)
+  nn_prob_threshold: 0.5

@@ -29,3 +29,8 @@ class RowsSeededConfig(Section):
     min_sep_m: NonNegFloat                  # seeded pieces within this of an accepted row are dropped there
     cut_gap_m: PosFloat                     # rows split at empty runs >= this (road, headland)
     min_points: PosInt                      # vegetation pixels a region needs
+    # Seeds of these kinds (e.g. cadastre_auto: the uncovered part of a vineyard parcel) look for rows in the
+    # NN canopy probability >= nn_prob_threshold instead of the veg mask, inside their polygon only; tiles
+    # without an NN probability raster keep the veg mask. The NN complements the detector, never replaces it.
+    nn_kinds: tuple[str, ...] = ()
+    nn_prob_threshold: Frac = 0.5

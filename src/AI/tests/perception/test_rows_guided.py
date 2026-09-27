@@ -182,7 +182,9 @@ def test_guided_reject_gates(g: RowsGuidedConfig) -> None:
     assert guided_reject(_features(length_m=2.0), g, duty_max) == "short"
     # weedy but clearly structured row: kept; wide and only mildly structured: too_wide
     assert guided_reject(_features(width_p80_m=2.5, rel_contrast=0.7), g, duty_max) is None
-    assert guided_reject(_features(width_p80_m=2.5, rel_contrast=0.3), g, duty_max) == "too_wide"
+    assert guided_reject(_features(width_p80_m=2.5, rel_contrast=0.2), g, duty_max) == "too_wide"
+    # RC10: an older vine row up to 2.2 m wide is not "wide" at all
+    assert guided_reject(_features(width_p80_m=2.1, rel_contrast=0.2), g, duty_max) is None
     # discrete crowns (orchard) vs young vines at a 3.0 m plant period
     assert guided_reject(_features(along_period_m=4.5, along_duty=0.4), g, duty_max) == "orchard_period"
     assert guided_reject(_features(along_period_m=3.0, along_duty=0.4), g, duty_max) is None

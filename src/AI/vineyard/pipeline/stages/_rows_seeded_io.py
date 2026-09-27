@@ -12,7 +12,9 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
+import cv2
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import shapely
 from shapely.geometry.base import BaseGeometry
@@ -20,9 +22,10 @@ from shapely.geometry.base import BaseGeometry
 from vineyard.contracts.enums import TileStatus
 from vineyard.contracts.ids import parse_row_candidate_id
 from vineyard.errors import StageError
-from vineyard.geo.tiling import tile_ref, utm_to_px
+from vineyard.geo.tiling import TILE_PX, tile_ref, utm_to_px
 from vineyard.geo.vector_io import read_layer
 from vineyard.logging_setup import get_logger, log_event
+from vineyard.nn.probs import load_canopy_prob, prob_png_path, upsample_prob
 from vineyard.perception.row_features import FLAG_SEP
 from vineyard.perception.row_seeds import RowSeed, SeedFileError, load_row_seeds, usable_seeds
 from vineyard.perception.rows_detect import DetectParams, TileDetection, detection_to_candidates
@@ -59,6 +62,8 @@ EVENT_SEEDS: Final = "rows_link.seeded_rows"
 EVENT_SEED_FAIL: Final = "rows_link.seed_region_failed"
 EVENT_NO_PREP: Final = "rows_link.seeded_no_tile_prep"
 
+NN_CANOPY_CHANNEL: Final = "canopy_prob"
+
 _log = get_logger("pipeline.stages.rows_link")
 
 
@@ -92,6 +97,7 @@ class SeededJob:
     existing: tuple[shapely.LineString, ...]
     params: DetectParams
     s: RowsSeededConfig
+    nn_version: str = ""
 
 
 def run_seeded_job(job: SeededJob) -> tuple[SeededResult, int] | None:
@@ -102,12 +108,32 @@ def run_seeded_job(job: SeededJob) -> tuple[SeededResult, int] | None:
     if load_tile_stats(cache, job.tile_id).status == TileStatus.EMPTY_NODATA:
         return None
     tile = tile_ref(job.tile_id)
-    veg = load_veg_mask(cache, job.tile_id)
+    veg = nn_in_seed_zones(load_veg_mask(cache, job.tile_id), job)
     if job.forbidden:
         veg = veg & ~forbidden_mask(list(job.forbidden), tile)
     inp = SeededInputs(veg=veg, clip_px=job.clip_px, tile=tile, valid=load_valid_mask(cache, job.tile_id),
                        existing_utm=job.existing)
     return seeded_detect(inp, job.seeds, job.params, job.s), int(veg.sum())
+
+
+def nn_in_seed_zones(veg: np.ndarray, job: SeededJob) -> np.ndarray:
+    """The veg mask with, inside the polygons of the seeds whose kind is in rows_seeded.nn_kinds, the NN canopy
+    probability >= nn_prob_threshold instead (unchanged without such seeds or without an NN raster)."""
+    kinds = set(job.s.nn_kinds)
+    zones = [s.polygon_px for s in job.seeds if s.kind in kinds]
+    if not zones or not job.nn_version:
+        return veg
+    prob = upsample_prob(load_canopy_prob(prob_png_path(job.cache_dir, job.nn_version, NN_CANOPY_CHANNEL, job.tile_id)),
+                         veg.shape[0])
+    if prob is None:
+        return veg
+    zone = np.zeros(veg.shape, dtype=np.uint8)
+    scale = veg.shape[0] / TILE_PX
+    for poly in zones:
+        for part in getattr(poly, "geoms", [poly]):
+            pts = np.round(np.asarray(part.exterior.coords)[:, :2] * scale).astype(np.int32)
+            cv2.fillPoly(zone, [pts], 1)
+    return np.where(zone.astype(bool), prob >= job.s.nn_prob_threshold, veg)
 
 
 def _clip_px(clips: Mapping[str, BaseGeometry], tile_id: str) -> BaseGeometry:
@@ -155,7 +181,7 @@ def _jobs(ctx: RunContext, cands: gpd.GeoDataFrame, seeds: tuple[RowSeed, ...], 
             cache_dir=ctx.paths.cache_dir, tile_id=tile_id, seeds=tuple(by_tile[tile_id]),
             clip_px=_clip_px(clips, tile_id),
             forbidden=tuple(forbidden_in_tile(forbidden, tile)) if forbidden is not None else (),
-            existing=tuple(own), params=params, s=ctx.cfg.rows_seeded))
+            existing=tuple(own), params=params, s=ctx.cfg.rows_seeded, nn_version=ctx.cfg.nn.version))
     return jobs
 
 
