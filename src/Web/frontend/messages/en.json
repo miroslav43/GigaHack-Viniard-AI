@@ -147,7 +147,7 @@
     "layerRows": "Row axes",
     "layerInterrows": "Inter-rows",
     "layerWaste": "Waste",
-    "layerRoute": "Route & targets",
+    "layerRoute": "Official route (pipeline)",
     "layerReference": "Passages & forbidden zones",
     "legend": "Legend",
     "legendCanopy": "Canopy (one plant)",
@@ -343,7 +343,9 @@
       "noSaving": "Not shorter than the normal walk",
       "savingDetail": "The normal walk: every inter-row swept, block by block ({baseline}). Saved: {minutes} of walking. A prudent estimate (hops between inter-rows are counted as straight lines).",
       "noteAll": "Along the inter-rows (never on a row, over the canopies) and the roads, public ones between farms included; a row target is seen from the inter-row on its left or right. Planar computation in UTM 35N, indicative."
-    }
+    },
+    "layerTargets": "Inspection targets",
+    "legendTargetPlain": "Inspection target"
   },
   "blocks": {
     "title": "Blocks & rows",

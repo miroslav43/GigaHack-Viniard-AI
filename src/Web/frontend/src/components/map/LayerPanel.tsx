@@ -22,7 +22,9 @@ import { useFormat } from "@/lib/useFormat";
 import type { ReactNode } from "react";
 import type { RowRecord } from "@/lib/types";
 
-export type LayerKey = "ortho" | "geofence" | "blocks" | "canopies" | "rows" | "interrows" | "waste" | "route" | "reference";
+/** targets = the inspection targets; route = the official pipeline route (line + numbered stops), off by default:
+ *  no route is drawn until the user asks for one (the official one here, or their own with the route tools) */
+export type LayerKey = "ortho" | "geofence" | "blocks" | "canopies" | "rows" | "interrows" | "waste" | "targets" | "route" | "reference";
 
 export const DEFAULT_VISIBILITY: Record<LayerKey, boolean> = {
   ortho: true,
@@ -32,7 +34,8 @@ export const DEFAULT_VISIBILITY: Record<LayerKey, boolean> = {
   rows: true,
   interrows: true,
   waste: true,
-  route: true,
+  targets: true,
+  route: false,
   reference: false,
 };
 
@@ -44,6 +47,7 @@ const LAYERS: { key: LayerKey; label: string; minZoom?: number }[] = [
   { key: "rows", label: "layerRows" },
   { key: "interrows", label: "layerInterrows", minZoom: 16.5 },
   { key: "waste", label: "layerWaste" },
+  { key: "targets", label: "layerTargets" },
   { key: "route", label: "layerRoute" },
   { key: "reference", label: "layerReference" },
 ];
@@ -202,9 +206,9 @@ export function LayerPanel({
             <LegendItem key={k} label={t("legendInterrow", { cover: tc(`cover.${k}`) })} color={mapPalette.interrow[k]} />
           ))}
           <LegendItem label={t("legendWaste")} color={mapPalette.waste} />
-          <LegendItem label={t("legendRoute")} color={mapPalette.route} line />
-          <LegendItem label={t("legendTarget")} color={mapPalette.target} />
-          <LegendItem label={t("legendTargetOffRoute")} color={mapPalette.targetOffRoute} />
+          {visible.route && <LegendItem label={t("legendRoute")} color={mapPalette.route} line />}
+          <LegendItem label={visible.route ? t("legendTarget") : t("legendTargetPlain")} color={mapPalette.target} />
+          {visible.route && <LegendItem label={t("legendTargetOffRoute")} color={mapPalette.targetOffRoute} />}
           <LegendItem label={t("legendGeofence")} color={mapPalette.geofence} line dashed />
           {extraLegend}
         </Box>

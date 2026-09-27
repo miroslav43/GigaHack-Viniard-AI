@@ -25,6 +25,18 @@ test.beforeEach(async ({ context, baseURL }) => {
 });
 
 const markers = (page: Page) => page.locator(".maplibregl-marker");
+
+/** The official route is off by default (no route until the user asks for one): switch it on in the layer panel. */
+async function showOfficialRoute(page: Page) {
+  if (page.viewportSize()!.width < 1200) {
+    // on a phone the attribute panel of a deep link covers the layer button: close it first
+    const close = page.getByRole("button", { name: "Închide", exact: true });
+    if (await close.count()) await close.first().click();
+    // the tap leaves a tooltip of the 3D button over the layer button: click the button itself
+    await page.getByRole("button", { name: "Deschide straturile" }).dispatchEvent("click");
+  }
+  await page.getByRole("checkbox", { name: "Rută oficială (pipeline)" }).check();
+}
 const panelHeading = (page: Page, name: string) => page.getByRole("heading", { level: 3, name, exact: true });
 const card = (heading: Locator) => heading.locator("xpath=ancestor::div[contains(@class,'MuiPaper-root')][1]");
 
@@ -109,12 +121,24 @@ test("the default view (zoom 17) draws no numbered stop, only the S/F marker", a
   await expect(markers(page)).toHaveCount(1);
 });
 
+test("no route is drawn by default: the official route is a layer switched off, the targets stay", async ({ page }) => {
+  await page.goto("/harta");
+  if (page.viewportSize()!.width < 1200) await page.getByRole("button", { name: "Deschide straturile" }).click();
+  await expect(page.getByRole("checkbox", { name: "Rută oficială (pipeline)" })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Ținte de inspecție" })).toBeChecked();
+  await expect(page.getByText("Rută de inspecție", { exact: true })).toHaveCount(0); // no route in the legend
+  await page.getByRole("checkbox", { name: "Rută oficială (pipeline)" }).check();
+  await expect(page.getByText("Rută de inspecție", { exact: true })).toBeVisible();
+});
+
 test("a deep-linked route stop gets its numbered marker close up", async ({ page, request }) => {
   const targets = (await (await request.get(`${DATA}/targets.geojson`)).json()) as FeatureCollection<Point, TargetProps>;
   const order = targets.features.find((x) => x.properties.target_id === TARGET)?.properties.route_order;
   expect(order, `${TARGET} is a route stop of the mock`).toEqual(expect.any(Number));
   await page.goto(`/harta?tinta=${TARGET}`);
   await expect(panelHeading(page, `Ținta ${TARGET}`)).toBeVisible();
+  await expect(page.getByTitle(`${order}. ${TARGET}`)).toHaveCount(0); // the official route is off by default
+  await showOfficialRoute(page);
   await expect(page.getByTitle(`${order}. ${TARGET}`)).toHaveText(String(order));
 });
 
@@ -133,6 +157,7 @@ test(`at most ${MAX_TARGET_LABELS} numbered stops are drawn, however many are in
   });
   await page.goto(`/harta?tinta=${TARGET}`);
   await expect(panelHeading(page, `Ținta ${TARGET}`)).toBeVisible();
+  await showOfficialRoute(page);
   await mapSettled(page);
   await expect(markers(page)).toHaveCount(MAX_TARGET_LABELS + 1); // + S/F
 });

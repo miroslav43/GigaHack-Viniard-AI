@@ -147,7 +147,7 @@
     "layerRows": "Axe de rând",
     "layerInterrows": "Inter-rânduri",
     "layerWaste": "Deșeuri",
-    "layerRoute": "Rută și ținte",
+    "layerRoute": "Rută oficială (pipeline)",
     "layerReference": "Pasaje și zone interzise",
     "legend": "Legendă",
     "legendCanopy": "Coroană (o plantă)",
@@ -343,7 +343,9 @@
       "noSaving": "Nu e mai scurt decât varianta normală",
       "savingDetail": "Varianta normală: parcurgerea tuturor culoarelor dintre rânduri, bloc cu bloc ({baseline}). Economie: {minutes} de mers. Estimare prudentă (salturile dintre culoare sunt socotite în linie dreaptă).",
       "noteAll": "Pe culoarele dintre rânduri (niciodată pe rând, peste coroane) și pe drumuri, inclusiv cele publice dintre ferme; o țintă din rând e văzută din culoarul din stânga sau din dreapta ei. Calcul plan în UTM 35N, orientativ."
-    }
+    },
+    "layerTargets": "Ținte de inspecție",
+    "legendTargetPlain": "Țintă de inspecție"
   },
   "blocks": {
     "title": "Blocuri și rânduri",

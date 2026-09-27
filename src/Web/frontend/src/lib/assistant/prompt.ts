@@ -26,7 +26,7 @@ const COMMON = `
   inter-row area, disrupted rows), inspection (targets, route), table of blocks.
 - [«nav.map»](/harta) — interactive map. Left panel «map.layers»: search box «map.searchPlaceholder» (type a block id
   like V01 or a row id like V01-R05), buttons per block, «map.wholeArea», layer checkboxes («map.layerOrtho»,
-  «map.layerBlocks», «map.layerCanopies», «map.layerRows», «map.layerInterrows», «map.layerWaste», «map.layerRoute»,
+  «map.layerBlocks», «map.layerCanopies», «map.layerRows», «map.layerInterrows», «map.layerWaste», «map.layerTargets», «map.layerRoute» (off by default: no route is drawn until you ask for one),
   «map.layerReference», «map.layerTiles», «map.layerVegMask») and the legend. Click any object to see its attributes
   (length, plants, gaps, areas). Bottom right: the ruler button «map.measure» (distance / area). Top right:
   «map.relief.oblique» (3D) and «map.relief.top».

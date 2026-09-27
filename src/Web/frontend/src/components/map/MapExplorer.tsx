@@ -478,12 +478,14 @@ export function MapExplorer({
                 type="circle"
                 paint={{
                   "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.5, 17, 5, 20, 8],
-                  // route_order null (or absent) = the route does not visit it
-                  "circle-color": ["case", ["==", ["typeof", ["get", "route_order"]], "number"], mapPalette.target, mapPalette.targetOffRoute],
+                  // with the official route shown: route_order null (or absent) = the route does not visit it
+                  "circle-color": visible.route
+                    ? ["case", ["==", ["typeof", ["get", "route_order"]], "number"], mapPalette.target, mapPalette.targetOffRoute]
+                    : mapPalette.target,
                   "circle-stroke-color": mapPalette.casing,
                   "circle-stroke-width": 1.5,
                 }}
-                layout={vis(visible.route)}
+                layout={vis(visible.targets)}
               />
               <Layer
                 id="targets-selected"
