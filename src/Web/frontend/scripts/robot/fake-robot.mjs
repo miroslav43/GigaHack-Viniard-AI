@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // A stand-in for the field robot's three ESP32 boards, to try /robot without the hardware. Same routes as the
-// firmware: camera (/stream MJPEG, /capture, /flash/*, /json), camera motors (/move, /toggle_en) and wheels (/drive).
+// firmware: camera (/stream MJPEG, /capture, /flash/*, /json), camera motors + distance sensor (/move, /toggle_en,
+// /distance) and the wheels' four DC motors (/dir, /speed, /start, /stop, /status).
 // Every board listens on this computer's address, one port each; the page accepts only private IPv4 addresses, so
 // use the computer's LAN address (printed at start), not localhost.
 //   node scripts/robot/fake-robot.mjs [--host 192.168.1.20] [--port 8081]   (cam = port, motors = port+1, drive = port+2)
@@ -62,7 +63,13 @@ function picture(pan, tilt, flash) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
 }
 
-const state = { pan: 0, tilt: 0, flash: false, soft: { 1: true, 2: true }, x: 0, heading: 0 };
+const state = {
+  pan: 0,
+  tilt: 0,
+  flash: false,
+  soft: { 1: true, 2: true },
+  wheels: [1, 2, 3, 4].map(() => ({ dir: 1, speed: 150, running: false })),
+};
 const text = (res, status, body) => res.writeHead(status, { "Content-Type": "text/plain; charset=UTF-8" }).end(body);
 const log = (board, what) => console.log(`[${board}] ${what}`);
 
@@ -109,6 +116,10 @@ function motors(req, res) {
     // like the firmware: the answer comes when the motor has stopped
     return setTimeout(() => text(res, 200, "Mișcare finalizată!"), Math.min(3000, (steps / speed) * 1000));
   }
+  if (url.pathname === "/distance") {
+    // a wall about a metre away, a little noise
+    return text(res, 200, `${(100 + Math.random() * 5).toFixed(1)} cm`);
+  }
   if (url.pathname === "/toggle_en") {
     const m = Number(q.get("motor"));
     state.soft[m] = !state.soft[m];
@@ -119,10 +130,26 @@ function motors(req, res) {
 
 function drive(req, res) {
   const url = new URL(req.url, "http://x");
-  if (url.pathname !== "/drive") return text(res, 404, "Not found");
-  const cmd = url.searchParams.get("cmd"), ms = Number(url.searchParams.get("ms") ?? 0);
-  log("drive", `${cmd} for ${ms} ms`);
-  return setTimeout(() => text(res, 200, `OK ${cmd}`), cmd === "stop" ? 0 : Math.min(2000, ms));
+  const q = url.searchParams;
+  const which = (m) => (m === "all" ? [0, 1, 2, 3] : [Number(m) - 1]).filter((i) => i >= 0 && i < 4);
+  const show = () => state.wheels.map((w, i) => `M${i + 1}:${w.running ? (w.dir > 0 ? "+" : "-") + w.speed : "stop"}`).join(" ");
+  switch (url.pathname) {
+    case "/dir":
+      for (const i of which(q.get("m"))) state.wheels[i].dir = Number(q.get("val")) < 0 ? -1 : 1;
+      return text(res, 200, "OK");
+    case "/speed":
+      for (const i of which(q.get("m"))) state.wheels[i].speed = Math.max(0, Math.min(255, Number(q.get("val"))));
+      return text(res, 200, "OK");
+    case "/start":
+    case "/stop":
+      for (const i of which(q.get("m"))) state.wheels[i].running = url.pathname === "/start";
+      log("drive", show());
+      return text(res, 200, "OK");
+    case "/status":
+      return res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(state.wheels));
+    default:
+      return text(res, 404, "Not found");
+  }
 }
 
 for (const [name, handler, port] of [["cam", camera, PORT], ["motors", motors, PORT + 1], ["drive", drive, PORT + 2]])

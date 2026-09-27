@@ -16,16 +16,18 @@ import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import VideocamOffOutlined from "@mui/icons-material/VideocamOffOutlined";
 import { useTranslations } from "next-intl";
-import { parseBoardUrl, type DriveCmd } from "@/lib/robot/commands";
+import { parseBoardUrl } from "@/lib/robot/commands";
+import { wheelDirs, type DriveMove } from "@/lib/robot/wheels";
 import { ArrowPad, type Arrow } from "./ArrowPad";
 import { PhotoGallery, type Photo } from "./PhotoGallery";
 import { SettingsCard } from "./SettingsCard";
 import { callRobot, RobotCallError, type RobotError } from "./robotApi";
 import { useRobotSettings } from "./useRobotSettings";
+import { useCameraFrames } from "./useCameraFrames";
 
-/** the ESP32-CAM serves one request at a time: the stream pauses this long before a capture */
-const STREAM_PAUSE_MS = 300;
-const DRIVE_OF: Record<Arrow, DriveCmd> = { up: "forward", down: "back", left: "left", right: "right" };
+const DRIVE_OF: Record<Arrow, DriveMove> = { up: "forward", down: "back", left: "left", right: "right" };
+/** how often the distance sensor is read (ms) */
+const DISTANCE_EVERY_MS = 1000;
 /** camera arrows → stepper and direction: motor 1 pans (0 = right), motor 2 tilts (0 = up) */
 const CAMERA_OF: Record<Arrow, { motor: 1 | 2; dir: 0 | 1; axis: "pan" | "tilt"; sign: 1 | -1 }> = {
   right: { motor: 1, dir: 0, axis: "pan", sign: 1 },
@@ -54,14 +56,12 @@ export function RobotConsole() {
   const drive = parseBoardUrl(settings.urls.drive);
 
   const [streamOn, setStreamOn] = useState(true);
-  const [streamPaused, setStreamPaused] = useState(false);
-  // the address whose stream failed to load (a new address gets a fresh try)
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const streamFailed = failedUrl !== null && failedUrl === cam;
+  const frames = useCameraFrames(cam, streamOn);
   const [busy, setBusy] = useState<"camera" | "drive" | "photo" | null>(null);
   const [status, setStatus] = useState<Status>(null);
   const [angles, setAngles] = useState({ pan: 0, tilt: 0 });
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [distance, setDistance] = useState<string | null>(null);
   // the object URLs of the photos are released when the page goes away
   const photosRef = useRef(photos);
   useEffect(() => {
@@ -96,31 +96,60 @@ export function RobotConsole() {
   );
 
   const driveTo = useCallback(
-    async (cmd: DriveCmd) => {
-      if (!drive || (busy && cmd !== "stop")) return;
-      setBusy(cmd === "stop" ? busy : "drive");
-      setStatus({ severity: "info", text: t("status.driving", { dir: t(`drive.${cmd}`) }) });
+    async (move: DriveMove) => {
+      if (!drive || busy) return;
+      setBusy("drive");
+      setStatus({ severity: "info", text: t("status.driving", { dir: t(`drive.${move}`) }) });
       try {
-        await callRobot("drive", drive, { cmd, ms: settings.driveMs });
+        const dirs = wheelDirs(move, settings.wheelSide, settings.wheelInvert).join(",");
+        await callRobot("drive", drive, { cmd: "run", dirs, speed: settings.wheelSpeed, ms: settings.driveMs });
         setStatus({ severity: "success", text: t("status.driveDone") });
       } catch (e) {
         fail(e);
       } finally {
-        if (cmd !== "stop") setBusy(null);
+        setBusy(null);
       }
     },
-    [drive, busy, settings.driveMs, t, fail],
+    [drive, busy, settings, t, fail],
   );
+
+  // stop is never blocked by a running move: it goes straight to the wheels
+  const stopWheels = useCallback(async () => {
+    if (!drive) return;
+    try {
+      await callRobot("drive", drive, { cmd: "stop" });
+      setStatus({ severity: "success", text: t("status.stopped") });
+    } catch (e) {
+      fail(e);
+    }
+  }, [drive, t, fail]);
+
+  // the distance sensor (HC-SR04 on the camera's motor board), read every second while that board is set; not
+  // during a camera move (the board answers one request at a time)
+  const cameraMoving = busy === "camera";
+  useEffect(() => {
+    if (!motors || cameraMoving) return;
+    let alive = true;
+    const read = () =>
+      callRobot("motors", motors, { cmd: "distance" })
+        .then((r) => r.text())
+        .then((text) => alive && setDistance(text.trim()))
+        .catch(() => alive && setDistance(null));
+    const timer = setInterval(read, DISTANCE_EVERY_MS);
+    void read();
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [motors, cameraMoving]);
 
   const takePhoto = useCallback(async () => {
     if (!cam || busy) return;
     setBusy("photo");
     setStatus({ severity: "info", text: t("status.capturing") });
-    setStreamPaused(true);
     try {
-      await new Promise((r) => setTimeout(r, STREAM_PAUSE_MS));
-      const res = await callRobot("cam", cam, { cmd: "capture" });
-      const blob = await res.blob();
+      // the frame on screen when the live picture runs, otherwise a fresh one from the camera
+      const blob = streamOn && frames.blob && !frames.down ? frames.blob : await (await callRobot("cam", cam, { cmd: "capture" })).blob();
       if (!blob.type.startsWith("image/")) throw new RobotCallError("failed");
       const photo: Photo = { id: crypto.randomUUID(), url: URL.createObjectURL(blob), takenAt: new Date(), panDeg: angles.pan, tiltDeg: angles.tilt };
       setPhotos((ps) => [photo, ...ps]);
@@ -128,11 +157,11 @@ export function RobotConsole() {
     } catch (e) {
       fail(e);
     } finally {
-      setStreamPaused(false);
       setBusy(null);
     }
-  }, [cam, busy, angles, t, fail]);
+  }, [cam, busy, angles, streamOn, frames, t, fail]);
 
+  // between two frames the camera is free: the flash goes through while the live picture runs
   const flash = useCallback(async () => {
     if (!cam) return;
     try {
@@ -153,6 +182,10 @@ export function RobotConsole() {
         void takePhoto();
         return;
       }
+      if (e.key === "Escape" || e.key.toLowerCase() === "x") {
+        void stopWheels();
+        return;
+      }
       const k = KEYS[e.key] ?? KEYS[e.key.toLowerCase()];
       if (!k) return;
       e.preventDefault();
@@ -161,11 +194,11 @@ export function RobotConsole() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [takePhoto, moveCamera, driveTo]);
+  }, [takePhoto, moveCamera, driveTo, stopWheels]);
 
   const cameraLabels = { up: t("camera.up"), down: t("camera.down"), left: t("camera.left"), right: t("camera.right") };
   const driveLabels = { up: t("drive.forward"), down: t("drive.back"), left: t("drive.left"), right: t("drive.right") };
-  const showStream = cam && streamOn && !streamPaused && !streamFailed;
+  const showStream = cam && streamOn && frames.url && !frames.down;
 
   return (
     <Box sx={{ display: "grid", gap: 4 }}>
@@ -182,7 +215,7 @@ export function RobotConsole() {
                   </IconButton>
                 </span>
               </Tooltip>
-              <Button size="small" onClick={() => { setFailedUrl(null); setStreamOn((v) => !v); }} disabled={!cam}>
+              <Button size="small" onClick={() => setStreamOn((v) => !v)} disabled={!cam}>
                 {streamOn ? t("live.stop") : t("live.start")}
               </Button>
               <Button variant="contained" startIcon={<PhotoCameraOutlined />} onClick={takePhoto} disabled={!cam || busy !== null} data-testid="robot-capture">
@@ -192,14 +225,19 @@ export function RobotConsole() {
           </Box>
           <Box sx={{ position: "relative", aspectRatio: "4 / 3", bgcolor: "grey.900", borderRadius: 2, overflow: "hidden", display: "grid", placeItems: "center" }}>
             {showStream ? (
-              // the MJPEG stream straight from the camera (an <img> needs no CORS)
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={`${cam}/stream`} alt={t("live.title")} onError={() => setFailedUrl(cam)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <>
+                {/* the latest frame (object URL of a /capture); a new one replaces it as soon as it arrives */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={frames.url!} alt={t("live.title")} data-testid="robot-frame" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                <Typography variant="caption" sx={{ position: "absolute", right: 8, bottom: 6, color: "common.white", textShadow: "0 0 3px black" }}>
+                  {t("live.fps", { fps: frames.fps.toFixed(1) })}
+                </Typography>
+              </>
             ) : (
               <Box sx={{ color: "grey.400", textAlign: "center", px: 4 }}>
                 <VideocamOffOutlined fontSize="large" />
                 <Typography variant="body2">
-                  {!cam ? t("live.noAddress") : streamFailed ? t("live.failed", { url: cam }) : streamPaused ? t("live.capturing") : t("live.off")}
+                  {!cam ? t("live.noAddress") : !streamOn ? t("live.off") : frames.down ? t("live.failed", { url: cam }) : t("live.connecting")}
                 </Typography>
               </Box>
             )}
@@ -217,9 +255,14 @@ export function RobotConsole() {
             <Typography variant="h3" sx={{ mb: 1 }}>
               {t("camera.title")}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {t("camera.hint", { deg: settings.stepDeg, pan: Math.round(angles.pan), tilt: Math.round(angles.tilt) })}
             </Typography>
+            {motors && (
+              <Typography variant="subtitle2" sx={{ mb: 2 }} data-testid="robot-distance">
+                {t("camera.distance", { value: distance ?? "—" })}
+              </Typography>
+            )}
             <ArrowPad
               testId="robot-camera-pad"
               labels={cameraLabels}
@@ -245,7 +288,7 @@ export function RobotConsole() {
               {t("drive.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t("drive.hint", { ms: settings.driveMs })}
+              {t("drive.hint", { ms: settings.driveMs, speed: settings.wheelSpeed })}
             </Typography>
             <ArrowPad
               testId="robot-drive-pad"
@@ -256,7 +299,7 @@ export function RobotConsole() {
               centre={
                 <Tooltip title={t("drive.stop")}>
                   <span>
-                    <IconButton color="error" onClick={() => void driveTo("stop")} disabled={!drive} aria-label={t("drive.stop")}>
+                    <IconButton color="error" onClick={() => void stopWheels()} disabled={!drive} aria-label={t("drive.stop")}>
                       <StopCircleOutlined fontSize="large" />
                     </IconButton>
                   </span>

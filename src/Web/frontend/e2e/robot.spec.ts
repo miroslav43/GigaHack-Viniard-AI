@@ -22,6 +22,8 @@ const address = (page: Page, device: "cam" | "motors" | "drive") => page.getByTe
 test("without addresses the controls wait, and a public address is refused", async ({ page }) => {
   await page.goto("/robot");
   await expect(page.getByRole("heading", { name: "Robot de teren", level: 1 })).toBeVisible();
+  // the build may carry default addresses (NEXT_PUBLIC_ROBOT_*_URL): clear them
+  for (const d of ["cam", "motors", "drive"] as const) await address(page, d).fill("");
   await expect(page.getByText("Scrie adresa camerei (ESP32-CAM) în Setări.")).toBeVisible();
   await expect(page.getByTestId("robot-capture")).toBeDisabled();
   await expect(page.getByTestId("robot-camera-pad").getByRole("button", { name: "Camera în sus" })).toBeDisabled();
@@ -68,8 +70,12 @@ test.describe("with the stand-in boards", () => {
     await page.getByTestId("robot-photo").getByRole("button", { name: "Descarcă" }).click();
     expect((await download).suggestedFilename()).toMatch(/^robot_\d{8}_\d{6}_pan14_tilt0\.jpg$/);
 
+    await expect(page.getByTestId("robot-distance")).toHaveText(/Distanță \(senzor\): 10\d\.\d cm/);
+
     await page.getByTestId("robot-drive-pad").getByRole("button", { name: "Înainte" }).click();
     await expect(status).toHaveText("Mișcare trimisă.");
+    await page.getByTestId("robot-drive-pad").getByRole("button", { name: "Stop" }).click();
+    await expect(status).toHaveText("Roțile s-au oprit.");
 
     // the addresses are remembered after a reload
     await page.reload();

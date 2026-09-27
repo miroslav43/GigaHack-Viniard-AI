@@ -345,26 +345,35 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - teste: unitare în `src/lib/farmRoute/farmRoute.test.ts`, din `pnpm test:scripts` (Node ≥ 22.18 elimină tipurile, deci `tsconfig` are `allowImportingTsExtensions`, iar modulele se importă cu extensia `.ts`, fără parameter properties); e2e în `e2e/farm-route.spec.ts`.
 
 ### ADR-029 — Pagina „Robot de teren”: plăcile ESP32 comandate printr-un proxy din serverul Next
-- **Context:** robotul echipei are trei plăci ESP32 pe Wi-Fi-ul local:
-  - **ESP32-CAM:** `/stream` (MJPEG), `/capture`, `/flash/*`, `/json`;
-  - **placa cu două motoare pas cu pas,** pan/tilt pentru cameră: `/move?motor&dir&speed&steps`, `/toggle_en`;
-  - **placa roților,** al cărei cod nu e încă în repo.
+- **Context:** robotul echipei are trei plăci ESP32 pe Wi-Fi-ul „Ghile” (firmware-ul e deja pe plăci), identificate pe 27.09.2026:
 
-  Vrem să le comandăm din site: mișcarea camerei, deplasarea, poza. Plăcile nu trimit antete CORS.
+  | Adresă | Placă | Rute |
+  |---|---|---|
+  | `10.12.241.207` | ESP32-CAM | `/stream` (MJPEG), `/capture`, `/flash/*`, `/json` |
+  | `10.12.241.87` | camera pan/tilt (2 motoare pas cu pas) + senzor HC-SR04 | `/move?motor&dir&speed&steps`, `/toggle_en`, `/distance` |
+  | `10.12.241.233` | roțile: 4 motoare DC | `/dir?m=<1..4 \| all>&val=±1`, `/speed?m=&val=0..255`, `/start?m=`, `/stop?m=`, `/status` (JSON cu `running`, `rpm`, `direction`) |
+
+  Plăcile nu trimit antete CORS. **ESP32-CAM servește o singură conexiune odată:** cât timp e deschis un stream MJPEG, orice altă cerere (flash, captură) așteaptă la nesfârșit. Măsurat: se eliberează în 0,18 s de la închiderea clientului direct, dar în 2–4 s printr-un relay Node.
 - **Decizie:**
   - **pagina `/robot`** (meniu: „Robot de teren”) conține:
-    - stream-ul live, afișat direct de la cameră (un `<img>` nu are nevoie de CORS);
-    - „Fă poză”, cu pozele în galerie și descărcare JPEG; numele fișierului conține unghiurile camerei, pregătit pentru un mod street view;
-    - un pad pentru cameră (motorul 1 = stânga/dreapta, motorul 2 = sus/jos; unghiul e estimat din pași, cu „poziția curentă = 0°”);
-    - un pad pentru deplasare (înainte, înapoi, stânga, dreapta, stop), plus flash;
-    - setările: adresele plăcilor și parametrii, ținute în `localStorage` prin `useSyncExternalStore`, cu valori implicite din `NEXT_PUBLIC_ROBOT_*_URL`;
-    - taste: săgeți = cameră, W A S D = deplasare, spațiu = poză;
-  - **`GET /api/robot`** trimite mai departe doar comenzi din lista albă (`src/lib/robot/commands.ts`), cu parametri validați (motor 1|2, dir 0|1, viteză 50–5000, pași 1–20000, durată 100–10000 ms). Acceptă doar adrese IPv4 private (10/8, 172.16/12, 192.168/16), fără cale, deci nu poate fi folosit ca SSRF spre internet sau spre server. Aplică timeout pe comandă și are aceeași regulă de acces ca paginile (`mayAnalyse`);
-  - **captura:** ESP32-CAM servește o singură cerere odată, așa că stream-ul se oprește 300 ms înainte de captură;
-  - **roțile:** pagina așteaptă contractul `GET /drive?cmd=forward|back|left|right|stop&ms=<durată>` de la placa lor;
-  - **`scripts/robot/fake-robot.mjs`:** simulează cele trei plăci pe adresa LAN a laptopului, ca să se poată testa fără hardware; e2e-ul `e2e/robot.spec.ts` îl pornește singur.
-- **Respins:** comenzi direct din browser (CORS blocat, fără validare), relay pentru stream (inutil, costă o conexiune lungă pe server), adrese fixe în cod.
+    - **imaginea live ca cadre `/capture` succesive** (2–7 cadre/s), nu MJPEG, deci camera e liberă între cadre, iar flash-ul și poza trec oricând;
+    - **„Fă poză”:** ultimul cadru, instantaneu, în galerie cu descărcare JPEG; numele fișierului conține unghiurile camerei, pregătit pentru un mod street view;
+    - **pad pentru cameră:** motorul 1 = stânga/dreapta, motorul 2 = sus/jos, 15° pe apăsare; unghiul e estimat din pași, cu „poziția curentă = 0°”;
+    - **distanța** HC-SR04, citită o dată pe secundă;
+    - **pad pentru deplasare:** înainte / înapoi = toate roțile în același sens; stânga / dreapta = întoarcere pe loc; plus stop;
+    - **setări:** adresele (valori implicite din `NEXT_PUBLIC_ROBOT_*_URL` în `.env.local`), partea stânga/dreapta și inversarea fiecărui motor de roată, vitezele și durata unei mișcări. Se țin în `localStorage` prin `useSyncExternalStore`;
+    - **taste:** săgeți = cameră, W A S D = deplasare, X / Esc = stop roți, spațiu = poză;
+  - **`GET /api/robot`** trimite mai departe doar comenzi din lista albă (`src/lib/robot/commands.ts`), cu parametri validați. Acceptă doar adrese IPv4 private (10/8, 172.16/12, 192.168/16), fără cale, deci nu poate fi folosit ca SSRF spre internet sau spre server. Are aceeași regulă de acces ca paginile;
+  - **o mișcare a roților** e o secvență rulată pe server: `stop`, apoi `speed` (`m=all` când toate se mișcă), apoi `dir` (`m=all` când au același sens), apoi `start` (`m=all`), apoi așteptarea duratei, apoi **`stop?m=all` trimis mereu în `finally`**, chiar dacă un pas a eșuat;
+  - **`scripts/robot/fake-robot.mjs`:** simulează cele trei plăci cu aceleași rute, pe adresa LAN a laptopului; e2e-ul `e2e/robot.spec.ts` îl pornește singur, pe câte un port pentru fiecare worker.
+- **Verificat pe plăcile reale:** imagine live 3–7 cadre/s; flash pornit/oprit în 0,4 s cu imaginea live pornită; poză; motoarele camerei în ambele sensuri; distanța; cele 4 mișcări ale roților, cu direcțiile corecte pe fiecare motor și oprire completă. Encoderul motorului 2 al roților raportează valori `rpm` haotice (0 … 1795), ceea ce pare o problemă hardware.
+- **Respins:**
+  - **MJPEG direct în browser:** blochează flash-ul și captura cât timp e deschis;
+  - **relay MJPEG prin Next:** camera rămâne blocată 2–4 s după închidere;
+  - **poza desenată dintr-un `<img>` cross-origin pe canvas:** canvasul devine „tainted” și nu mai poate fi exportat;
+  - **comenzi direct din browser:** CORS, fără validare;
+  - **adrese fixe în cod.**
 - **Consecințe:**
   - laptopul care rulează site-ul trebuie să fie pe același Wi-Fi cu robotul;
-  - pozele trăiesc doar în tab (URL-uri obiect) până sunt descărcate;
-  - **modul street view** (mers 50 cm, apoi poze la 0°, 90° și 180°) se poate construi peste aceleași comenzi, cu `/drive` pentru distanță (după calibrare) și `/move` pentru unghiuri.
+  - pozele trăiesc doar în tab până sunt descărcate;
+  - **modul street view** (mers 50 cm, apoi poze la 0°, 90° și 180°) se poate construi peste aceleași comenzi, după calibrarea distanței parcurse pe secundă la o anumită viteză.

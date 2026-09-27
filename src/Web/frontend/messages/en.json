@@ -1297,8 +1297,9 @@
       "capture": "Take a photo",
       "noAddress": "Enter the camera's address (ESP32-CAM) in Settings.",
       "failed": "The camera does not answer at {url}. Is it on and on the same Wi-Fi?",
-      "capturing": "Taking the photo…",
-      "off": "The live picture is off."
+      "off": "The live picture is off.",
+      "fps": "{fps} frames/s",
+      "connecting": "Connecting to the camera…"
     },
     "camera": {
       "title": "Camera: up, down, left, right",
@@ -1308,31 +1309,38 @@
       "left": "Camera left",
       "right": "Camera right",
       "zero": "Make the current position 0°",
-      "noAddress": "Enter the motor board's address in Settings."
+      "noAddress": "Enter the motor board's address in Settings.",
+      "distance": "Distance (sensor): {value}"
     },
     "drive": {
       "title": "Driving",
-      "hint": "Each press moves the robot for {ms} ms.",
+      "hint": "Each press moves the robot for {ms} ms at speed {speed}/255; the wheels stop by themselves at the end.",
       "forward": "Forward",
       "back": "Back",
       "left": "Left",
       "right": "Right",
       "stop": "Stop",
-      "noAddress": "Enter the wheel board's address in Settings (it must answer /drive?cmd=forward|back|left|right|stop&ms=…)."
+      "noAddress": "Enter the wheel board's address in Settings."
     },
     "settings": {
       "title": "Settings",
-      "hint": "The boards' Wi-Fi addresses (each prints it on Serial at start). Kept in this browser.",
+      "hint": "The boards' Wi-Fi addresses (each prints it on Serial at start). Kept in this browser. If a wheel turns backwards on “Forward”, tick “Reversed” for its motor.",
       "url": {
         "cam": "Camera (ESP32-CAM)",
         "motors": "Camera motors (pan / tilt)",
-        "drive": "Wheels"
+        "drive": "Wheels (4 motors)"
       },
       "badAddress": "A local network address only, e.g. 192.168.1.50",
       "stepDeg": "Degrees per press",
       "stepsPerRev": "Steps per turn",
       "speedPps": "Motor speed (steps/s)",
-      "driveMs": "One move (ms)"
+      "driveMs": "One move (ms)",
+      "wheelSpeed": "Wheel speed (0–255)",
+      "wheels": "Wheels: side of each motor",
+      "wheelMotor": "Motor {n}",
+      "sideLeft": "Left",
+      "sideRight": "Right",
+      "invert": "Reversed"
     },
     "gallery": {
       "title": "Photos ({n})",
@@ -1349,7 +1357,8 @@
       "driveDone": "Move sent.",
       "capturing": "Taking the photo…",
       "captured": "The photo is in the gallery.",
-      "flash": "Flash: {state}"
+      "flash": "Flash: {state}",
+      "stopped": "The wheels stopped."
     },
     "errors": {
       "no_address": "The board's address is missing (Settings).",
@@ -1360,6 +1369,6 @@
       "timeout": "The board did not answer in time.",
       "failed": "The command failed."
     },
-    "keys": "Keys: the arrows move the camera, W A S D drive, space takes a photo."
+    "keys": "Keys: the arrows move the camera, W A S D drive, X or Esc stops the wheels, space takes a photo."
   }
 }

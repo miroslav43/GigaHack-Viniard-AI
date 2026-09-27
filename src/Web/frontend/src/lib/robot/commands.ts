@@ -1,8 +1,11 @@
 // The robot's boards and the only requests the site may send them (the /api/robot proxy builds every upstream URL
-// here). The boards are ESP32s on the local Wi-Fi, their firmware in the team's Arduino sketches:
+// here). The boards are ESP32s on the local Wi-Fi (the team's Arduino sketches):
 // - cam: ESP32-CAM (AI Thinker) — /stream (MJPEG, shown directly by the page), /capture, /flash/*, /json;
-// - motors: ESP32 with two stepper drivers — the camera's pan (motor 1) and tilt (motor 2): /move, /toggle_en;
-// - drive: the wheels' board — /drive?cmd=forward|back|left|right|stop&ms=<duration> (the contract the page expects).
+// - motors: ESP32 with two stepper drivers, the camera's pan (motor 1) and tilt (motor 2), and an HC-SR04 —
+//   /move?motor&dir&speed&steps (answers when the motor has stopped), /toggle_en?motor, /distance;
+// - drive: the wheels' board, four DC motors — /dir?m=<1..4>&val=±1, /speed?m=&val=<0..255>, /start?m=<k|all>,
+//   /stop?m=<k|all>, /status. A drive move is a sequence (directions, speeds, start, wait, stop): the proxy runs it
+//   and always sends the stop at the end, whatever happened in between.
 // Only private IPv4 addresses are accepted, so the proxy cannot be pointed at the internet or at this server.
 
 export type Device = "cam" | "motors" | "drive";
@@ -12,16 +15,28 @@ export const LIMITS = {
   speedPps: [50, 5000],
   steps: [1, 20000],
   driveMs: [100, 10000],
+  wheelSpeed: [0, 255],
 } as const;
 
-export const DRIVE_CMDS = ["forward", "back", "left", "right", "stop"] as const;
-export type DriveCmd = (typeof DRIVE_CMDS)[number];
+export const WHEELS = 4;
+/** per wheel motor: +1 / -1 = turn that way, 0 = stay still */
+export type WheelDir = -1 | 0 | 1;
 
 export type Command =
   | { device: "cam"; cmd: "capture" | "status" | "flash_on" | "flash_off" | "flash_toggle" }
   | { device: "motors"; cmd: "move"; motor: 1 | 2; dir: 0 | 1; speed: number; steps: number }
   | { device: "motors"; cmd: "toggle_en"; motor: 1 | 2 }
-  | { device: "drive"; cmd: DriveCmd; ms: number };
+  | { device: "motors"; cmd: "distance" }
+  | { device: "drive"; cmd: "run"; dirs: WheelDir[]; speed: number; ms: number }
+  | { device: "drive"; cmd: "stop" | "status" };
+
+/** What the proxy sends for a command: these requests in order, then (for a drive move) a wait and a stop that is
+ *  sent even when a step failed. */
+export interface UpstreamPlan {
+  steps: string[];
+  holdMs?: number;
+  always?: string;
+}
 
 /** `http://<private IPv4>[:port]` with nothing after it, normalised; null otherwise (a strict a.b.c.d: URL parsing
  *  would read "192.168.1" as 192.168.0.1). */
@@ -45,6 +60,7 @@ export function parseCommand(q: URLSearchParams): Command | null {
     return cmd === "capture" || cmd === "status" || cmd === "flash_on" || cmd === "flash_off" || cmd === "flash_toggle" ? { device, cmd } : null;
   }
   if (device === "motors") {
+    if (cmd === "distance") return { device, cmd };
     const motor = int(q.get("motor"));
     if (motor !== 1 && motor !== 2) return null;
     if (cmd === "toggle_en") return { device, cmd, motor };
@@ -54,30 +70,49 @@ export function parseCommand(q: URLSearchParams): Command | null {
     return { device, cmd, motor, dir, speed, steps };
   }
   if (device === "drive") {
-    const ms = int(q.get("ms"));
-    if (!DRIVE_CMDS.includes(cmd as DriveCmd) || !inRange(ms, LIMITS.driveMs)) return null;
-    return { device, cmd: cmd as DriveCmd, ms };
+    if (cmd === "stop" || cmd === "status") return { device, cmd };
+    if (cmd !== "run") return null;
+    const dirs = (q.get("dirs") ?? "").split(",").map(int);
+    const speed = int(q.get("speed")), ms = int(q.get("ms"));
+    if (dirs.length !== WHEELS || dirs.some((d) => d !== -1 && d !== 0 && d !== 1) || dirs.every((d) => d === 0)) return null;
+    if (!inRange(speed, LIMITS.wheelSpeed) || !inRange(ms, LIMITS.driveMs)) return null;
+    return { device, cmd, dirs: dirs as WheelDir[], speed, ms };
   }
   return null;
 }
 
-/** The board path (with query) of a command. */
-export function upstreamPath(c: Command): string {
+/** The board requests of a command. */
+export function upstreamPlan(c: Command): UpstreamPlan {
   switch (c.device) {
     case "cam":
-      return { capture: "/capture", status: "/json", flash_on: "/flash/on", flash_off: "/flash/off", flash_toggle: "/flash/toggle" }[c.cmd];
+      return { steps: [{ capture: "/capture", status: "/json", flash_on: "/flash/on", flash_off: "/flash/off", flash_toggle: "/flash/toggle" }[c.cmd]] };
     case "motors":
-      return c.cmd === "toggle_en"
-        ? `/toggle_en?motor=${c.motor}`
-        : `/move?motor=${c.motor}&dir=${c.dir}&speed=${c.speed}&steps=${c.steps}`;
-    case "drive":
-      return `/drive?cmd=${c.cmd}&ms=${c.ms}`;
+      if (c.cmd === "distance") return { steps: ["/distance"] };
+      if (c.cmd === "toggle_en") return { steps: [`/toggle_en?motor=${c.motor}`] };
+      return { steps: [`/move?motor=${c.motor}&dir=${c.dir}&speed=${c.speed}&steps=${c.steps}`] };
+    case "drive": {
+      if (c.cmd !== "run") return { steps: [c.cmd === "stop" ? "/stop?m=all" : "/status"] };
+      const moving = c.dirs.flatMap((d, i) => (d === 0 ? [] : [{ m: i + 1, d }]));
+      const all = moving.length === WHEELS;
+      const sameDir = all && moving.every(({ d }) => d === moving[0].d);
+      // few requests (each is a Wi-Fi round trip): one speed and, going straight, one direction for all four
+      return {
+        steps: [
+          "/stop?m=all",
+          ...(all ? [`/speed?m=all&val=${c.speed}`] : moving.map(({ m }) => `/speed?m=${m}&val=${c.speed}`)),
+          ...(sameDir ? [`/dir?m=all&val=${moving[0].d}`] : moving.map(({ m, d }) => `/dir?m=${m}&val=${d}`)),
+          // all four at once when they all turn, so the robot does not start crooked
+          ...(all ? ["/start?m=all"] : moving.map(({ m }) => `/start?m=${m}`)),
+        ],
+        holdMs: c.ms,
+        always: "/stop?m=all",
+      };
+    }
   }
 }
 
-/** How long the proxy waits for the board: a move answers only when the motor has stopped. */
-export function timeoutMs(c: Command): number {
+/** How long the proxy waits for one board request: a camera move answers only when the motor has stopped. */
+export function stepTimeoutMs(c: Command): number {
   if (c.device === "motors" && c.cmd === "move") return Math.min(60_000, 2_000 + Math.ceil((c.steps / c.speed) * 1000) * 2);
-  if (c.device === "drive") return Math.min(20_000, 2_000 + c.ms * 2);
-  return 8_000;
+  return 5_000;
 }

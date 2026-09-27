@@ -16,7 +16,15 @@ export interface RobotSettings {
   speedPps: number;
   /** duration of one drive command (ms) */
   driveMs: number;
+  /** wheel motor speed (PWM 0..255) */
+  wheelSpeed: number;
+  /** side of each wheel motor 1..4 */
+  wheelSide: WheelSide[];
+  /** wheel motors wired the other way round */
+  wheelInvert: boolean[];
 }
+
+export type WheelSide = "left" | "right";
 
 export type SettingsPatch = Partial<Omit<RobotSettings, "urls">> & { urls?: Partial<Record<Device, string>> };
 
@@ -32,6 +40,9 @@ export const DEFAULT_SETTINGS: RobotSettings = {
   stepDeg: 15,
   speedPps: 450,
   driveMs: 800,
+  wheelSpeed: 150,
+  wheelSide: ["left", "left", "right", "right"],
+  wheelInvert: [false, false, false, false],
 };
 
 // the store: the saved JSON (or the in-memory copy when storage is unavailable) and who listens to it

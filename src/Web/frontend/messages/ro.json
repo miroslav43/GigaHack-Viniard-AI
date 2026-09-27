@@ -1297,8 +1297,9 @@
       "capture": "Fă poză",
       "noAddress": "Scrie adresa camerei (ESP32-CAM) în Setări.",
       "failed": "Camera nu răspunde la {url}. E pornită și pe același Wi-Fi?",
-      "capturing": "Se face poza…",
-      "off": "Imaginea live e oprită."
+      "off": "Imaginea live e oprită.",
+      "fps": "{fps} cadre/s",
+      "connecting": "Se conectează la cameră…"
     },
     "camera": {
       "title": "Camera: sus, jos, stânga, dreapta",
@@ -1308,31 +1309,38 @@
       "left": "Camera la stânga",
       "right": "Camera la dreapta",
       "zero": "Poziția curentă devine 0°",
-      "noAddress": "Scrie adresa plăcii cu motoare în Setări."
+      "noAddress": "Scrie adresa plăcii cu motoare în Setări.",
+      "distance": "Distanță (senzor): {value}"
     },
     "drive": {
       "title": "Deplasare",
-      "hint": "Fiecare apăsare mișcă robotul {ms} ms.",
+      "hint": "Fiecare apăsare mișcă robotul {ms} ms, la viteza {speed}/255; la final roțile se opresc singure.",
       "forward": "Înainte",
       "back": "Înapoi",
       "left": "Stânga",
       "right": "Dreapta",
       "stop": "Stop",
-      "noAddress": "Scrie adresa plăcii roților în Setări (ea trebuie să răspundă la /drive?cmd=forward|back|left|right|stop&ms=…)."
+      "noAddress": "Scrie adresa plăcii roților în Setări."
     },
     "settings": {
       "title": "Setări",
-      "hint": "Adresele plăcilor pe Wi-Fi (le afișează fiecare placă pe Serial la pornire). Se țin minte în acest browser.",
+      "hint": "Adresele plăcilor pe Wi-Fi (le afișează fiecare placă pe Serial la pornire). Se țin minte în acest browser. Dacă la „Înainte” o roată merge înapoi, bifează „Inversat” la motorul ei.",
       "url": {
         "cam": "Camera (ESP32-CAM)",
         "motors": "Motoarele camerei (pan / tilt)",
-        "drive": "Roțile"
+        "drive": "Roțile (4 motoare)"
       },
       "badAddress": "Doar o adresă din rețeaua locală, de ex. 192.168.1.50",
       "stepDeg": "Grade pe apăsare",
       "stepsPerRev": "Pași pe o rotație",
       "speedPps": "Viteza motoarelor (pași/s)",
-      "driveMs": "Durata unei mișcări (ms)"
+      "driveMs": "Durata unei mișcări (ms)",
+      "wheelSpeed": "Viteza roților (0–255)",
+      "wheels": "Roțile: partea fiecărui motor",
+      "wheelMotor": "Motor {n}",
+      "sideLeft": "Stânga",
+      "sideRight": "Dreapta",
+      "invert": "Inversat"
     },
     "gallery": {
       "title": "Poze ({n})",
@@ -1349,7 +1357,8 @@
       "driveDone": "Mișcare trimisă.",
       "capturing": "Se face poza…",
       "captured": "Poza a fost salvată în galerie.",
-      "flash": "Flash: {state}"
+      "flash": "Flash: {state}",
+      "stopped": "Roțile s-au oprit."
     },
     "errors": {
       "no_address": "Lipsește adresa plăcii (Setări).",
@@ -1360,6 +1369,6 @@
       "timeout": "Placa nu a răspuns la timp.",
       "failed": "Comanda nu a reușit."
     },
-    "keys": "Taste: săgețile mișcă camera, W A S D mută robotul, spațiu face poză."
+    "keys": "Taste: săgețile mișcă camera, W A S D mută robotul, X sau Esc oprește roțile, spațiu face poză."
   }
 }
