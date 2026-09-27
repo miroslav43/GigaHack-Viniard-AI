@@ -170,25 +170,23 @@ export function LayerPanel({
             />
           )}
         />
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2 }}>
-          {blocks.map((b) => (
-            <Chip key={b} size="small" label={b} onClick={() => onPickBlock(b)} />
-          ))}
+        {/* farms, not blocks: a block is reached from the search or from its farm's panel */}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2 }}>
+          {onPickFarm && farms.length > 0 && (
+            <Typography variant="overline" color="text.secondary">
+              {t("groupFarms")}
+            </Typography>
+          )}
           <Button size="small" startIcon={<ZoomOutMap fontSize="small" />} onClick={onFitAll} sx={{ ml: "auto" }}>
             {t("wholeArea")}
           </Button>
         </Box>
         {onPickFarm && farms.length > 0 && (
-          <>
-            <Typography variant="overline" color="text.secondary" component="p" sx={{ mt: 2 }}>
-              {t("groupFarms")}
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }} data-testid="farm-list">
-              {farms.map((id) => (
-                <Chip key={id} size="small" color="secondary" variant="outlined" label={id} onClick={() => onPickFarm(id)} />
-              ))}
-            </Box>
-          </>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }} data-testid="farm-list">
+            {farms.map((id) => (
+              <Chip key={id} size="small" color="secondary" variant="outlined" label={id} onClick={() => onPickFarm(id)} />
+            ))}
+          </Box>
         )}
       </Box>
       <Divider />

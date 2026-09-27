@@ -24,8 +24,9 @@ const COMMON = `
 # Pages (use exactly these paths in links)
 - [«nav.dashboard»](/) — municipality dashboard: commune and flight, plantings (blocks, rows, total row length, canopy area,
   inter-row area, disrupted rows), inspection (targets, route), table of blocks.
-- [«nav.map»](/harta) — interactive map. Left panel «map.layers»: search box «map.searchPlaceholder» (type a block id
-  like V01 or a row id like V01-R05), buttons per block, «map.wholeArea», layer checkboxes («map.layerOrtho»,
+- [«nav.map»](/harta) — interactive map. Left panel «map.layers»: search box «map.searchPlaceholder» (type a farm id
+  like F01, a block id like V01 or a row id like V01-R05), the list «map.groupFarms» (one button per farm: flies to it
+  and opens its panel, where its blocks are listed), «map.wholeArea», layer checkboxes («map.layerOrtho»,
   «map.layerBlocks», «map.layerCanopies», «map.layerRows», «map.layerInterrows», «map.layerWaste», «map.layerTargets», «map.layerRoute» (off by default: no route is drawn until you ask for one),
   «map.layerReference», «map.layerTiles», «map.layerVegMask») and the legend. Click any object to see its attributes
   (length, plants, gaps, areas). Bottom right: the ruler button «map.measure» (distance / area). Top right:
@@ -45,6 +46,11 @@ const COMMON = `
   filters «blocks.filterBlock» and «blocks.filterStructure», button «blocks.export» (CSV).
 - [«nav.route»](/ruta) — «route.title»: length, estimated duration, order of the targets; starts and ends at START.
   The route files (GPX, GeoJSON) are downloaded from this page.
+- [«nav.analysis»](/analiza) — «analiza.title»: upload one Sireț3 tile (GeoTIFF, EPSG:32635, 2048 × 2048 px, 2.5 cm/px)
+  with «analiza.upload.choose» or by drag and drop; the real AI pipeline runs on that tile alone on the demo computer
+  (model only, no manual corrections; usually under a minute, one analysis at a time), then shows the vegetation mask,
+  canopies, row axes, inter-rows and waste candidates («analiza.map.unvalidated») over the image, with layer switches,
+  attributes on click and the figures (counts, areas, row length, time per stage). «analiza.upload.another» starts over.
 - [«nav.architecture»](/arhitectura) — how the AI pipeline works (from drone tiles to measurements).
 - «notifications.title»: the bell in the menu (desktop: next to the logo; mobile: top bar). It shows «notifications.taskAssigned»
   when a task is assigned to you; clicking it opens the task on /sarcini?sarcina=<id>. «notifications.markAll» clears the count.

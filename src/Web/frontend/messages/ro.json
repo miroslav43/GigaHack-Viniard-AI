@@ -17,7 +17,108 @@
     "team": "Echipă",
     "teamShort": "Echipă",
     "architecture": "Arhitectura AI",
-    "architectureShort": "Arhitectură"
+    "architectureShort": "Arhitectură",
+    "analysis": "Analiză TIF",
+    "analysisShort": "Analiză"
+  },
+  "analiza": {
+    "title": "Analiză TIF live",
+    "subtitle": "Încărcați un tile Sireț3: pipeline-ul real rulează doar pe el (de obicei sub un minut) și arată masca de vegetație, coroanele, rândurile, inter-rândurile și deșeurile găsite.",
+    "upload": {
+      "title": "Trageți aici un tile GeoTIFF",
+      "hint": "Tile Sireț3: GeoTIFF RGB, EPSG:32635, 2048 × 2048 px, 2,5 cm/px, cel mult 100 MB. Rulează doar modelul, fără corecții manuale și fără confirmări de deșeuri.",
+      "choose": "Alegeți fișierul",
+      "another": "Analizați alt tile"
+    },
+    "progress": {
+      "uploading": "Se încarcă {name}…",
+      "queued": "Pornește pipeline-ul…",
+      "stage": "Etapa {index} din {total}: {stage}",
+      "elapsed": "{value} s",
+      "note": "Pipeline-ul rulează pe acest calculator, izolat de rulările principale; o singură analiză odată."
+    },
+    "stages": {
+      "ingest": "citirea tile-ului",
+      "tile_prep": "masca de vegetație",
+      "nn_infer": "rețeaua neuronală",
+      "rows_detect": "detecția rândurilor",
+      "rows_link": "legarea rândurilor",
+      "blocks": "blocurile",
+      "canopy": "coroanele",
+      "interrow": "inter-rândurile",
+      "row_attrs": "atributele rândurilor",
+      "waste": "deșeurile",
+      "assemble": "asamblarea adnotărilor"
+    },
+    "map": {
+      "layers": "Straturi",
+      "legendTitle": "Legendă",
+      "unvalidated": "nevalidat",
+      "layer": {
+        "preview": "Imaginea tile-ului",
+        "vegMask": "Masca de vegetație",
+        "interrows": "Inter-rânduri",
+        "canopies": "Coroane",
+        "rows": "Axe de rând",
+        "waste": "Deșeuri candidate"
+      },
+      "legend": {
+        "vegMask": "Vegetație (masca pipeline-ului)",
+        "canopy": "Coroană (o plantă)",
+        "row": "Rând {structure}",
+        "interrow": "Inter-rând: {cover}",
+        "waste": "Deșeu candidat, nevalidat"
+      }
+    },
+    "attr": {
+      "title": {
+        "canopies": "Coroana {id}",
+        "rows": "Rândul {id}",
+        "interrows": "Inter-rândul {id}",
+        "waste": "Candidatul {id}"
+      },
+      "structure": "Structura rândului",
+      "cover": "Acoperirea inter-rândului",
+      "length": "Lungime",
+      "maxGap": "Golul cel mai lung",
+      "area": "Arie",
+      "rankScore": "Scor de revizie",
+      "probe": "Probabilitate (probe CLIP)",
+      "category": "Categorie",
+      "wasteNote": "Candidat propus de model pentru revizie; nimeni nu l-a confirmat."
+    },
+    "result": {
+      "tile": "Tile analizat",
+      "modelOnly": "Doar modelul: fără corecții manuale, fără confirmări de deșeuri.",
+      "canopies": "Coroane (plante)",
+      "rows": "Rânduri",
+      "interrows": "Inter-rânduri",
+      "waste": "Deșeuri candidate",
+      "canopyArea": "Aria coroanelor",
+      "interrowArea": "Aria inter-rândurilor",
+      "rowLength": "Lungimea rândurilor",
+      "timings": "Timp pe etape",
+      "total": "Timp total",
+      "seconds": "{value} s",
+      "model": "Versiunea modelului",
+      "verifyLevel": "Verificarea deșeurilor"
+    },
+    "errors": {
+      "not_geotiff": "Fișierul nu este un GeoTIFF lizibil.",
+      "wrong_crs": "Tile-ul trebuie să fie în EPSG:32635 (WGS 84 / UTM 35N).",
+      "wrong_bands": "Tile-ul trebuie să fie RGB pe 8 biți.",
+      "wrong_size": "Tile-ul trebuie să aibă 2048 × 2048 px.",
+      "wrong_gsd": "Rezoluția trebuie să fie 2,5 cm/px.",
+      "off_grid": "Tile-ul nu cade pe grila Sireț3 (colțul NV în afara grilei).",
+      "pipeline_failed": "Pipeline-ul s-a oprit cu o eroare.",
+      "busy": "Rulează deja o analiză. Așteptați să se termine.",
+      "too_large": "Fișierul depășește 100 MB.",
+      "sign_in": "Autentificați-vă (sau intrați în demo) ca să rulați o analiză.",
+      "bad_request": "Nu s-a primit niciun fișier.",
+      "network": "Serverul nu a răspuns.",
+      "not_found": "Analiza nu mai există.",
+      "follow": "Urmăriți analiza în curs"
+    }
   },
   "shell": {
     "uat": "UAT",
@@ -135,7 +236,7 @@
     "layersAndSearch": "Straturi și căutare",
     "openLayers": "Deschide straturile",
     "closePanel": "Închide panoul",
-    "searchPlaceholder": "Caută V01 sau V01-R05",
+    "searchPlaceholder": "Caută F01, V01 sau V01-R05",
     "groupBlocks": "Blocuri",
     "groupRows": "Rânduri",
     "wholeArea": "Toată zona",

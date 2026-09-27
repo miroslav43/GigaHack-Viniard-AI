@@ -17,7 +17,108 @@
     "team": "Team",
     "teamShort": "Team",
     "architecture": "AI architecture",
-    "architectureShort": "Architecture"
+    "architectureShort": "Architecture",
+    "analysis": "TIF analysis",
+    "analysisShort": "Analysis"
+  },
+  "analiza": {
+    "title": "Live TIF analysis",
+    "subtitle": "Upload a Sireț3 tile: the real pipeline runs on it alone (usually under a minute) and shows the vegetation mask, canopies, rows, inter-rows and the waste it found.",
+    "upload": {
+      "title": "Drop a GeoTIFF tile here",
+      "hint": "Sireț3 tile: RGB GeoTIFF, EPSG:32635, 2048 × 2048 px, 2.5 cm/px, at most 100 MB. Model only, with no manual corrections and no waste confirmations.",
+      "choose": "Choose a file",
+      "another": "Analyse another tile"
+    },
+    "progress": {
+      "uploading": "Uploading {name}…",
+      "queued": "Starting the pipeline…",
+      "stage": "Stage {index} of {total}: {stage}",
+      "elapsed": "{value} s",
+      "note": "The pipeline runs on this computer, isolated from the main runs; one analysis at a time."
+    },
+    "stages": {
+      "ingest": "reading the tile",
+      "tile_prep": "vegetation mask",
+      "nn_infer": "neural network",
+      "rows_detect": "row detection",
+      "rows_link": "row linking",
+      "blocks": "blocks",
+      "canopy": "canopies",
+      "interrow": "inter-rows",
+      "row_attrs": "row attributes",
+      "waste": "waste",
+      "assemble": "assembling the annotations"
+    },
+    "map": {
+      "layers": "Layers",
+      "legendTitle": "Legend",
+      "unvalidated": "unvalidated",
+      "layer": {
+        "preview": "Tile image",
+        "vegMask": "Vegetation mask",
+        "interrows": "Inter-rows",
+        "canopies": "Canopies",
+        "rows": "Row axes",
+        "waste": "Waste candidates"
+      },
+      "legend": {
+        "vegMask": "Vegetation (pipeline mask)",
+        "canopy": "Canopy (one plant)",
+        "row": "Row: {structure}",
+        "interrow": "Inter-row: {cover}",
+        "waste": "Waste candidate, unvalidated"
+      }
+    },
+    "attr": {
+      "title": {
+        "canopies": "Canopy {id}",
+        "rows": "Row {id}",
+        "interrows": "Inter-row {id}",
+        "waste": "Candidate {id}"
+      },
+      "structure": "Row structure",
+      "cover": "Inter-row cover",
+      "length": "Length",
+      "maxGap": "Longest gap",
+      "area": "Area",
+      "rankScore": "Review score",
+      "probe": "Probability (CLIP probe)",
+      "category": "Category",
+      "wasteNote": "Proposed by the model for review; nobody has confirmed it."
+    },
+    "result": {
+      "tile": "Analysed tile",
+      "modelOnly": "Model only: no manual corrections, no waste confirmations.",
+      "canopies": "Canopies (plants)",
+      "rows": "Rows",
+      "interrows": "Inter-rows",
+      "waste": "Waste candidates",
+      "canopyArea": "Canopy area",
+      "interrowArea": "Inter-row area",
+      "rowLength": "Row length",
+      "timings": "Time per stage",
+      "total": "Total time",
+      "seconds": "{value} s",
+      "model": "Model version",
+      "verifyLevel": "Waste verification"
+    },
+    "errors": {
+      "not_geotiff": "The file is not a readable GeoTIFF.",
+      "wrong_crs": "The tile must be in EPSG:32635 (WGS 84 / UTM 35N).",
+      "wrong_bands": "The tile must be 8-bit RGB.",
+      "wrong_size": "The tile must be 2048 × 2048 px.",
+      "wrong_gsd": "The resolution must be 2.5 cm/px.",
+      "off_grid": "The tile is not on the Sireț3 grid (north-west corner off the grid).",
+      "pipeline_failed": "The pipeline stopped with an error.",
+      "busy": "An analysis is already running. Wait for it to finish.",
+      "too_large": "The file is larger than 100 MB.",
+      "sign_in": "Sign in (or enter the demo) to run an analysis.",
+      "bad_request": "No file was received.",
+      "network": "The server did not answer.",
+      "not_found": "This analysis no longer exists.",
+      "follow": "Follow the running analysis"
+    }
   },
   "shell": {
     "uat": "Municipality",
@@ -135,7 +236,7 @@
     "layersAndSearch": "Layers and search",
     "openLayers": "Open layers",
     "closePanel": "Close panel",
-    "searchPlaceholder": "Search V01 or V01-R05",
+    "searchPlaceholder": "Search F01, V01 or V01-R05",
     "groupBlocks": "Blocks",
     "groupRows": "Rows",
     "wholeArea": "Whole area",
