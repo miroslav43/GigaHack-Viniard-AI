@@ -736,10 +736,9 @@ web:
   utm_copies: true
   mask_px: 1024                            # masks/<tile>.png side; must divide grid.tile_px (any-vegetation max-pool)
   tile_review: configs/tile_review.csv     # tiles needing completion in Marcaj (tile_id,status,note); null = none
-  # Waste detections shown on the map inside the vineyard blocks, unfiltered (stones and clods included), next
-  # to the annotated waste: candidates of this model run with a box >= (short, long) px. Not routed or measured.
-  detected_waste_run: LATEST_MODEL
-  detected_waste_min_px: [10, 15]
+  # waste.geojson also shows the confirmed waste boxes (paths.waste_confirmed) the AnnSet lacks, e.g. the ones
+  # checked visually after the Marcaj upload (map only: not annotated, measured or routed).
+  confirmed_waste: true
 
 eval:
   example_tiles: [siret3_r006_c004, siret3_r021_c012]

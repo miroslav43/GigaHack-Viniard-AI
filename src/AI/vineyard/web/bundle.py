@@ -26,6 +26,7 @@ from vineyard.annset.model import AnnSet
 from vineyard.contracts.ids import tile_grid_ids
 from vineyard.errors import ConfigError, SchemaError
 from vineyard.geo.ops import make_valid_polygonal, orient_ccw
+from vineyard.geo.tiling import tile_ref
 from vineyard.geo.vector_io import round_geometry, write_geojson
 from vineyard.measure.csv_format import (
     check_measurements_bytes,
@@ -35,8 +36,9 @@ from vineyard.measure.csv_format import (
 )
 from vineyard.measure.measurements import MeasureInputs, compute_measurements
 from vineyard.perception.block_overlap import BlockOverlapParams, remove_block_overlap
+from vineyard.perception.waste.types import Confirmation
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json, atomic_write_text
-from vineyard.web.detected_waste import DetectedWasteParams, detected_waste
+from vineyard.route.extra_waste import extra_waste
 from vineyard.web.manifest import SurveyInfo, build_manifest, manifest_stage, survey_info
 from vineyard.web.masks_export import MASK_EXT, MASKS_DIRNAME, mask_manifest, mask_pngs
 from vineyard.web.objects_export import (
@@ -101,7 +103,8 @@ class WebParams:
     block_buffer_m: float
     tz: str
     mask_px: int
-    detected: DetectedWasteParams | None = None  # web.detected_waste_min_px; None = no detections on the map
+    gsd_m: float = 0.025
+    confirmed_sep_m: float | None = None  # web.confirmed_waste: min gap to annotated waste; None = off
 
 
 def decimals_of(step: float, key: str) -> int:
@@ -122,7 +125,7 @@ def web_params(cfg: AppConfig) -> WebParams:
         speed_kmh=cfg.route.walking_speed_kmh,
         row_link_tol_m=ROW_LINK_TOL_M, waste_block_max_m=WASTE_BLOCK_MAX_M,
         block_buffer_m=cfg.blocks.outline_buffer_m, tz=cfg.logging.tz, mask_px=cfg.web.mask_px,
-        detected=None if cfg.web.detected_waste_run is None else DetectedWasteParams(*cfg.web.detected_waste_min_px),
+        gsd_m=cfg.grid.gsd_m, confirmed_sep_m=cfg.targets.dedupe_m if cfg.web.confirmed_waste else None,
     )
 
 
@@ -146,7 +149,7 @@ class WebInputs:
     farms: gpd.GeoDataFrame | None = None  # stage `farms`: groups of neighbouring blocks
     roads: gpd.GeoDataFrame | None = None  # stage `farms`: public / field / internal roads
     farm_blocks: gpd.GeoDataFrame | None = None  # stage `farms`: block -> farm + cadastral parcels
-    waste_candidates: gpd.GeoDataFrame | None = None  # web.detected_waste_run's layers/waste_candidates
+    confirmations: tuple[Confirmation, ...] = ()  # paths.waste_confirmed (web.confirmed_waste)
 
 
 @dataclass(frozen=True)
@@ -205,15 +208,27 @@ def block_features(inputs: WebInputs, buffer_m: float) -> gpd.GeoDataFrame:
     return features_frame(records, geoms, BLOCK_COLUMNS)
 
 
-def with_detected_waste(waste: gpd.GeoDataFrame, inputs: WebInputs, blocks: gpd.GeoDataFrame,
-                        params: WebParams) -> gpd.GeoDataFrame:
-    """The annotated waste plus the detections inside the blocks (web only; ids D00001...)."""
-    cands = inputs.waste_candidates
-    if params.detected is None or cands is None or cands.empty:
+def _block_of(geoms: list[Any], blocks: gpd.GeoDataFrame) -> list[str | None]:
+    centres = gpd.GeoDataFrame(geometry=[g.centroid for g in geoms], crs=blocks.crs)
+    hits = gpd.sjoin(centres, blocks[["vineyard_id", "geometry"]], predicate="within", how="left")
+    first = hits[~hits.index.duplicated()]["vineyard_id"]
+    return [text_or_none(v) for v in first.reindex(range(len(geoms)))]
+
+
+def with_confirmed_waste(waste: gpd.GeoDataFrame, inputs: WebInputs, blocks: gpd.GeoDataFrame,
+                         params: WebParams) -> gpd.GeoDataFrame:
+    """The annotated waste plus the confirmed boxes it lacks (visually checked after the Marcaj upload; ids
+    from W9001, confidence 1, vineyard_id = the block holding the centre)."""
+    if params.confirmed_sep_m is None or not inputs.confirmations:
         return waste
-    det = detected_waste(cands.to_crs(waste.crs), blocks, inputs.annset.waste.to_crs(waste.crs), params.detected)
-    records = det.drop(columns="geometry").to_dict("records")
-    extra = features_frame(records, list(det.geometry), WASTE_COLUMNS)
+    tiles = {c.tile_id: tile_ref(c.tile_id) for c in inputs.confirmations}
+    found = extra_waste(inputs.annset.waste, inputs.confirmations, tiles, params.gsd_m, params.confirmed_sep_m)
+    if found.empty:
+        return waste
+    geoms = list(found.geometry)
+    records = [{"waste_id": w, "vineyard_id": v, "tile": t, "confidence": 1.0}
+               for w, v, t in zip(found["waste_id"], _block_of(geoms, blocks), found["tile_id"], strict=True)]
+    extra = features_frame(records, geoms, WASTE_COLUMNS)
     return gpd.GeoDataFrame(pd.concat([waste, extra], ignore_index=True), geometry="geometry", crs=waste.crs)
 
 
@@ -226,7 +241,7 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
     ann = inputs.annset
     rows = physical_rows(ann.row_pieces, ann.canopies, rows=inputs.rows)
     blocks = block_features(inputs, params.block_buffer_m)
-    waste = with_detected_waste(waste_features(ann.waste, max_block_dist_m=params.waste_block_max_m),
+    waste = with_confirmed_waste(waste_features(ann.waste, max_block_dist_m=params.waste_block_max_m),
                                 inputs, blocks, params)
     linked = inputs.interrows
     pieces = linked if linked is not None and not linked.empty else ann.interrow_pieces

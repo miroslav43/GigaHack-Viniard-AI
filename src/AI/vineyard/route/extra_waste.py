@@ -57,8 +57,9 @@ def extra_waste(
         if wid is None:
             break
         taken.append(geom)
-        rows.append({"waste_id": wid, "vineyard_id": "", "category": conf.category.value, "geometry": geom})
-    return gpd.GeoDataFrame(rows, columns=["waste_id", "vineyard_id", "category", "geometry"],
+        rows.append({"waste_id": wid, "vineyard_id": "", "category": conf.category.value, "tile_id": conf.tile_id,
+                     "geometry": geom})
+    return gpd.GeoDataFrame(rows, columns=["waste_id", "vineyard_id", "category", "tile_id", "geometry"],
                             geometry="geometry", crs=waste.crs)
 
 

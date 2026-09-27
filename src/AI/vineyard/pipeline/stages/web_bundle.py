@@ -10,7 +10,6 @@ the AnnSet run's layers/tile_status.parquet (model runs only), the tile_prep cac
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
@@ -22,8 +21,11 @@ from shapely.geometry import shape
 
 from vineyard.annset.io import ANNSET_DIRNAME, read_annset, resolve_run_dir
 from vineyard.errors import SchemaError, StageError
+from vineyard.geo.tiling import existing_tile_ids
 from vineyard.geo.vector_io import CRS_URN_32635, read_layer
 from vineyard.logging_setup import get_logger, log_event
+from vineyard.perception.waste.confirm import read_confirmations
+from vineyard.perception.waste.types import Confirmation
 from vineyard.pipeline.atomic import atomic_write_json
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.stages._post_io import other_post_runs, run_annset_ref, same_annset
@@ -43,7 +45,7 @@ STAGE_NAME: Final = "web_bundle"
 # 5: + cross_paths.geojson (passable's tracks across the rows) + its manifest count
 # 6: + farms.geojson / roads.geojson (stage farms) + blocks.geojson farm_id
 # 7: + cadastral parcels (n_parcels, cadastral_codes, landuse_counts) on farms / blocks, roads `cadastral`
-# 8: waste detections inside the blocks (web.detected_waste_run) join waste.geojson
+# 8: confirmed waste boxes the AnnSet lacks (web.confirmed_waste) join waste.geojson
 STAGE_VERSION: Final = "8"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
@@ -64,7 +66,6 @@ ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"
 EXPORT_FILES: Final = (ROUTE_EXPORT, MEASUREMENTS_EXPORT)
 TILE_STATUS_FILE: Final = "tile_status.parquet"
-WASTE_CANDIDATES_FILE: Final = "waste_candidates.parquet"
 TILE_STATUS_COLUMNS: Final = ("tile_id", "veg_frac", "review_priority")
 LAYERS_DIRNAME: Final = "layers"
 EXPORTS_DIRNAME: Final = "exports"
@@ -155,20 +156,11 @@ def read_tile_status(run_dir: Path) -> pd.DataFrame | None:
     return frame[list(TILE_STATUS_COLUMNS)]
 
 
-def read_waste_candidates(ctx: RunContext) -> gpd.GeoDataFrame | None:
-    """web.detected_waste_run's layers/waste_candidates (None when off or when that run has none)."""
-    ref = ctx.cfg.web.detected_waste_run
-    if ref is None:
-        return None
-    try:
-        path = resolve_run_dir(ctx.paths.work_dir, ref) / LAYERS_DIRNAME / WASTE_CANDIDATES_FILE
-    except StageError as exc:  # the detections are an extra map layer: never fail the bundle for them
-        log_event(_log, "web_bundle.no_waste_candidates", level=logging.WARNING, ref=ref, error=str(exc))
-        return None
-    if not path.is_file():
-        log_event(_log, "web_bundle.no_waste_candidates", level=logging.WARNING, path=str(path))
-        return None
-    return gpd.read_parquet(path)
+def read_web_confirmations(ctx: RunContext) -> tuple[Confirmation, ...]:
+    """paths.waste_confirmed when web.confirmed_waste is on (empty otherwise)."""
+    if not ctx.cfg.web.confirmed_waste:
+        return ()
+    return read_confirmations(ctx.cfg.paths.waste_confirmed, frozenset(existing_tile_ids()))
 
 
 def load_web_inputs(ctx: RunContext, layers_run: Path) -> WebInputs:
@@ -184,7 +176,7 @@ def load_web_inputs(ctx: RunContext, layers_run: Path) -> WebInputs:
                      measurements_csv=csv_path.read_bytes() if csv_path.is_file() else None,
                      tile_status=read_tile_status(annset_run), cache_dir=ctx.paths.cache_dir,
                      tile_review=read_tile_review(ctx.cfg.web.tile_review),
-                     waste_candidates=read_waste_candidates(ctx), **layers)
+                     confirmations=read_web_confirmations(ctx), **layers)
 
 
 # ------------------------------------------------------------------ run
