@@ -1,0 +1,8 @@
+# Only the code goes to git: the data, the model files and the evaluation outputs are far too big for GitHub
+# (data/ ~9 GB, results/ ~1.6 GB, one file over 100 MB is refused). They are re-downloadable or kept on Google Drive.
+data/
+results/
+runs/
+*.ts
+*.pt
+__pycache__/
