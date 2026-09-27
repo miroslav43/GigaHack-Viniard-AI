@@ -89,6 +89,7 @@ test.describe("with the stand-in boards", () => {
     expect((await download).suggestedFilename()).toMatch(/^robot_\d{8}_\d{6}_pan\d+_h[1-9]\d*\.jpg$/);
 
     await expect(page.getByTestId("robot-distance")).toHaveText(/Distanță \(senzor\): 10\d\.\d cm/);
+    await expect(page.getByTestId("robot-live-distance")).toHaveText(/^10\d,\d cm$/); // on the live picture, in cm
 
     // the wheels: running while the button is held, stopped once it is let go
     const button = page.getByTestId("robot-drive-pad").getByRole("button", { name: "Înainte", exact: true });

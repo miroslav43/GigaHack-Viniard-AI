@@ -1315,7 +1315,8 @@
       "failed": "Camera nu răspunde la {url}. E pornită și pe același Wi-Fi?",
       "off": "Imaginea live e oprită.",
       "fps": "{fps} cadre/s",
-      "connecting": "Se conectează la cameră…"
+      "connecting": "Se conectează la cameră…",
+      "outOfRange": "în afara razei"
     },
     "camera": {
       "title": "Camera: stânga, dreapta, sus, jos",

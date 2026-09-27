@@ -1315,7 +1315,8 @@
       "failed": "The camera does not answer at {url}. Is it on and on the same Wi-Fi?",
       "off": "The live picture is off.",
       "fps": "{fps} frames/s",
-      "connecting": "Connecting to the camera…"
+      "connecting": "Connecting to the camera…",
+      "outOfRange": "out of range"
     },
     "camera": {
       "title": "Camera: left, right, up, down",

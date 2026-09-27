@@ -17,6 +17,8 @@ import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import VideocamOffOutlined from "@mui/icons-material/VideocamOffOutlined";
 import { useTranslations } from "next-intl";
+import StraightenOutlined from "@mui/icons-material/StraightenOutlined";
+import { useFormat } from "@/lib/useFormat";
 import { parseBoardUrl } from "@/lib/robot/commands";
 import { ArrowPad, type Arrow } from "./ArrowPad";
 import { PhotoGallery, type Photo } from "./PhotoGallery";
@@ -45,6 +47,12 @@ const KEYS: Record<string, { kind: "camera" | "drive"; arrow: Arrow }> = {
 
 type Status = { severity: "success" | "info" | "error"; text: string } | null;
 
+/** The sensor's answer ("213.5 cm", or its out-of-range text) as centimetres, or null. */
+const centimetres = (text: string | null) => {
+  const m = text ? /^(-?\d+(?:\.\d+)?)\s*cm$/.exec(text.trim()) : null;
+  return m ? Number(m[1]) : null;
+};
+
 /** Object URLs of a list, released when the page goes away. */
 function useReleaseOnUnmount<T>(items: T[], urls: (item: T) => string[]) {
   const ref = useRef(items);
@@ -57,6 +65,7 @@ function useReleaseOnUnmount<T>(items: T[], urls: (item: T) => string[]) {
 
 export function RobotConsole() {
   const t = useTranslations("robot");
+  const f = useFormat();
   const { settings, update } = useRobotSettings();
   const cam = parseBoardUrl(settings.urls.cam);
   const motors = parseBoardUrl(settings.urls.motors);
@@ -230,6 +239,21 @@ export function RobotConsole() {
                   <Typography variant="caption" sx={{ position: "absolute", right: 8, bottom: 6, color: "common.white", textShadow: "0 0 3px black" }}>
                     {t("live.fps", { fps: frames.fps.toFixed(1) })}
                   </Typography>
+                  {/* the distance sensor (HC-SR04), in the corner of the live picture */}
+                  {motors && (
+                    <Box
+                      data-testid="robot-live-distance"
+                      sx={{
+                        position: "absolute", left: 8, top: 8, display: "flex", alignItems: "center", gap: 0.75,
+                        px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: "background.paper", boxShadow: 2,
+                      }}
+                    >
+                      <StraightenOutlined fontSize="small" color="primary" />
+                      <Typography variant="subtitle2" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                        {centimetres(distance) !== null ? `${f.num(centimetres(distance)!, 1)} cm` : distance ? t("live.outOfRange") : "—"}
+                      </Typography>
+                    </Box>
+                  )}
                 </>
               ) : (
                 <Box sx={{ color: "grey.400", textAlign: "center", px: 4 }}>
