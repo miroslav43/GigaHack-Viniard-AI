@@ -26,6 +26,7 @@ export function ArrowPad({
   labels,
   disabled,
   active,
+  disabledArrows = [],
   onHold,
   onRelease,
   centre,
@@ -35,6 +36,8 @@ export function ArrowPad({
   disabled: boolean;
   /** the arrow being held (drawn pressed) */
   active: Arrow | null;
+  /** arrows that cannot be used right now (forward, with an obstacle ahead) */
+  disabledArrows?: Arrow[];
   onHold: (a: Arrow) => void;
   onRelease: () => void;
   centre?: ReactNode;
@@ -49,7 +52,7 @@ export function ArrowPad({
               <IconButton
                 aria-label={labels[a]}
                 aria-pressed={active === a}
-                disabled={disabled}
+                disabled={disabled || disabledArrows.includes(a)}
                 onPointerDown={(e) => {
                   e.currentTarget.setPointerCapture(e.pointerId);
                   onHold(a);

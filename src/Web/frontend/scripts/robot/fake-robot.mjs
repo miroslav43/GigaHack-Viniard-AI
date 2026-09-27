@@ -117,8 +117,13 @@ function motors(req, res) {
     return setTimeout(() => text(res, 200, "Mișcare finalizată!"), Math.min(3000, (steps / speed) * 1000));
   }
   if (url.pathname === "/distance") {
-    // a wall about a metre away, a little noise
-    return text(res, 200, `${(100 + Math.random() * 5).toFixed(1)} cm`);
+    // a wall about a metre away (a little noise), or what a test set with /fake/distance?cm=
+    return text(res, 200, `${(state.distanceCm ?? 100 + Math.random() * 5).toFixed(1)} cm`);
+  }
+  if (url.pathname === "/fake/distance") {
+    // test hook: put an obstacle this close (no cm = back to the wall a metre away)
+    state.distanceCm = q.has("cm") ? Number(q.get("cm")) : undefined;
+    return text(res, 200, "OK");
   }
   if (url.pathname === "/toggle_en") {
     const m = Number(q.get("motor"));

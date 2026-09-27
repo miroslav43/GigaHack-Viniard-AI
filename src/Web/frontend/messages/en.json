@@ -1316,7 +1316,8 @@
       "off": "The live picture is off.",
       "fps": "{fps} frames/s",
       "connecting": "Connecting to the camera…",
-      "outOfRange": "out of range"
+      "outOfRange": "out of range",
+      "obstacle": "obstacle"
     },
     "camera": {
       "title": "Camera: left, right, up, down",
@@ -1378,7 +1379,8 @@
       "save": "Save",
       "discard": "Discard",
       "unsaved": "You have unsaved changes.",
-      "savedNote": "The settings were saved."
+      "savedNote": "The settings were saved.",
+      "safeStopCm": "Stop at an obstacle (cm, 0 = off)"
     },
     "gallery": {
       "title": "Photos ({n})",
@@ -1396,7 +1398,8 @@
       "capturing": "Taking the photo…",
       "captured": "The photo is in the gallery.",
       "flash": "Flash: {state}",
-      "stopped": "The wheels stopped."
+      "stopped": "The wheels stopped.",
+      "obstacle": "Obstacle at {cm} cm (under {limit} cm): forward is blocked. You can go back or turn."
     },
     "errors": {
       "no_address": "The board's address is missing (Settings).",

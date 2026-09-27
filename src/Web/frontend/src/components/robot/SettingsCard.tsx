@@ -20,12 +20,13 @@ import { DRIVE_MOVES, validMove, type DriveMove, type WheelMoves } from "@/lib/r
 import type { RobotSettings, SettingsPatch } from "./useRobotSettings";
 
 const DEVICES: Device[] = ["cam", "motors", "drive"];
-type NumKey = "stepsPerRev" | "speedPps" | "liftSpeedPps" | "wheelSpeed" | "recordStepCm" | "recordStepMs";
+type NumKey = "stepsPerRev" | "speedPps" | "liftSpeedPps" | "wheelSpeed" | "safeStopCm" | "recordStepCm" | "recordStepMs";
 const RANGES: Record<NumKey, readonly [number, number]> = {
   stepsPerRev: [1, 100000],
   speedPps: LIMITS.speedPps,
   liftSpeedPps: LIMITS.speedPps,
   wheelSpeed: LIMITS.wheelSpeed,
+  safeStopCm: [0, 400],
   recordStepCm: [5, 500],
   recordStepMs: LIMITS.driveMs,
 };
@@ -135,7 +136,10 @@ export function SettingsCard({ settings, onChange }: { settings: RobotSettings; 
         </Box>
 
         <Typography variant="subtitle2">{t("wheels")}</Typography>
-        {num("wheelSpeed")}
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+          {num("wheelSpeed")}
+          {num("safeStopCm")}
+        </Box>
         <Typography variant="caption" color="text.secondary">
           {t("wheelsHint")}
         </Typography>

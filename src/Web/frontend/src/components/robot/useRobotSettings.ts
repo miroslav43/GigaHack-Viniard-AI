@@ -21,6 +21,8 @@ export interface RobotSettings {
   /** a camera axis turning the other way round */
   panInvert: boolean;
   liftInvert: boolean;
+  /** obstacle guard: forward is blocked when the distance sensor reads less than this (cm; 0 = off) */
+  safeStopCm: number;
   /** panorama step: how far the robot moves before its photos, and how long the wheels run to cover it (calibration) */
   recordStepCm: number;
   recordStepMs: number;
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: RobotSettings = {
   flipH: false,
   panInvert: false,
   liftInvert: false,
+  safeStopCm: 20,
   recordStepCm: 50,
   recordStepMs: 1500,
   wheelSpeed: 150,

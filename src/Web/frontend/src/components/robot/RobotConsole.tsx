@@ -32,8 +32,9 @@ import { useRobotMotion } from "./useRobotMotion";
 import { useRecorder, type Panorama } from "./useRecorder";
 import { orientCss, orientJpeg } from "./orient";
 
-/** how often the distance sensor is read (ms) */
+/** how often the distance sensor is read (ms): every second, and 4 times a second while the robot goes forward */
 const DISTANCE_EVERY_MS = 1000;
+const DISTANCE_FORWARD_MS = 250;
 const KEYS: Record<string, { kind: "camera" | "drive"; arrow: Arrow }> = {
   ArrowUp: { kind: "camera", arrow: "up" },
   ArrowDown: { kind: "camera", arrow: "down" },
@@ -96,17 +97,27 @@ export function RobotConsole() {
     onError: fail,
   });
 
+  // obstacle guard: something closer than `safeStopCm` in front of the sensor blocks going forward (0 = off)
+  const cm = centimetres(distance);
+  const blocked = settings.safeStopCm > 0 && cm !== null && cm < settings.safeStopCm;
+  const goingForward = (motion.holding?.kind === "drive" && motion.holding.arrow === "up") || recorder.phase?.step === "drive";
+
   const hold = useCallback(
     (kind: "camera" | "drive", a: Arrow) => {
       if (recorder.recording) return;
+      if (kind === "drive" && a === "up" && blocked) {
+        setStatus({ severity: "error", text: t("status.obstacle", { cm: f.num(cm!, 1), limit: settings.safeStopCm }) });
+        return;
+      }
       setStatus({ severity: "info", text: kind === "camera" ? t("status.cameraMoving", { dir: t(`camera.${a}`) }) : t("status.driving", { dir: t(`drive.${({ up: "forward", down: "back", left: "left", right: "right" } as const)[a]}`) }) });
       if (kind === "camera") void motion.holdCamera(a);
       else motion.holdDrive(a);
     },
-    [recorder.recording, motion, t],
+    [recorder.recording, blocked, cm, settings.safeStopCm, motion, t, f],
   );
   const release = useCallback(() => {
-    void motion.release().then(() => setStatus(null));
+    // clears a "moving…" note; an error (e.g. the obstacle that stopped the wheels) stays
+    void motion.release().then(() => setStatus((s) => (s?.severity === "info" ? null : s)));
   }, [motion]);
   const stopAll = useCallback(async () => {
     await motion.release();
@@ -114,9 +125,9 @@ export function RobotConsole() {
     setStatus({ severity: "success", text: t("status.stopped") });
   }, [motion, t]);
 
-  // the distance sensor (HC-SR04 on the camera's motor board), read every second; not while the camera moves (the
-  // board answers one request at a time)
-  const cameraMoving = motion.holding?.kind === "camera" || recorder.recording;
+  // the distance sensor (HC-SR04 on the camera's motor board); not while the camera moves (the board answers one
+  // request at a time)
+  const cameraMoving = motion.holding?.kind === "camera" || recorder.phase?.step === "photo" || recorder.phase?.step === "back";
   useEffect(() => {
     if (!motors || cameraMoving) return;
     let alive = true;
@@ -125,13 +136,22 @@ export function RobotConsole() {
         .then((r) => r.text())
         .then((text) => alive && setDistance(text.trim()))
         .catch(() => alive && setDistance(null));
-    const timer = setInterval(read, DISTANCE_EVERY_MS);
+    const timer = setInterval(read, goingForward ? DISTANCE_FORWARD_MS : DISTANCE_EVERY_MS);
     void read();
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, [motors, cameraMoving]);
+  }, [motors, cameraMoving, goingForward]);
+
+  // an obstacle while going forward: the wheels stop at once (a held button, or the panorama's drive)
+  const { release: releaseHold, stopWheels } = motion;
+  const stopRecorder = recorder.stop;
+  useEffect(() => {
+    if (!blocked || !goingForward) return;
+    const text = t("status.obstacle", { cm: f.num(cm!, 1), limit: settings.safeStopCm });
+    void (recorder.recording ? stopRecorder() : releaseHold().then(stopWheels)).then(() => setStatus({ severity: "error", text }));
+  }, [blocked, goingForward, recorder.recording, stopRecorder, releaseHold, stopWheels, cm, settings.safeStopCm, t, f]);
 
   const [capturing, setCapturing] = useState(false);
   const takePhoto = useCallback(async () => {
@@ -243,14 +263,17 @@ export function RobotConsole() {
                   {motors && (
                     <Box
                       data-testid="robot-live-distance"
+                      data-blocked={blocked || undefined}
                       sx={{
                         position: "absolute", left: 8, top: 8, display: "flex", alignItems: "center", gap: 0.75,
-                        px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: "background.paper", boxShadow: 2,
+                        px: 1.25, py: 0.5, borderRadius: 1.5, boxShadow: 2,
+                        bgcolor: blocked ? "error.main" : "background.paper", color: blocked ? "error.contrastText" : "text.primary",
                       }}
                     >
-                      <StraightenOutlined fontSize="small" color="primary" />
+                      <StraightenOutlined fontSize="small" color={blocked ? "inherit" : "primary"} />
                       <Typography variant="subtitle2" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                        {centimetres(distance) !== null ? `${f.num(centimetres(distance)!, 1)} cm` : distance ? t("live.outOfRange") : "—"}
+                        {cm !== null ? `${f.num(cm, 1)} cm` : distance ? t("live.outOfRange") : "—"}
+                        {blocked && ` · ${t("live.obstacle")}`}
                       </Typography>
                     </Box>
                   )}
@@ -270,7 +293,7 @@ export function RobotConsole() {
               </Alert>
             )}
           </Paper>
-          <RecordCard settings={settings} ready={Boolean(cam && motors && drive)} phase={recorder.phase} onStart={() => void recorder.start()} onStop={() => void recorder.stop()} />
+          <RecordCard settings={settings} ready={Boolean(cam && motors && drive) && !blocked} phase={recorder.phase} onStart={() => void recorder.start()} onStop={() => void recorder.stop()} />
         </Box>
 
         {/* ---- controls ---- */}
@@ -319,6 +342,7 @@ export function RobotConsole() {
               testId="robot-drive-pad"
               labels={driveLabels}
               disabled={!drive || recorder.recording}
+              disabledArrows={blocked ? ["up"] : []}
               active={held("drive")}
               onHold={(a) => hold("drive", a)}
               onRelease={release}

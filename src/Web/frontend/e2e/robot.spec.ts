@@ -127,4 +127,37 @@ test.describe("with the stand-in boards", () => {
     expect((await wheels()).some((w) => w.running)).toBe(false);
     await expect(page.getByText(/Poziție: 0° orizontal/)).toBeVisible(); // the camera is back at 0°
   });
+
+  test("an obstacle closer than 20 cm blocks forward and stops the wheels going forward; back still works", async ({ page }) => {
+    const obstacle = (cm?: number) => fetch(`http://${lan}:${port + 1}/fake/distance${cm === undefined ? "" : `?cm=${cm}`}`);
+    await page.goto("/robot");
+    await address(page, "cam").fill(`${lan}:${port}`);
+    await address(page, "motors").fill(`${lan}:${port + 1}`);
+    await address(page, "drive").fill(`${lan}:${port + 2}`);
+    await saveSettings(page);
+    const forward = page.getByTestId("robot-drive-pad").getByRole("button", { name: "Înainte", exact: true });
+    const back = page.getByTestId("robot-drive-pad").getByRole("button", { name: "Înapoi", exact: true });
+
+    await obstacle(12);
+    await expect(page.getByTestId("robot-live-distance")).toHaveText(/12,0 cm · obstacol/);
+    await expect(forward).toBeDisabled();
+    await expect(page.getByTestId("robot-record-start")).toBeDisabled();
+    await back.hover();
+    await page.mouse.down();
+    await expect.poll(async () => (await wheels()).every((w) => w.running), { timeout: 5000 }).toBe(true);
+    await page.mouse.up();
+    await expect.poll(async () => (await wheels()).some((w) => w.running), { timeout: 5000 }).toBe(false);
+
+    // clear ahead: forward works again; an obstacle appearing while going forward stops the wheels
+    await obstacle();
+    await expect(forward).toBeEnabled();
+    await forward.hover();
+    await page.mouse.down();
+    await expect.poll(async () => (await wheels()).every((w) => w.running), { timeout: 5000 }).toBe(true);
+    await obstacle(15);
+    await expect.poll(async () => (await wheels()).some((w) => w.running), { timeout: 3000 }).toBe(false);
+    await page.mouse.up();
+    await expect(page.getByTestId("robot-status")).toContainText("Obstacol la 15,0 cm");
+    await obstacle();
+  });
 });

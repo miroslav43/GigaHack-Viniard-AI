@@ -1316,7 +1316,8 @@
       "off": "Imaginea live e oprită.",
       "fps": "{fps} cadre/s",
       "connecting": "Se conectează la cameră…",
-      "outOfRange": "în afara razei"
+      "outOfRange": "în afara razei",
+      "obstacle": "obstacol"
     },
     "camera": {
       "title": "Camera: stânga, dreapta, sus, jos",
@@ -1378,7 +1379,8 @@
       "save": "Salvează",
       "discard": "Renunță",
       "unsaved": "Ai modificări nesalvate.",
-      "savedNote": "Setările au fost salvate."
+      "savedNote": "Setările au fost salvate.",
+      "safeStopCm": "Oprire la obstacol (cm, 0 = oprit)"
     },
     "gallery": {
       "title": "Poze ({n})",
@@ -1396,7 +1398,8 @@
       "capturing": "Se face poza…",
       "captured": "Poza a fost salvată în galerie.",
       "flash": "Flash: {state}",
-      "stopped": "Roțile s-au oprit."
+      "stopped": "Roțile s-au oprit.",
+      "obstacle": "Obstacol la {cm} cm (sub {limit} cm): înainte e blocat. Poți merge înapoi sau vira."
     },
     "errors": {
       "no_address": "Lipsește adresa plăcii (Setări).",
