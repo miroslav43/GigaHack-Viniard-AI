@@ -38,8 +38,8 @@ export type SettingsPatch = Partial<Omit<RobotSettings, "urls">> & { urls?: Part
 const KEY = "solemtrix.robot.settings";
 /** bumped when a default changes meaning: older saved values of those keys are dropped (2: the height speed that
  *  actually lifts the camera, 3000 steps/s, replaces the 150 saved before) */
-const VERSION = 2;
-const RESET_IN: Record<number, (keyof RobotSettings)[]> = { 2: ["liftSpeedPps"] };
+const VERSION = 3;
+const RESET_IN: Record<number, (keyof RobotSettings)[]> = { 2: ["liftSpeedPps"], 3: ["stepsPerRev"] };
 
 export const DEFAULT_SETTINGS: RobotSettings = {
   urls: {
@@ -47,7 +47,8 @@ export const DEFAULT_SETTINGS: RobotSettings = {
     motors: process.env.NEXT_PUBLIC_ROBOT_MOTORS_URL ?? "",
     drive: process.env.NEXT_PUBLIC_ROBOT_DRIVE_URL ?? "",
   },
-  stepsPerRev: 200,
+  // measured on the robot: 100 steps turn the camera by about 18° (the driver microsteps); calibrate with "= 90°"
+  stepsPerRev: 2000,
   speedPps: 450,
   liftSpeedPps: 3000,
   flipV: true,

@@ -77,6 +77,10 @@ test.describe("with the stand-in boards", () => {
 
     await holdButton(page, "robot-camera-pad", "Camera la dreapta", 600);
     await expect(page.getByText(/Poziție: [1-9]\d*° orizontal, înălțime 0 pași\./)).toBeVisible();
+    // calibration: the turn from 0° counts as exactly 90°
+    await page.getByTestId("robot-calibrate-90").click();
+    await expect(page.getByTestId("robot-status")).toContainText(/Calibrat: 90° = \d+ pași/);
+    await expect(page.getByText(/Poziție: 90° orizontal/)).toBeVisible();
     await holdButton(page, "robot-camera-pad", "Camera în sus", 600);
     await expect(page.getByText(/Poziție: [1-9]\d*° orizontal, înălțime [1-9]\d* pași\./)).toBeVisible();
 

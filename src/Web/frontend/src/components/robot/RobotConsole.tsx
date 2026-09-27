@@ -163,7 +163,7 @@ export function RobotConsole() {
       const raw = streamOn && frames.blob && !frames.down ? frames.blob : await (await callRobot("cam", cam, { cmd: "capture" })).blob();
       if (!raw.type.startsWith("image/")) throw new RobotCallError("failed");
       const blob = await orientJpeg(raw, settings); // saved the way it is shown
-      const pose = motion.poseRef.current;
+      const pose = motion.poseNow();
       setPhotos((ps) => [{ id: crypto.randomUUID(), url: URL.createObjectURL(blob), takenAt: new Date(), panDeg: pose.pan, heightSteps: pose.height }, ...ps]);
       setStatus({ severity: "success", text: t("status.captured") });
     } catch (e) {
@@ -171,7 +171,18 @@ export function RobotConsole() {
     } finally {
       setCapturing(false);
     }
-  }, [cam, capturing, streamOn, frames, motion.poseRef, settings, t, fail]);
+  }, [cam, capturing, streamOn, frames, motion, settings, t, fail]);
+
+  // pan calibration: from 0° the camera was turned right to exactly 90°; a turn is four times those steps
+  const calibrate90 = useCallback(() => {
+    const quarter = motion.pose.panSteps;
+    if (quarter <= 0) {
+      setStatus({ severity: "error", text: t("status.calibrateFirst") });
+      return;
+    }
+    update({ stepsPerRev: quarter * 4 });
+    setStatus({ severity: "success", text: t("status.calibrated", { steps: quarter, turn: quarter * 4 }) });
+  }, [motion.pose.panSteps, update, t]);
 
   // between two frames the camera is free: the flash goes through while the live picture runs
   const flash = useCallback(async () => {
@@ -305,6 +316,9 @@ export function RobotConsole() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {t("camera.hint", { pan: Math.round(motion.pose.pan), height: motion.pose.height })}
             </Typography>
+            <Button size="small" variant="outlined" onClick={calibrate90} disabled={!motors} sx={{ mb: 1 }} data-testid="robot-calibrate-90">
+              {t("camera.set90")}
+            </Button>
             {motors && (
               <Typography variant="subtitle2" sx={{ mb: 2 }} data-testid="robot-distance">
                 {t("camera.distance", { value: distance ?? "—" })}

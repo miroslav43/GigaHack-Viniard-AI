@@ -1328,7 +1328,8 @@
       "right": "Camera la dreapta",
       "zero": "Poziția curentă devine 0°",
       "noAddress": "Scrie adresa plăcii cu motoare în Setări.",
-      "distance": "Distanță (senzor): {value}"
+      "distance": "Distanță (senzor): {value}",
+      "set90": "Poziția curentă = 90° (calibrare)"
     },
     "drive": {
       "title": "Deplasare",
@@ -1349,7 +1350,7 @@
         "drive": "Roțile (4 motoare)"
       },
       "badAddress": "Doar o adresă din rețeaua locală, de ex. 192.168.1.50",
-      "stepsPerRev": "Stânga/dreapta: pași pe rotație",
+      "stepsPerRev": "Stânga/dreapta: pași pe rotație (calibrare)",
       "speedPps": "Stânga/dreapta: viteză (pași/s)",
       "wheelSpeed": "Viteza roților (0–255)",
       "wheels": "Roțile",
@@ -1399,7 +1400,9 @@
       "captured": "Poza a fost salvată în galerie.",
       "flash": "Flash: {state}",
       "stopped": "Roțile s-au oprit.",
-      "obstacle": "Obstacol la {cm} cm (sub {limit} cm): înainte e blocat. Poți merge înapoi sau vira."
+      "obstacle": "Obstacol la {cm} cm (sub {limit} cm): înainte e blocat. Poți merge înapoi sau vira.",
+      "calibrateFirst": "Întâi „Poziția curentă devine 0°” cu camera drept înainte, apoi ține săgeata dreapta până camera e rotită exact 90°, apoi apasă din nou.",
+      "calibrated": "Calibrat: 90° = {steps} pași, o rotație = {turn} pași (salvat)."
     },
     "errors": {
       "no_address": "Lipsește adresa plăcii (Setări).",

@@ -24,7 +24,10 @@ const CAMERA_CHUNK_S = 0.25;
 const KEEP_EVERY_MS = 300;
 
 export type Holding = { kind: "camera" | "drive"; arrow: Arrow } | null;
-export type Pose = { pan: number; height: number };
+/** where the camera is, from the zeroed position, in motor steps (degrees follow from the steps per turn, so a new
+ *  calibration corrects the angle shown at once) */
+type Steps = { panSteps: number; height: number };
+export type Pose = { pan: number; panSteps: number; height: number };
 
 export function useRobotMotion({
   motors,
@@ -38,27 +41,27 @@ export function useRobotMotion({
   onError: (e: unknown) => void;
 }) {
   const [holding, setHolding] = useState<Holding>(null);
-  const [pose, setPose] = useState<Pose>({ pan: 0, height: 0 });
-  // the same pose, current inside a running sequence (the record mode turns the camera several times in a row)
-  const poseRef = useRef<Pose>(pose);
-  const setBoth = useCallback((next: Pose) => {
+  const [steps, setSteps] = useState<Steps>({ panSteps: 0, height: 0 });
+  // the same position, current inside a running sequence (the record mode turns the camera several times in a row)
+  const poseRef = useRef<Steps>(steps);
+  const setBoth = useCallback((next: Steps) => {
     poseRef.current = next;
-    setPose(next);
+    setSteps(next);
   }, []);
   // each hold gets a token; a release (or a new hold) moves it on, which ends the running camera loop
   const token = useRef(0);
   const driveHold = useRef<{ go: Promise<unknown>; keep: ReturnType<typeof setInterval> } | null>(null);
 
   const moveAxis = useCallback(
-    async (a: Arrow, steps: number) => {
+    async (a: Arrow, n: number) => {
       if (!motors) return;
       const m = CAMERA_OF[a];
       const pan = m.axis === "pan";
       const reversed = pan ? settings.panInvert : settings.liftInvert;
       const dir = (m.sign > 0) !== reversed ? 0 : 1;
-      await callRobot("motors", motors, { cmd: "move", motor: m.motor, dir, speed: pan ? settings.speedPps : settings.liftSpeedPps, steps });
-      const change = pan ? (steps * 360) / settings.stepsPerRev : steps;
-      setBoth({ ...poseRef.current, [m.axis]: poseRef.current[m.axis] + m.sign * change });
+      await callRobot("motors", motors, { cmd: "move", motor: m.motor, dir, speed: pan ? settings.speedPps : settings.liftSpeedPps, steps: n });
+      const key = pan ? "panSteps" : "height";
+      setBoth({ ...poseRef.current, [key]: poseRef.current[key] + m.sign * n });
     },
     [motors, settings, setBoth],
   );
@@ -121,9 +124,8 @@ export function useRobotMotion({
   /** Record mode: turn the camera to `deg` (degrees from the zeroed position). */
   const panTo = useCallback(
     async (deg: number) => {
-      const delta = deg - poseRef.current.pan;
-      const steps = Math.round((Math.abs(delta) / 360) * settings.stepsPerRev);
-      if (steps > 0) await moveAxis(delta > 0 ? "right" : "left", steps);
+      const delta = Math.round((deg / 360) * settings.stepsPerRev) - poseRef.current.panSteps;
+      if (delta !== 0) await moveAxis(delta > 0 ? "right" : "left", Math.abs(delta));
     },
     [settings.stepsPerRev, moveAxis],
   );
@@ -138,5 +140,10 @@ export function useRobotMotion({
     [drive, settings],
   );
 
-  return { holding, pose, poseRef, zero: () => setBoth({ pan: 0, height: 0 }), holdCamera, holdDrive, release, stopWheels, panTo, forwardFor };
+  const degrees = (s: number) => (s * 360) / settings.stepsPerRev;
+  const pose: Pose = { pan: degrees(steps.panSteps), panSteps: steps.panSteps, height: steps.height };
+  /** the position right now (inside a sequence), with the angle in degrees */
+  const poseNow = (): Pose => ({ pan: degrees(poseRef.current.panSteps), panSteps: poseRef.current.panSteps, height: poseRef.current.height });
+
+  return { holding, pose, poseNow, zero: () => setBoth({ panSteps: 0, height: 0 }), holdCamera, holdDrive, release, stopWheels, panTo, forwardFor };
 }

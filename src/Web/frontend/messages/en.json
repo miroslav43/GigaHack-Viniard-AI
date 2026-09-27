@@ -1328,7 +1328,8 @@
       "right": "Camera right",
       "zero": "Make the current position 0°",
       "noAddress": "Enter the motor board's address in Settings.",
-      "distance": "Distance (sensor): {value}"
+      "distance": "Distance (sensor): {value}",
+      "set90": "Current position = 90° (calibration)"
     },
     "drive": {
       "title": "Driving",
@@ -1349,7 +1350,7 @@
         "drive": "Wheels (4 motors)"
       },
       "badAddress": "A local network address only, e.g. 192.168.1.50",
-      "stepsPerRev": "Left/right: steps per turn",
+      "stepsPerRev": "Left/right: steps per turn (calibration)",
       "speedPps": "Left/right: speed (steps/s)",
       "wheelSpeed": "Wheel speed (0–255)",
       "wheels": "Wheels",
@@ -1399,7 +1400,9 @@
       "captured": "The photo is in the gallery.",
       "flash": "Flash: {state}",
       "stopped": "The wheels stopped.",
-      "obstacle": "Obstacle at {cm} cm (under {limit} cm): forward is blocked. You can go back or turn."
+      "obstacle": "Obstacle at {cm} cm (under {limit} cm): forward is blocked. You can go back or turn.",
+      "calibrateFirst": "First “Make the current position 0°” with the camera straight ahead, then hold the right arrow until the camera has turned exactly 90°, then press again.",
+      "calibrated": "Calibrated: 90° = {steps} steps, a turn = {turn} steps (saved)."
     },
     "errors": {
       "no_address": "The board's address is missing (Settings).",
