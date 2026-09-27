@@ -1433,12 +1433,11 @@
       "downloadFrames": "The 3 photos",
       "downloadAll": "Download all panoramas",
       "remove": "Delete",
-      "saved": "Saved on the laptop (src/Web/data/robot): they stay after a refresh. Gemini looks for grapes, leaves, waste (bottles, wood, plastic…) and other objects in each photo.",
+      "saved": "Saved on the laptop (src/Web/data/robot): they stay after a refresh. Gemini looks for grapes, leaves and waste (bottles, wood, plastic…) in each photo.",
       "label": {
         "grape": "Grapes",
         "leaf": "Leaves",
-        "waste": "Waste",
-        "object": "Other objects"
+        "waste": "Waste"
       },
       "detecting": "Gemini is analysing the photos…",
       "detectOff": "Detection is not set up (OPENROUTER_API_KEY missing).",
@@ -1448,8 +1447,7 @@
       "count": {
         "grape": "{n, plural, one {# cluster} other {# clusters}}",
         "leaf": "{n, plural, one {# leaf} other {# leaves}}",
-        "waste": "{n, plural, one {# waste item} other {# waste items}}",
-        "object": "{n, plural, one {# object} other {# objects}}"
+        "waste": "{n, plural, one {# waste item} other {# waste items}}"
       }
     }
   }

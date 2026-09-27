@@ -15,7 +15,7 @@ import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
 import { useTranslations } from "next-intl";
-import { countByLabel, DETECTION_LABELS, type DetectionBox, type DetectionLabel } from "@/lib/robot/detections";
+import { countByLabel, DETECTION_LABELS, isDetectionLabel, type DetectionBox, type DetectionLabel } from "@/lib/robot/detections";
 import { robotPalette } from "@/theme/robotPalette";
 import type { PanoramaMeta } from "@/lib/robot/panoramaStore";
 
@@ -58,7 +58,6 @@ function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: D
             fill="none"
             stroke={colors[b.label]}
             strokeWidth={b.label === "waste" ? 3.5 : 2.5}
-            strokeDasharray={b.label === "object" ? "6 4" : undefined}
             vectorEffect="non-scaling-stroke"
             data-label={b.label}
           >
@@ -81,7 +80,7 @@ export function PanoramaGallery({ panoramas, onRedetect, onRemove }: { panoramas
         <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
           {DETECTION_LABELS.map((l) => (
             <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <Box sx={{ width: 14, height: 10, border: l === "waste" ? 3 : 2.5, borderStyle: l === "object" ? "dashed" : "solid", borderColor: colors[l], borderRadius: 0.5 }} />
+              <Box sx={{ width: 14, height: 10, border: l === "waste" ? 3 : 2.5, borderColor: colors[l], borderRadius: 0.5 }} />
               <Typography variant="caption">{t(`label.${l}`)}</Typography>
             </Box>
           ))}
@@ -93,13 +92,15 @@ export function PanoramaGallery({ panoramas, onRedetect, onRemove }: { panoramas
       <Box sx={{ display: "grid", gap: 3 }}>
         {panoramas.map((p) => {
           const d = p.detection;
-          const all = Object.values(d.frames).flat();
+          // only the labels detected now (older saves may hold "object" boxes)
+          const shown = (boxes: DetectionBox[] | undefined) => (boxes ?? []).filter((b) => isDetectionLabel(b.label));
+          const all = Object.values(d.frames).flatMap(shown);
           const counts = countByLabel(all);
           return (
             <Box key={p.id} sx={{ border: 1, borderColor: "divider", borderRadius: 2, overflow: "hidden" }} data-testid="robot-panorama">
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
                 {ANGLES.map((deg) => (
-                  <Frame key={deg} src={fileUrl(p, `${deg}.jpg`)} alt={`${baseName(p)} ${deg}°`} boxes={d.frames[String(deg)] ?? []} colors={colors} />
+                  <Frame key={deg} src={fileUrl(p, `${deg}.jpg`)} alt={`${baseName(p)} ${deg}°`} boxes={shown(d.frames[String(deg)])} colors={colors} />
                 ))}
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 1, flexWrap: "wrap" }}>

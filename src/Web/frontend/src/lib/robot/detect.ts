@@ -17,7 +17,6 @@ const FAKE: DetectionBox[] = [
   { label: "leaf", box: [0.05, 0.05, 0.3, 0.35], score: 0.8 },
   { label: "leaf", box: [0.6, 0.1, 0.85, 0.4], score: 0.7 },
   { label: "waste", box: [0.1, 0.7, 0.25, 0.95], score: 0.85 },
-  { label: "object", box: [0.7, 0.6, 0.95, 0.9], score: 0.6 },
 ];
 
 export async function detectObjects(jpeg: Uint8Array): Promise<DetectionBox[]> {
