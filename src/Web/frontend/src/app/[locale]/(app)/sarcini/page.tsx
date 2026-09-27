@@ -6,7 +6,7 @@ import { AccessDenied } from "@/components/common/AccessDenied";
 import { TasksPanel, type Assignable, type TaskRole } from "@/components/tasks/TasksPanel";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_API_ENABLED, createAdminClient } from "@/lib/supabase/admin";
-import { ACTIVE_SURVEY_FILTER, activeSurveys, readTargets, type TaskRow } from "@/lib/tasks";
+import { ACTIVE_SURVEY_FILTER, activeSurveys, readFarmOf, readTargets, type TaskRow } from "@/lib/tasks";
 import { listUatUsers } from "@/lib/team";
 import { getViewer } from "@/lib/viewer";
 
@@ -42,6 +42,8 @@ export default async function TasksPage({ params, searchParams }: PageProps<"/[l
   // RLS: only this municipality's tasks come back; only those of the survey the app serves
   const { data } = await supabase.from("task_public").select("*").or(ACTIVE_SURVEY_FILTER).order("status").order("priority").order("created_at", { ascending: false });
   const tasks = (data ?? []) as TaskRow[];
+  // block → farm of the served survey: tasks and targets are grouped by farm (empty = one "no farm" group)
+  const farmOf = await readFarmOf(activeSurveys(viewer.uat.surveys));
 
   let targets: Awaited<ReturnType<typeof readTargets>> = [];
   let members: Assignable[] = [];
@@ -62,7 +64,7 @@ export default async function TasksPage({ params, searchParams }: PageProps<"/[l
   return (
     <Page>
       <PageHeader title={t("title")} subtitle={role === "uat_admin" ? t("subtitleAdmin") : t("subtitleMember")} />
-      <TasksPanel key={focusId ?? "all"} focusId={focusId} role={role} meId={viewer.userId!} tasks={tasks} targets={targets} members={members} adminApi={ADMIN_API_ENABLED} />
+      <TasksPanel key={focusId ?? "all"} focusId={focusId} role={role} meId={viewer.userId!} tasks={tasks} targets={targets} farmOf={farmOf} members={members} adminApi={ADMIN_API_ENABLED} />
     </Page>
   );
 }

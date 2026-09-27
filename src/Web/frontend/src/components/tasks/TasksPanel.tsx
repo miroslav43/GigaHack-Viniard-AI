@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -35,6 +35,8 @@ import { Link } from "@/i18n/routing";
 import { useFormat } from "@/lib/useFormat";
 import { assignTasks, createTasksFromTargets, deleteTasks, setTaskStatus } from "@/app/[locale]/(app)/sarcini/actions";
 import type { Target, TaskRow, TaskStatus } from "@/lib/tasks";
+import { groupByFarm, groupCheck, setGroup, type FarmGroup, type FarmOf } from "@/lib/taskFarms";
+import { FarmGroupRow } from "./FarmGroupRow";
 import { useTaskTitle } from "./useTaskTitle";
 
 export type TaskRole = "uat_admin" | "inspector" | "viewer";
@@ -99,6 +101,7 @@ export function TasksPanel({
   meId,
   tasks,
   targets,
+  farmOf,
   members,
   adminApi,
 }: {
@@ -108,6 +111,8 @@ export function TasksPanel({
   meId: string;
   tasks: TaskRow[];
   targets: Target[];
+  /** block → farm of the served survey; both tables are grouped by farm (empty = a single "no farm" group) */
+  farmOf: FarmOf;
   members: Assignable[];
   adminApi: boolean;
 }) {
@@ -152,6 +157,13 @@ export function TasksPanel({
       ),
     [tasks, scope, status, meId],
   );
+  const targetGroups = useMemo(() => groupByFarm(targets, farmOf), [targets, farmOf]);
+  const taskGroups = useMemo(() => groupByFarm(visible, farmOf), [visible, farmOf]);
+  // farms start collapsed, except the one holding the task opened from a notification
+  const [openTargetFarms, setOpenTargetFarms] = useState<Set<string>>(new Set());
+  const [openTaskFarms, setOpenTaskFarms] = useState<Set<string>>(() => new Set(focused ? groupByFarm([focused], farmOf).map((g) => g.key) : []));
+  // a lone group (survey without farms, or a single farm) is always open
+  const isOpen = (open: Set<string>, groups: FarmGroup<unknown>[], key: string) => groups.length === 1 || open.has(key);
   useEffect(() => {
     if (focused) document.getElementById(`task-${focused.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [focused]);
@@ -164,6 +176,89 @@ export function TasksPanel({
     return n;
   };
   const targetKey = (x: Target) => `${x.survey_id}/${x.target_id}`;
+
+  const targetRow = (x: Target) => (
+    <TableRow key={targetKey(x)} hover selected={selTargets.has(targetKey(x))}>
+      <TableCell padding="checkbox">
+        <Checkbox checked={selTargets.has(targetKey(x))} onChange={() => setSelTargets((s) => toggle(s, targetKey(x)))} />
+      </TableCell>
+      <TableCell>
+        <Chip size="small" variant="outlined" label={t(`kind.${x.kind}`)} sx={{ mr: 2 }} />
+        {title(x)}
+      </TableCell>
+      <TableCell>
+        {[x.vineyard_id, x.row_id].filter(Boolean).join(" · ")}
+        {x.route_order ? (
+          <Typography component="span" variant="caption" color="text.secondary">
+            {` · ${x.target_id} · ${t("route", { n: x.route_order })}`}
+          </Typography>
+        ) : null}
+      </TableCell>
+      <TableCell align="right">
+        <Tooltip title={t("showOnMap")}>
+          <IconButton size="small" component={Link} href={`/harta?tinta=${x.target_id}`}>
+            <MapOutlined fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+  const taskRow = (x: TaskRow) => (
+    <TableRow
+      key={x.id}
+      id={`task-${x.id}`}
+      hover
+      selected={selTasks.has(x.id) || x.id === focusId}
+      sx={x.id === focusId ? { outline: 2, outlineColor: "primary.main", outlineOffset: -2 } : undefined}
+    >
+      {isAdmin && (
+        <TableCell padding="checkbox">
+          <Checkbox checked={selTasks.has(x.id)} onChange={() => setSelTasks((s) => toggle(s, x.id))} />
+        </TableCell>
+      )}
+      <TableCell>
+        <Chip size="small" variant="outlined" label={t(`kind.${x.kind}`)} sx={{ mr: 2 }} />
+        <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+          {title(x)}
+        </Typography>
+        {x.resolution_note && (
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5 }}>
+            “{x.resolution_note}”
+          </Typography>
+        )}
+      </TableCell>
+      <TableCell>{[x.vineyard_id, x.row_id].filter(Boolean).join(" · ") || "—"}</TableCell>
+      <TableCell>{x.assignee_email ?? <em>{t("unassigned")}</em>}</TableCell>
+      <TableCell>
+        <Chip size="small" color={STATUS_COLOR[x.status]} label={t(`status.${x.status}`)} />
+      </TableCell>
+      <TableCell>{x.due_date ? f.date(x.due_date) : "—"}</TableCell>
+      <TableCell>{t(`priority.${x.priority}`)}</TableCell>
+      <TableCell>{f.date(x.updated_at)}</TableCell>
+      <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+        {x.target_id && (
+          <Tooltip title={t("showOnMap")}>
+            <IconButton size="small" component={Link} href={`/harta?tinta=${x.target_id}`}>
+              <MapOutlined fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        {canUpdate(x) && (
+          <Tooltip title={t("update")}>
+            <IconButton
+              size="small"
+              onClick={() => {
+                setStatusDraft({ status: x.status === "open" ? "in_progress" : x.status, note: x.resolution_note ?? "" });
+                setEditing(x);
+              }}
+            >
+              <EditNoteOutlined fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -217,32 +312,37 @@ export function TasksPanel({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {targets.map((x) => (
-                    <TableRow key={targetKey(x)} hover selected={selTargets.has(targetKey(x))}>
-                      <TableCell padding="checkbox">
-                        <Checkbox checked={selTargets.has(targetKey(x))} onChange={() => setSelTargets((s) => toggle(s, targetKey(x)))} />
-                      </TableCell>
-                      <TableCell>
-                        <Chip size="small" variant="outlined" label={t(`kind.${x.kind}`)} sx={{ mr: 2 }} />
-                        {title(x)}
-                      </TableCell>
-                      <TableCell>
-                        {[x.vineyard_id, x.row_id].filter(Boolean).join(" · ")}
-                        {x.route_order ? (
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            {` · ${x.target_id} · ${t("route", { n: x.route_order })}`}
-                          </Typography>
-                        ) : null}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Tooltip title={t("showOnMap")}>
-                          <IconButton size="small" component={Link} href={`/harta?tinta=${x.target_id}`}>
-                            <MapOutlined fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {targetGroups.map((g) => {
+                    const keys = g.items.map(targetKey);
+                    const open = isOpen(openTargetFarms, targetGroups, g.key);
+                    return (
+                      <Fragment key={g.key}>
+                        <FarmGroupRow
+                          group={g}
+                          colSpan={3}
+                          expanded={open}
+                          onToggle={() => setOpenTargetFarms((s) => toggle(s, g.key))}
+                          summary={t("farmTargets", { n: g.items.length })}
+                          check={{ ...groupCheck(keys, selTargets), onChange: (on) => setSelTargets((s) => setGroup(s, keys, on)) }}
+                          action={
+                            <Button
+                              size="small"
+                              startIcon={<AddTaskOutlined />}
+                              disabled={pending}
+                              onClick={() => {
+                                setSelTargets(new Set(keys));
+                                setAssign({ assignee: "", dueDate: "", priority: 2 });
+                                setCreating(true);
+                              }}
+                            >
+                              {t("assignFarm")}
+                            </Button>
+                          }
+                        />
+                        {open && g.items.map(targetRow)}
+                      </Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Box>
@@ -317,62 +417,45 @@ export function TasksPanel({
                   </TableCell>
                 </TableRow>
               )}
-              {visible.map((x) => (
-                <TableRow
-                  key={x.id}
-                  id={`task-${x.id}`}
-                  hover
-                  selected={selTasks.has(x.id) || x.id === focusId}
-                  sx={x.id === focusId ? { outline: 2, outlineColor: "primary.main", outlineOffset: -2 } : undefined}
-                >
-                  {isAdmin && (
-                    <TableCell padding="checkbox">
-                      <Checkbox checked={selTasks.has(x.id)} onChange={() => setSelTasks((s) => toggle(s, x.id))} />
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <Chip size="small" variant="outlined" label={t(`kind.${x.kind}`)} sx={{ mr: 2 }} />
-                    <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-                      {title(x)}
-                    </Typography>
-                    {x.resolution_note && (
-                      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5 }}>
-                        “{x.resolution_note}”
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{[x.vineyard_id, x.row_id].filter(Boolean).join(" · ") || "—"}</TableCell>
-                  <TableCell>{x.assignee_email ?? <em>{t("unassigned")}</em>}</TableCell>
-                  <TableCell>
-                    <Chip size="small" color={STATUS_COLOR[x.status]} label={t(`status.${x.status}`)} />
-                  </TableCell>
-                  <TableCell>{x.due_date ? f.date(x.due_date) : "—"}</TableCell>
-                  <TableCell>{t(`priority.${x.priority}`)}</TableCell>
-                  <TableCell>{f.date(x.updated_at)}</TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                    {x.target_id && (
-                      <Tooltip title={t("showOnMap")}>
-                        <IconButton size="small" component={Link} href={`/harta?tinta=${x.target_id}`}>
-                          <MapOutlined fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {canUpdate(x) && (
-                      <Tooltip title={t("update")}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setStatusDraft({ status: x.status === "open" ? "in_progress" : x.status, note: x.resolution_note ?? "" });
-                            setEditing(x);
-                          }}
-                        >
-                          <EditNoteOutlined fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {taskGroups.map((g) => {
+                const ids = g.items.map((x) => x.id);
+                const open = isOpen(openTaskFarms, taskGroups, g.key);
+                const unassigned = g.items.filter((x) => !x.assignee).length;
+                const people = [...new Set(g.items.map((x) => x.assignee_email).filter(Boolean))];
+                const summary = [
+                  t("farmTasks", { n: g.items.length, open: g.items.filter((x) => x.status === "open").length, unassigned }),
+                  people.length ? `${t("colAssignee")}: ${people.slice(0, 2).join(", ")}${people.length > 2 ? ` +${people.length - 2}` : ""}` : null,
+                ];
+                return (
+                  <Fragment key={g.key}>
+                    <FarmGroupRow
+                      group={g}
+                      colSpan={8}
+                      expanded={open}
+                      onToggle={() => setOpenTaskFarms((s) => toggle(s, g.key))}
+                      summary={summary.filter(Boolean).join(" · ")}
+                      check={isAdmin ? { ...groupCheck(ids, selTasks), onChange: (on) => setSelTasks((s) => setGroup(s, ids, on)) } : undefined}
+                      action={
+                        isAdmin ? (
+                          <Button
+                            size="small"
+                            startIcon={<AssignmentIndOutlined />}
+                            disabled={pending}
+                            onClick={() => {
+                              setSelTasks(new Set(ids));
+                              setAssign({ assignee: "", dueDate: "", priority: 2 });
+                              setAssigning(true);
+                            }}
+                          >
+                            {t("assignFarm")}
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                    {open && g.items.map(taskRow)}
+                  </Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </Box>

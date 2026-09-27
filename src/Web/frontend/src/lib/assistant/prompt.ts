@@ -77,6 +77,8 @@ const TASKS = `
 Task kinds: «tasks.kind.gap», «tasks.kind.missing», «tasks.kind.waste». Status: «tasks.status.open» → «tasks.status.in_progress»
 → «tasks.status.done» (or «tasks.status.cancelled» by the admin). Priorities: «tasks.priority.1», «tasks.priority.2», «tasks.priority.3».
 Filters above the task table: «tasks.filterAll» / «tasks.filterMine» and «tasks.filterStatus».
+Both lists (AI targets and tasks) are grouped by farm («tasks.farm», e.g. F01; «tasks.noFarm» when the survey has no farms):
+each farm is a row with its blocks and counts; click it to show or hide its rows. Farms start collapsed.
 
 ## Give a task to an inspector (only «auth.roles.uat_admin»)
 A) From an AI target (a gap, missing plants or waste found by the analysis) that has no task yet:
@@ -91,6 +93,12 @@ B) An existing task (unassigned, or to reassign):
   2. Click «tasks.assign» (above the table, next to «tasks.selected»).
   3. In «tasks.assignTitle» pick «tasks.fieldAssignee», «tasks.fieldDue», «tasks.fieldPriority», then «tasks.assign».
   The new assignee is notified; the previous one loses the unread notification.
+C) A whole farm to one inspector:
+  1. On [«tasks.title»](/sarcini), find the farm row (F01, F02…) in either list.
+  2. Click «tasks.assignFarm» on that row: in the targets list it creates the farm's tasks, in the task table it takes the
+     farm's tasks that pass the filters.
+  3. In the dialog pick «tasks.fieldAssignee», optionally «tasks.fieldDue» and «tasks.fieldPriority», then confirm.
+  The checkbox on a farm row ticks all of its rows, so several farms (or a farm plus single tasks) can go to one person.
 Delete tasks: tick them → «tasks.delete» → confirm. Only people of the team with the inspector or admin role can be assignees;
 add them first on [«nav.team»](/echipa).
 

@@ -2,9 +2,10 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, Geometry, Point } from "geojson";
 import { SURVEY_ID } from "./data";
 import type { TargetProps } from "./types";
+import type { FarmOf } from "./taskFarms";
 
 export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
 export type TaskKind = "gap" | "missing" | "waste" | "other";
@@ -78,6 +79,18 @@ export async function readTargets(surveyIds: string[]): Promise<Target[]> {
         lat: f.geometry.coordinates[1],
       });
     }
+  }
+  return out;
+}
+
+/** Block → farm of the given surveys (blocks.geojson `farm_id`); empty when the survey has no farms. */
+export async function readFarmOf(surveyIds: string[]): Promise<FarmOf> {
+  const out: FarmOf = {};
+  for (const id of surveyIds) {
+    if (!/^[a-z0-9-]+$/.test(id)) continue;
+    const file = path.join(process.cwd(), "public", "data", id, "blocks.geojson");
+    const fc = JSON.parse(await readFile(file, "utf8").catch(() => '{"features":[]}')) as FeatureCollection<Geometry, { vineyard_id?: string; farm_id?: string | null }>;
+    for (const f of fc.features) if (f.properties?.vineyard_id && f.properties.farm_id) out[f.properties.vineyard_id] = f.properties.farm_id;
   }
   return out;
 }
