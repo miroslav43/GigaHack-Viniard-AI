@@ -10,11 +10,12 @@
     "typecheck": "next typegen && tsc --noEmit",
     "predev": "node scripts/copy-maplibre-worker.mjs",
     "prebuild": "node scripts/copy-maplibre-worker.mjs",
-    "data": "node scripts/build-data.mjs && node scripts/build-terrain.mjs --survey siret3-mock",
-    "data:fast": "node scripts/build-data.mjs --skip-ortho && node scripts/build-terrain.mjs --survey siret3-mock",
+    "data": "node scripts/build-data.mjs && node scripts/build-terrain.mjs --survey siret3-mock && node scripts/build-stats.mjs --survey siret3-mock",
+    "data:fast": "node scripts/build-data.mjs --skip-ortho && node scripts/build-terrain.mjs --survey siret3-mock && node scripts/build-stats.mjs --survey siret3-mock",
     "data:survey": "node scripts/build-survey.mjs",
     "data:terrain": "node scripts/build-terrain.mjs",
-    "test:scripts": "node --test scripts/survey/*.test.mjs scripts/terrain/*.test.mjs scripts/assistant/*.test.mjs src/lib/farmRoute/*.test.ts src/lib/analiza/*.test.ts src/lib/robot/*.test.ts src/lib/taskFarms.test.ts",
+    "data:stats": "node scripts/build-stats.mjs",
+    "test:scripts": "node --test scripts/survey/*.test.mjs scripts/terrain/*.test.mjs scripts/stats/*.test.mjs scripts/assistant/*.test.mjs src/lib/farmRoute/*.test.ts src/lib/analiza/*.test.ts src/lib/robot/*.test.ts src/lib/motion/*.test.ts src/lib/taskFarms.test.ts",
     "e2e": "playwright test"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@mui/icons-material": "9.4.0",
     "@mui/material": "9.4.0",
     "@mui/material-nextjs": "9.4.0",
+    "@mui/x-charts": "9.14.0",
     "@mui/x-data-grid": "9.14.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.2",

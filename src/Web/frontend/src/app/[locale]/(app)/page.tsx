@@ -14,6 +14,7 @@ import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import { LinkButton, LinkChip } from "@/components/common/links";
 import { Page, PageHeader } from "@/components/common/PageHeader";
 import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
+import { CountUp } from "@/components/common/CountUp";
 import { MockBanner, sourceLine } from "@/components/common/SourceNote";
 import { NoSurvey } from "@/components/common/NoSurvey";
 import { getViewer } from "@/lib/viewer";
@@ -52,17 +53,17 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
 
       <Section title={t("sectionCommune")} first />
       <KpiGrid>
-        <KpiCard label={t("communeArea")} value={`${f.num(s.uat.area_ha, 0)} ${f.units.ha}`} hint={t("communeAreaHint", { id: s.uat.osm_relation_id })} />
+        <KpiCard label={t("communeArea")} value={<CountUp value={s.uat.area_ha} format="num" digits={0} suffix={` ${f.units.ha}`} />} hint={t("communeAreaHint", { id: s.uat.osm_relation_id })} />
         <KpiCard
           label={t("surveyedArea")}
-          value={`${f.num(s.survey.surveyed_area_ha, 1)} ${f.units.ha}`}
+          value={<CountUp value={s.survey.surveyed_area_ha} format="num" digits={1} suffix={` ${f.units.ha}`} />}
           hint={t("surveyedAreaHint", { pct: f.pct(coverage), tiles: s.survey.tiles_total })}
         />
-        <KpiCard label={t("gsd")} value={`${f.num(s.survey.gsd_m * 100, 1)} ${f.units.cmpx}`} hint={s.survey.source} />
+        <KpiCard label={t("gsd")} value={<CountUp value={s.survey.gsd_m * 100} format="num" digits={1} suffix={` ${f.units.cmpx}`} />} hint={s.survey.source} />
         {s.tiles && (
           <KpiCard
             label={t("tiles")}
-            value={f.int(s.tiles.total)}
+            value={<CountUp value={s.tiles.total} />}
             hint={t("tilesHint", { vineyard: f.int(s.tiles.vineyard), noVineyard: f.int(s.tiles.no_vineyard), toComplete: f.int(s.tiles.to_complete) })}
           />
         )}
@@ -70,14 +71,14 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
 
       <Section title={t("sectionPlantings")} />
       <KpiGrid>
-        <KpiCard label={t("blocks")} value={f.int(tt.block_count)} tone="primary" hint={t("blocksHint")} />
-        <KpiCard label={t("rows")} value={f.int(tt.row_count)} tone="primary" hint={t("rowsHint")} />
-        <KpiCard label={t("rowLength")} value={f.length(tt.row_length_m)} hint={t("rowLengthHint")} />
-        <KpiCard label={t("canopyArea")} value={f.ha(tt.canopy_area_m2)} hint={t("canopyAreaHint", { area: f.area(tt.canopy_area_m2), plants: f.int(tt.canopy_count) })} />
-        <KpiCard label={t("interrowArea")} value={f.ha(tt.interrow_area_m2)} hint={f.area(tt.interrow_area_m2)} />
+        <KpiCard label={t("blocks")} value={<CountUp value={tt.block_count} />} tone="primary" hint={t("blocksHint")} />
+        <KpiCard label={t("rows")} value={<CountUp value={tt.row_count} />} tone="primary" hint={t("rowsHint")} />
+        <KpiCard label={t("rowLength")} value={<CountUp value={tt.row_length_m} format="length" />} hint={t("rowLengthHint")} />
+        <KpiCard label={t("canopyArea")} value={<CountUp value={tt.canopy_area_m2} format="ha" />} hint={t("canopyAreaHint", { area: f.area(tt.canopy_area_m2), plants: f.int(tt.canopy_count) })} />
+        <KpiCard label={t("interrowArea")} value={<CountUp value={tt.interrow_area_m2} format="ha" />} hint={f.area(tt.interrow_area_m2)} />
         <KpiCard
           label={t("disrupted")}
-          value={f.pct(tt.row_count ? tt.disrupted_rows / tt.row_count : 0)}
+          value={<CountUp value={tt.row_count ? tt.disrupted_rows / tt.row_count : 0} format="pct" />}
           tone="warning"
           hint={t("disruptedHint", { n: tt.disrupted_rows })}
         />
@@ -85,12 +86,12 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
 
       <Section title={t("sectionInspection")} />
       <KpiGrid>
-        <KpiCard label={t("targets")} value={f.int(tt.target_count)} hint={t("targetsHint", { waste: tt.waste_count })} />
-        <KpiCard label={t("route")} value={f.length(s.route.length_m)} tone="primary" hint={t("routeHint", { min: f.min(s.route.duration_min), speed: s.route.speed_kmh })} />
+        <KpiCard label={t("targets")} value={<CountUp value={tt.target_count} />} hint={t("targetsHint", { waste: tt.waste_count })} />
+        <KpiCard label={t("route")} value={<CountUp value={s.route.length_m} format="length" />} tone="primary" hint={t("routeHint", { min: f.min(s.route.duration_min), speed: s.route.speed_kmh })} />
         {saved > 0 && (
           <KpiCard
             label={t("savings")}
-            value={`−${f.length(saved)}`}
+            value={<CountUp value={saved} format="length" prefix="−" />}
             hint={t("savingsHint", { pct: f.pct(saved / s.route.baseline_length_m), min: f.min((saved / 1000 / s.route.speed_kmh) * 60) })}
           />
         )}

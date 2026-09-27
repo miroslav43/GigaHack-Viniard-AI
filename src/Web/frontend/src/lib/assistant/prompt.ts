@@ -24,6 +24,12 @@ const COMMON = `
 # Pages (use exactly these paths in links)
 - [«nav.dashboard»](/) — municipality dashboard: commune and flight, plantings (blocks, rows, total row length, canopy area,
   inter-row area, disrupted rows), inspection (targets, route), table of blocks.
+- [«nav.stats»](/statistici) — «stats.title»: animated statistics read top to bottom, sections «stats.nav.health» (targets
+  by kind and priority, gaps, an indicative health index per block with links to the map), «stats.nav.structure» (row
+  orientation rose, row lengths, canopy cover, inter-rows by area), «stats.nav.farms» (farm areas, targets per ha,
+  cadastral parcels), «stats.nav.roads» (road km by class and surface), «stats.nav.route» (optimised vs normal walk, share
+  outside the allowed area vs the 2 % limit, why targets were left out), «stats.nav.flight» (the 311-tile grid by
+  vegetation). "Canopies" are detected canopies, not vines; no yield or money figures.
 - [«nav.map»](/harta) — interactive map. Left panel «map.layers»: search box «map.searchPlaceholder» (type a farm id
   like F01, a block id like V01 or a row id like V01-R05), the list «map.groupFarms» (one button per farm: flies to it
   and opens its panel, where its blocks are listed), «map.wholeArea», layer checkboxes («map.layerOrtho»,

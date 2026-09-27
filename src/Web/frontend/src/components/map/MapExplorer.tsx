@@ -48,6 +48,8 @@ import { useFarmRoute } from "./overlays/farmRoute/useFarmRoute";
 import { FarmRouteLayers, useFarmRouteStops } from "./overlays/farmRoute/FarmRouteLayers";
 import { FarmRouteSection } from "./overlays/farmRoute/FarmRouteSection";
 import { FarmRouteTool } from "./overlays/farmRoute/FarmRouteTool";
+import { RouteDraw } from "./animation/RouteDraw";
+import { TARGET_PULSE_FILTER, TARGET_PULSE_LAYER, TARGET_PULSE_PAINT, TargetPulse } from "./animation/TargetPulse";
 
 /** public/data/tiles.json; the image urls are null when the orthophoto was not generated (no GeoTIFFs, e.g. CI). */
 interface TileIndex {
@@ -476,8 +478,12 @@ export function MapExplorer({
               )}
             </Source>
           )}
+          {/* the official route draws itself when its layer is switched on */}
+          {route && <RouteDraw sourceId="route" data={route} active={visible.route && !farmRouteShown} />}
           {targets && (
             <Source id="targets" type="geojson" data={targets}>
+              {/* pulsing halo under the priority-1 targets (animated by <TargetPulse>) */}
+              <Layer id={TARGET_PULSE_LAYER} type="circle" filter={TARGET_PULSE_FILTER} paint={TARGET_PULSE_PAINT} layout={vis(visible.targets)} />
               <Layer
                 id="targets-circle"
                 type="circle"
@@ -500,6 +506,7 @@ export function MapExplorer({
               />
             </Source>
           )}
+          {targets && <TargetPulse active={visible.targets} />}
 
           {/* ---- the cadastral parcel picked by the last click (empty otherwise) ---- */}
           <CadastreHighlight

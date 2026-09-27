@@ -17,6 +17,7 @@ import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
+import InsightsOutlined from "@mui/icons-material/InsightsOutlined";
 import MapOutlined from "@mui/icons-material/MapOutlined";
 import TableRowsOutlined from "@mui/icons-material/TableRowsOutlined";
 import RouteOutlined from "@mui/icons-material/RouteOutlined";
@@ -38,6 +39,7 @@ import type { ShellViewer } from "./types";
 
 const BASE_NAV = [
   { href: "/", label: "nav.dashboard", short: "nav.dashboardShort", icon: <DashboardOutlined /> },
+  { href: "/statistici", label: "nav.stats", short: "nav.statsShort", icon: <InsightsOutlined /> },
   { href: "/harta", label: "nav.map", short: "nav.mapShort", icon: <MapOutlined /> },
   { href: "/blocuri", label: "nav.blocks", short: "nav.blocksShort", icon: <TableRowsOutlined /> },
   { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
@@ -138,10 +140,11 @@ export function AppShell({ children, viewer }: { children: ReactNode; viewer: Sh
           component="nav"
           showLabels
           value={NAV.findIndex((n) => active(n.href))}
-          sx={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: 1, borderColor: "divider", zIndex: 10 }}
+          // more pages than fit on a phone: the bar scrolls sideways instead of pushing the first ones off screen
+          sx={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: 1, borderColor: "divider", zIndex: 10, justifyContent: "flex-start", overflowX: "auto", scrollbarWidth: "none" }}
         >
           {NAV.map((n) => (
-            <BottomNavigationAction key={n.href} component={Link} href={n.href} label={t(n.short)} icon={n.icon} />
+            <BottomNavigationAction key={n.href} component={Link} href={n.href} label={t(n.short)} icon={n.icon} sx={{ minWidth: 76, flexShrink: 0 }} />
           ))}
         </BottomNavigation>
         {assistant}

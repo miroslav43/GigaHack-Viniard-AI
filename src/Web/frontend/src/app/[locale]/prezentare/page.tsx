@@ -34,6 +34,7 @@ import { LandingHeader } from "@/components/landing/LandingHeader";
 import { LeadForm } from "@/components/landing/LeadForm";
 import { LogoMark } from "@/components/shell/Logo";
 import { LinkButton } from "@/components/common/links";
+import { CountUp } from "@/components/common/CountUp";
 import { routing } from "@/i18n/routing";
 import { getSummary } from "@/lib/data";
 import { makeFormat } from "@/lib/format";
@@ -137,13 +138,13 @@ export default async function PresentationPage({ params }: PageProps<"/[locale]/
   const productImages = ["/marketing/hero-row.webp", "/marketing/tasks.webp", "/marketing/mobile-map.webp", "/marketing/dashboard.webp"];
 
   const stats = pilot && [
-    { value: f.num(pilot.survey.surveyed_area_ha, 1), label: t("pilot.area") },
-    { value: f.int(pilot.totals.plant_count), label: t("pilot.plants") },
-    { value: f.int(pilot.totals.row_count), label: t("pilot.rows") },
-    { value: f.num(pilot.totals.row_length_m / 1000, 1), label: t("pilot.rowLength") },
-    { value: f.int(pilot.totals.disrupted_rows), label: t("pilot.disrupted") },
-    { value: f.int(pilot.totals.target_count), label: t("pilot.targets") },
-    { value: f.num(pilot.route.length_m / 1000, 1), label: t("pilot.route") },
+    { value: <CountUp value={pilot.survey.surveyed_area_ha} format="num" digits={1} />, label: t("pilot.area") },
+    { value: <CountUp value={pilot.totals.plant_count} />, label: t("pilot.plants") },
+    { value: <CountUp value={pilot.totals.row_count} />, label: t("pilot.rows") },
+    { value: <CountUp value={pilot.totals.row_length_m / 1000} format="num" digits={1} />, label: t("pilot.rowLength") },
+    { value: <CountUp value={pilot.totals.disrupted_rows} />, label: t("pilot.disrupted") },
+    { value: <CountUp value={pilot.totals.target_count} />, label: t("pilot.targets") },
+    { value: <CountUp value={pilot.route.length_m / 1000} format="num" digits={1} />, label: t("pilot.route") },
   ];
 
   return (

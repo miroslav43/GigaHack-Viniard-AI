@@ -378,6 +378,20 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - pozele trăiesc doar în tab până sunt descărcate;
   - **modul street view** (mers 50 cm, apoi poze la 0°, 90° și 180°) se poate construi peste aceleași comenzi, după calibrarea distanței parcurse pe secundă la o anumită viteză.
 
+### ADR-030 — Pagina „Statistici”: metrici derivate într-un `stats.json` precalculat, grafice `@mui/x-charts`, animații la intrarea în ecran
+- **Context:** juriul și primăria văd doar cifrele-cheie (panou, bandă KPI) și nicio distribuție. Datele publicate conțin însă mult mai mult: tipul, prioritatea și motivul de excludere al fiecărei ținte, golurile, geometria rândurilor, acoperirea inter-rândurilor, fermele cu parcelele cadastrale, drumurile OSM și grila tile-urilor. `canopies.geojson` are 8 MB, deci nu se poate citi la fiecare cerere.
+- **Decizie:**
+  - `scripts/build-stats.mjs` (funcții pure în `scripts/stats/`, teste `node:test`) calculează o singură dată `public/data/<id>/stats.json` **doar din fișierele deja publicate**. Nu se atinge pipeline-ul, convertorul, `measurements.csv` sau Marcaj. Se rulează ca relieful: `pnpm data:stats --survey <id>`, iar `pnpm data` / `data:fast` îl rulează pentru mock;
+  - pagina **`/statistici`** (meniu „Statistici”, după „Panou”) se citește de sus în jos: o deschidere cu cifrele mari și 6 secțiuni (starea plantației, structură, ferme și cadastru, drumuri, rută, zbor și AI). O secțiune fără date (ferme și drumuri pe mock) nu apare, iar literele urmează ce se vede;
+  - grafice **`@mui/x-charts` 9.14.0** (în stack-ul aprobat, §3; MIT, compatibil MUI 9) plus SVG propriu pentru rozeta orientării și grila tile-urilor. Culorile vin din `src/theme/chartPalette.ts`, derivată din tokeni; ordinea categorială a fost verificată cu validatorul de paletă (separare pentru daltonism, contrast ≥ 3:1);
+  - **animații:** `useInView` + `useReducedMotion` (`src/lib/motion/`), `CountUp` pe toate cifrele KPI (panou, rută, hartă, prezentare, statistici), graficele montate la intrarea în ecran, iar pe hartă ruta oficială se desenează progresiv și țintele de prioritate 1 pulsează. Cu `prefers-reduced-motion` totul apare direct în starea finală;
+  - **indicele de stare pe bloc** e orientativ, iar formula și constantele sunt afișate pe pagină (`scripts/stats/health.mjs`). Blocurile cu sub 100 m de rânduri nu primesc indice.
+- **Respins:**
+  - calculul la cerere pe server (8 MB de coroane la fiecare încărcare);
+  - o bibliotecă de animații (framer-motion), pentru că CSS, rAF și IntersectionObserver ajung;
+  - cifre de producție sau bani. `plant_count` rămâne „coroane detectate” (o coroană la ~3,5 m de rând, deci vițe unite), nu vițe.
+- **Consecințe:** după `pnpm data:survey` trebuie rulat și `pnpm data:stats`. Fără `stats.json`, pagina arată comanda care îl generează.
+
 ### ADR-031 — Struguri și frunze pe panoramele robotului: Gemini prin OpenRouter, salvate local pe laptop
 - **Context:** panoramele robotului (3 poze la 0°, 90° și 180° la fiecare pas de 50 cm, ADR-029) trebuie să arate unde sunt struguri și frunze și să rămână salvate.
 - **Decizie:**

@@ -15,6 +15,7 @@ import MapOutlined from "@mui/icons-material/MapOutlined";
 import { LinkButton, LinkChip } from "@/components/common/links";
 import { Page, PageHeader } from "@/components/common/PageHeader";
 import { KpiCard, KpiGrid } from "@/components/common/KpiCard";
+import { CountUp } from "@/components/common/CountUp";
 import { MockBanner, sourceLine } from "@/components/common/SourceNote";
 import { NoSurvey } from "@/components/common/NoSurvey";
 import { getViewer } from "@/lib/viewer";
@@ -62,13 +63,13 @@ export default async function RoutePage({ params }: PageProps<"/[locale]/ruta">)
       />
       <MockBanner summary={s} />
       <KpiGrid>
-        <KpiCard label={t("length")} value={f.length(r.length_m)} tone="primary" hint={t("lengthHint")} />
-        <KpiCard label={t("duration")} value={f.min(r.duration_min)} hint={t("durationHint", { speed: r.speed_kmh })} />
-        <KpiCard label={t("targets")} value={f.int(targets.features.length)} hint={t("targetsHint")} />
+        <KpiCard label={t("length")} value={<CountUp value={r.length_m} format="length" />} tone="primary" hint={t("lengthHint")} />
+        <KpiCard label={t("duration")} value={<CountUp value={r.duration_min} format="min" />} hint={t("durationHint", { speed: r.speed_kmh })} />
+        <KpiCard label={t("targets")} value={<CountUp value={targets.features.length} />} hint={t("targetsHint")} />
         {saved > 0 && (
           <KpiCard
             label={tc("dashboard.savings")}
-            value={`−${f.length(saved)}`}
+            value={<CountUp value={saved} format="length" prefix="−" />}
             hint={tc("dashboard.savingsHint", { pct: f.pct(saved / r.baseline_length_m), min: f.min((saved / 1000 / r.speed_kmh) * 60) })}
           />
         )}

@@ -2,11 +2,12 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { FeatureCollection, Point } from "geojson";
-import type { OverlayFiles, RowRecord, SurveySummary, TargetProps } from "./types";
+import type { OverlayFiles, RowRecord, SurveyStats, SurveySummary, TargetProps } from "./types";
 import { parseTerrainMeta, TERRAIN_META_FILE, type TerrainMeta } from "./terrain";
 
 export const SURVEY_ID = process.env.NEXT_PUBLIC_SURVEY_ID ?? "siret3-mock";
 const DATA_DIR = path.join(process.cwd(), "public", "data", SURVEY_ID);
+const STATS_FILE = "stats.json";
 
 const readJson = async <T>(file: string): Promise<T> => JSON.parse(await readFile(path.join(DATA_DIR, file), "utf8")) as T;
 const exists = (file: string) => access(path.join(DATA_DIR, file)).then(() => true, () => false);
@@ -18,6 +19,13 @@ export const getTargets = () => readJson<FeatureCollection<Point, TargetProps>>(
 export const getTerrain = (): Promise<TerrainMeta | null> =>
   readJson<unknown>(TERRAIN_META_FILE).then(parseTerrainMeta, (err: NodeJS.ErrnoException) => {
     if (err.code !== "ENOENT") console.warn(`terrain: ${TERRAIN_META_FILE} of ${SURVEY_ID} unreadable (${err.message}); 3D view disabled`);
+    return null;
+  });
+
+/** Derived metrics of /statistici (scripts/build-stats.mjs); null when not generated — the page then says how to build them. */
+export const getStats = (): Promise<SurveyStats | null> =>
+  readJson<SurveyStats>(STATS_FILE).catch((err: NodeJS.ErrnoException) => {
+    if (err.code !== "ENOENT") console.warn(`stats: ${STATS_FILE} of ${SURVEY_ID} unreadable (${err.message})`);
     return null;
   });
 

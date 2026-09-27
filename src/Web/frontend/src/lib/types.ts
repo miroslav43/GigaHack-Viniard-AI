@@ -203,3 +203,92 @@ export interface InterrowProps {
   /** area of the whole inter-row (union of its pieces across tiles); absent on the mock */
   interrow_total_m2?: number;
 }
+
+/** Histogram over fixed edges: counts[i] holds edges[i] <= v < edges[i+1]; the last bin is open-ended. */
+export interface Histogram {
+  edges: number[];
+  counts: number[];
+}
+
+/** stats.json — derived metrics of the /statistici page (scripts/build-stats.mjs, docs/STATISTICI.md). */
+export interface SurveyStats {
+  version: number;
+  survey_id: string;
+  targets: {
+    total: number;
+    by_type: Record<string, number>;
+    /** null on surveys without the property (the mock) */
+    by_kind: Record<string, number> | null;
+    by_priority: Record<string, number> | null;
+    on_route: number;
+    off_route: number;
+    skip_reasons: Record<string, number> | null;
+    gap_total_m: number;
+  };
+  rows: {
+    count: number;
+    length_median_m: number;
+    length_max_m: number;
+    gap_median_m: number;
+    gap_max_m: number;
+    length_hist: Histogram;
+    gap_hist: Histogram;
+    /** row length (m) per bin_deg bin of the row axis, degrees clockwise from north on [0, 180) */
+    orientation: { bin_deg: number; length_m: number[]; dominant_deg: number; dominant_share: number; window_deg: number };
+  };
+  structure: {
+    canopy_cover_share: number;
+    interrow_width_m: number;
+    canopy_mean_m2: number;
+    row_m_per_canopy: number;
+    interrow_area_by_cover: Partial<Record<InterrowCover, number>>;
+    interrow_area_total_m2: number;
+  };
+  health: {
+    weights: { disrupted: number; missing: number; gap: number };
+    min_row_length_m: number;
+    norm_quantile: number;
+    norm: { missing_per_100m: number; gap_m_per_100m: number };
+    blocks: BlockHealth[];
+  };
+  farms: FarmsStats | null;
+  roads: { by_class: Partial<Record<RoadClass, { total_m: number; by_surface: Record<string, number> }>> } | null;
+  tiles: TilesStats | null;
+  route: {
+    length_m: number;
+    duration_min: number;
+    baseline_length_m: number | null;
+    saved_m: number | null;
+    saved_share: number | null;
+    saved_min: number | null;
+    outside_share: number | null;
+    outside_limit: number;
+  };
+}
+
+export interface BlockHealth {
+  vineyard_id: string;
+  farm_id: string | null;
+  row_length_m: number;
+  disrupted_share: number;
+  missing_per_100m: number;
+  gap_m_per_100m: number;
+  /** 0–100; null under min_row_length_m of rows */
+  score: number | null;
+}
+
+export interface FarmsStats {
+  count: number;
+  total_area_m2: number;
+  commune_share: number;
+  parcels_total: number | null;
+  /** largest first */
+  items: { farm_id: string; area_m2: number; n_blocks: number; n_parcels: number | null; target_count: number; targets_per_ha: number; cumulative_share: number }[];
+}
+
+export interface TilesStats {
+  rows: number;
+  cols: number;
+  veg_frac_mean: number;
+  items: { tile: string; r: number; c: number; status: TileStatus; veg_frac: number; nodata_frac: number; to_complete: boolean }[];
+}
