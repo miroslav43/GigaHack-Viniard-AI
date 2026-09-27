@@ -1,0 +1,598 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Sireț3 · modelul vine-unet, de la pseudo-etichete la inferență",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "547fddc033db31604663ac7a91fce219a839846d"
+    },
+    "views": [
+      {
+        "id": "labels",
+        "label": "Pseudo-etichete",
+        "focus": [
+          "full_v2",
+          "select",
+          "pseudo",
+          "store",
+          "dataset"
+        ],
+        "note": "Etichetele vin din pipeline-ul clasic full-v2, nu de la organizatori: 1 viță, 0 fundal, 255 ignorat."
+      },
+      {
+        "id": "training",
+        "label": "Antrenare",
+        "focus": [
+          "dataset",
+          "unet",
+          "train",
+          "weights"
+        ],
+        "note": "U-Net ResNet-18, BCE + Dice, AdamW; oprire timpurie pe scorul canopy oficial, epoca 8 din 11."
+      },
+      {
+        "id": "ablation",
+        "label": "Ablație și decizie",
+        "focus": [
+          "weights",
+          "ablation",
+          "decision",
+          "classic"
+        ],
+        "note": "Nicio variantă NN nu bate A pe fiecare tile, deci canopy rămâne clasic (fusion A)."
+      },
+      {
+        "id": "inference",
+        "label": "Inferență → joncțiune",
+        "focus": [
+          "weights",
+          "infer",
+          "prob",
+          "junction",
+          "decision"
+        ],
+        "note": "88 de tile-uri în 9,9 s pe MPS; probabilitatea intră doar în zonele cadastre_auto."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "full_v2",
+      "type": "database",
+      "label": "Rularea clasică full-v2",
+      "sublabel": "rânduri · tile_status · QA",
+      "tag": "a* ∩ coridor ±0,30 m",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/pseudolabels.py",
+          "line": 140,
+          "end_line": 150,
+          "label": "coridoare din rânduri"
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "type": "backend",
+      "label": "Selecție tile-uri",
+      "sublabel": "17 curate + 55 urgente",
+      "tag": "+ 18 goale · fără holdout",
+      "pos": [
+        300,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/pseudolabels.py",
+          "line": 347,
+          "end_line": 373,
+          "label": "select_training_tiles"
+        }
+      ]
+    },
+    {
+      "id": "pseudo",
+      "type": "backend",
+      "label": "Pseudo-etichete",
+      "sublabel": "1 viță · 0 fundal · 255",
+      "tag": "1024² la 0,05 m",
+      "pos": [
+        560,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/pseudolabels.py",
+          "line": 167,
+          "end_line": 188,
+          "label": "classify_corridor_veg"
+        },
+        {
+          "path": "src/AI/vineyard/nn/pseudolabels.py",
+          "line": 213,
+          "end_line": 225,
+          "label": "build_pseudolabel"
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Patch store",
+      "sublabel": "339 patch-uri 512²",
+      "tag": "img/lbl .npy · cheie sha1",
+      "pos": [
+        820,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/patch_store.py",
+          "label": "patch store"
+        },
+        {
+          "path": "src/AI/vineyard/nn/store_format.py",
+          "label": "format shard-uri"
+        }
+      ]
+    },
+    {
+      "id": "dataset",
+      "type": "backend",
+      "label": "Dataset + augmentări",
+      "sublabel": "rot90 · flip · jitter ±0,10",
+      "tag": "RNG (seed, epocă, index)",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/dataset.py",
+          "label": "augmentări"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "type": "backend",
+      "label": "Antrenare",
+      "sublabel": "BCE + Dice · AdamW",
+      "tag": "lr 3e-4 · batch 8 · MPS · 11 epoci",
+      "pos": [
+        1080,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/train.py",
+          "label": "epoci + early stop"
+        },
+        {
+          "path": "src/AI/vineyard/nn/losses.py",
+          "label": "BCE mascat + Dice"
+        },
+        {
+          "path": "src/AI/vineyard/nn/validate.py",
+          "label": "scor pe holdout"
+        }
+      ]
+    },
+    {
+      "id": "weights",
+      "type": "database",
+      "label": "weights.pt v1",
+      "sublabel": "epoca 8 · val 0,678",
+      "tag": "57 MB · sha256 8b17fea0…",
+      "pos": [
+        820,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/weights.py",
+          "label": "fetch + sha256"
+        }
+      ]
+    },
+    {
+      "id": "ablation",
+      "type": "backend",
+      "label": "Ablație A–E",
+      "sublabel": "A 0,816 · D 0,773",
+      "tag": "C 0,707 · B 0,675 · E 0,641",
+      "pos": [
+        560,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/fusion.py",
+          "line": 1,
+          "end_line": 6,
+          "label": "variantele A–E"
+        },
+        {
+          "path": "src/AI/vineyard/nn/ablation.py",
+          "line": 89,
+          "end_line": 110,
+          "label": "decide_promotion"
+        }
+      ]
+    },
+    {
+      "id": "decision",
+      "type": "security",
+      "label": "Regula de promovare",
+      "sublabel": "B/C/D bat A pe orice tile?",
+      "tag": "nu → rămâne A",
+      "pos": [
+        300,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/default.yaml",
+          "line": 72,
+          "end_line": 88,
+          "label": "nn.enabled · fusion"
+        }
+      ]
+    },
+    {
+      "id": "classic",
+      "type": "backend",
+      "label": "Canopy rămâne clasic",
+      "sublabel": "ExG ∩ coridor · 0,8755",
+      "tag": "nn.enabled: false",
+      "pos": [
+        40,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/canopy.py",
+          "line": 186,
+          "end_line": 195,
+          "label": "fără raster NN"
+        }
+      ]
+    },
+    {
+      "id": "unet",
+      "type": "backend",
+      "label": "VineUnet",
+      "sublabel": "U-Net ResNet-18 (smp)",
+      "tag": "RGB → 1 logit · ~14,3 M",
+      "pos": [
+        1080,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/model.py",
+          "line": 36,
+          "end_line": 53,
+          "label": "VineUnet + smp.Unet"
+        }
+      ]
+    },
+    {
+      "id": "infer",
+      "type": "backend",
+      "label": "vineyard nn infer",
+      "sublabel": "tile întreg 1024² · batch 4",
+      "tag": "88 tile-uri · 9,9 s · MPS → CPU",
+      "pos": [
+        820,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/infer.py",
+          "line": 76,
+          "end_line": 154,
+          "label": "MPS → CPU, predict"
+        },
+        {
+          "path": "src/AI/vineyard/pipeline/stages/nn_infer.py",
+          "label": "etapa nn_infer"
+        }
+      ]
+    },
+    {
+      "id": "prob",
+      "type": "database",
+      "label": "canopy_prob PNG",
+      "sublabel": "uint8 = rint(p·255) × valid",
+      "tag": "work/cache/nn/v1",
+      "pos": [
+        560,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/probs.py",
+          "line": 81,
+          "end_line": 91,
+          "label": "upsample la 2048²"
+        }
+      ]
+    },
+    {
+      "id": "junction",
+      "type": "backend",
+      "label": "Joncțiunea (diagrama 8)",
+      "sublabel": "rows_seeded · cadastre_auto",
+      "tag": "p ≥ 0,5 doar în poligon",
+      "pos": [
+        300,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/_rows_seeded_io.py",
+          "line": 140,
+          "end_line": 156,
+          "label": "nn_in_seed_zones"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "1 · Pseudo-etichete din rularea clasică full-v2",
+      "wraps": [
+        "full_v2",
+        "select",
+        "pseudo",
+        "store",
+        "dataset"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "2 · Antrenare, ablație A–E și decizie",
+      "wraps": [
+        "classic",
+        "decision",
+        "ablation",
+        "weights",
+        "train"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "3 · Rețeaua și inferența RC10",
+      "wraps": [
+        "junction",
+        "prob",
+        "infer",
+        "unet"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "fullv2-select",
+      "from": "full_v2",
+      "to": "select",
+      "label": "status",
+      "variant": "emphasis"
+    },
+    {
+      "id": "select-pseudo",
+      "from": "select",
+      "to": "pseudo",
+      "label": "90 tile",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pseudo-store",
+      "from": "pseudo",
+      "to": "store",
+      "label": "512²",
+      "variant": "emphasis"
+    },
+    {
+      "id": "store-dataset",
+      "from": "store",
+      "to": "dataset",
+      "label": "shard-uri",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dataset-train",
+      "from": "dataset",
+      "to": "train",
+      "label": "batch 8",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1170,
+        208
+      ]
+    },
+    {
+      "id": "unet-train",
+      "from": "unet",
+      "to": "train",
+      "label": "logit",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        1170,
+        400
+      ]
+    },
+    {
+      "id": "train-weights",
+      "from": "train",
+      "to": "weights",
+      "label": "epoca 8",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "weights-ablation",
+      "from": "weights",
+      "to": "ablation",
+      "label": "p(viță)",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "ablation-decision",
+      "from": "ablation",
+      "to": "decision",
+      "label": "scoruri",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "decision-classic",
+      "from": "decision",
+      "to": "classic",
+      "label": "fusion A",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "weights-infer",
+      "from": "weights",
+      "to": "infer",
+      "label": "sha256 ok",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        910,
+        400
+      ]
+    },
+    {
+      "id": "infer-prob",
+      "from": "infer",
+      "to": "prob",
+      "label": "sigmoid",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "prob-junction",
+      "from": "prob",
+      "to": "junction",
+      "label": "p ≥ 0,5",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "decision-junction",
+      "from": "decision",
+      "to": "junction",
+      "label": "nn_kinds",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        390,
+        400
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Pseudo-etichete, fără adnotare manuală",
+      "items": [
+        "1 = vegetație a* ∧ coridor ±0,30 m, fără copaci; 0 = restul, inclusiv iarba; 255 = nodata, margini ±1 px, surplus ≤ 3 px",
+        "90 tile-uri, fără cele 2 de referință → 339 patch-uri 512²; pixeli: 1,5 % viță · 85,7 % fundal · 12,8 % ignorat"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Antrenare și ablație",
+      "items": [
+        "Unet(resnet18, ImageNet), 1 logit; BCE (ls 0,05) + Dice, AdamW 3e-4, cosinus; 11 epoci pe MPS, cea mai bună 8",
+        "Scor 0,6·IoU + 0,4·F1 pe r006_c004 + r021_c012: D pierde pe r006 (0,8526 ≤ 0,8552), deci rămâne A"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Inferență: precisă, dar conservatoare",
+      "items": [
+        "vineyard nn infer: 88 tile-uri (cele cu semințe cadastre_auto) în 9,89 s, 0,112 s/tile",
+        "nn.enabled rămâne false: canopy-ul e ExG (0,8755); NN-ul intră doar în rows_seeded (diagrama 8)"
+      ]
+    }
+  ]
+}

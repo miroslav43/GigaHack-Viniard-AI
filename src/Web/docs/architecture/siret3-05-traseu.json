@@ -29,13 +29,13 @@
     "views": [
       {
         "id": "straturi",
-        "label": "Din adnotări în straturi",
+        "label": "Din adnotări în domeniul de mers",
         "focus": [
           "annset",
           "derive",
           "passable"
         ],
-        "note": "Unește bucățile după row_id (abatere > 0,4 m → avertisment QA), leagă interrândurile (≤ 3,8 m), face blocuri, scade zonele interzise."
+        "note": "derive: 674 rânduri, 661 interrânduri. Domeniu = interrânduri ∪ pasaje − interzis − coroane; 5 treceri prin V13 intră în graf."
       },
       {
         "id": "tinte",
@@ -44,7 +44,7 @@
           "targets",
           "candidates"
         ],
-        "note": "row_gap ≥ 5 m, missing_row și waste sunt obligatorii; ținte de rând la < 3 m de marginea acoperirii sunt artefacte (89 eliminate)."
+        "note": "1 226 ținte: 246 must, 980 opționale; 93 eliminate la < 3 m de marginea acoperirii; ≤ 3 candidați pe latură."
       },
       {
         "id": "gtsp",
@@ -54,29 +54,35 @@
           "gtsp",
           "validator"
         ],
-        "note": "Per politică: graf penalizat → tabel D → sondă GTSP 5 s → validator. penalty: 1,72 % în afară, respinsă; penalty_x10 trece → final 30 s."
+        "note": "penalty: 1,72 % în afară, respinsă (plan ≤ 1,4 %). penalty_x10: 1,28 %, acceptată; OR-Tools GLS 30 s."
       },
       {
         "id": "livrare",
-        "label": "Validare și livrare",
+        "label": "Măsurători, ferme, livrare",
         "focus": [
-          "validator",
           "measure",
+          "farms",
+          "bundle",
           "publish",
           "refused"
         ],
-        "note": "web_bundle scrie în src/Web; publish recalculează totul din fișiere, iar orice verificare picată ridică PublishRefused."
+        "note": "measure → farms (doar pentru hartă) → web_bundle; publish trece 11/11 verificări, altfel PublishRefused."
       }
     ]
   },
   "lanes": [
     {
       "id": "l_sus",
-      "label": "Straturi, ținte și politici →"
+      "label": "Straturi, domeniu și ținte →"
     },
     {
       "id": "l_jos",
-      "label": "← GTSP, validare și livrare"
+      "label": "← Traseu, măsurători și livrare"
+    },
+    {
+      "id": "l_refuz",
+      "label": "Refuz la publicare",
+      "variant": "exception"
     }
   ],
   "mainPath": [
@@ -94,10 +100,10 @@
       "lane": "l_sus",
       "col": 0,
       "type": "external",
-      "label": "AnnSet model",
-      "sublabel": "rularea full-v3",
-      "tag": "import_marcaj: neimplementat",
-      "width": 150
+      "label": "AnnSet rc10f",
+      "sublabel": "adnotările modelului",
+      "tag": "1 508 bucăți de rând",
+      "width": 140
     },
     {
       "id": "derive",
@@ -105,8 +111,8 @@
       "col": 1,
       "type": "backend",
       "label": "Derivare",
-      "sublabel": "717 rânduri, 54 blocuri",
-      "tag": "unește și leagă interrânduri",
+      "sublabel": "674 rânduri, 44 blocuri",
+      "tag": "661 interrânduri",
       "width": 140
     },
     {
@@ -116,8 +122,8 @@
       "type": "security",
       "label": "Domeniu pietonal",
       "sublabel": "interrânduri ∪ pasaje − interzis",
-      "tag": "126.598 m² după scădere",
-      "width": 176
+      "tag": "130 108 m² · 5 treceri",
+      "width": 168
     },
     {
       "id": "targets",
@@ -125,9 +131,9 @@
       "col": 3,
       "type": "backend",
       "label": "Ținte de inspecție",
-      "sublabel": "390 must din 1.367 ținte",
+      "sublabel": "246 must din 1 226",
       "tag": "row_gap, missing_row, waste",
-      "width": 140
+      "width": 144
     },
     {
       "id": "candidates",
@@ -135,8 +141,8 @@
       "col": 4,
       "type": "backend",
       "label": "Seturi de candidați",
-      "sublabel": "≤ 3 candidați pe latură",
-      "tag": "318 seturi · o vizită / țintă",
+      "sublabel": "≤ 3 pe latură · 1,9 m",
+      "tag": "209 seturi",
       "width": 140
     },
     {
@@ -146,7 +152,7 @@
       "type": "messagebus",
       "label": "Scara de politici",
       "sublabel": "graf penalizat per politică",
-      "tag": "penalty → penalty_x10 → …",
+      "tag": "penalty → penalty_x10",
       "width": 140
     },
     {
@@ -155,7 +161,7 @@
       "col": 5,
       "type": "backend",
       "label": "Distanțe + GTSP",
-      "sublabel": "Dijkstra → OR-Tools",
+      "sublabel": "Dijkstra → OR-Tools GLS",
       "tag": "sondă 5 s · final 30 s",
       "width": 140
     },
@@ -165,34 +171,54 @@
       "col": 4,
       "type": "security",
       "label": "Validator traseu",
-      "sublabel": "1,14 % în afară (≤ 1,5 %)",
+      "sublabel": "1,28 % în afară (≤ 1,5 %)",
       "tag": "închidere la START 0,00 m",
-      "width": 140
-    },
-    {
-      "id": "publish",
-      "lane": "l_jos",
-      "col": 3,
-      "type": "frontend",
-      "label": "Web bundle + publish",
-      "sublabel": "traseu 16.719,80 m",
-      "tag": "route.geojson + CSV",
-      "width": 140
+      "width": 146
     },
     {
       "id": "measure",
       "lane": "l_jos",
-      "col": 2,
+      "col": 3,
       "type": "database",
       "label": "Măsurători",
-      "sublabel": "uniune de arii, UTM plan",
-      "tag": "interrânduri 9,06 ha",
-      "width": 176
+      "sublabel": "uniuni de arii, UTM plan",
+      "tag": "interrânduri 9,3244 ha",
+      "width": 144
+    },
+    {
+      "id": "farms",
+      "lane": "l_jos",
+      "col": 2,
+      "type": "backend",
+      "label": "Ferme și drumuri",
+      "sublabel": "27 ferme · 337 drumuri",
+      "tag": "AGCC + OSM · doar hartă",
+      "width": 146
+    },
+    {
+      "id": "bundle",
+      "lane": "l_jos",
+      "col": 1,
+      "type": "frontend",
+      "label": "web_bundle",
+      "sublabel": "13 fișiere → src/Web/data",
+      "tag": "1 226 ținte · traseu",
+      "width": 146
+    },
+    {
+      "id": "publish",
+      "lane": "l_jos",
+      "col": 0,
+      "type": "frontend",
+      "label": "vineyard publish",
+      "sublabel": "traseu 14 037,77 m",
+      "tag": "11/11 verificări",
+      "width": 140
     },
     {
       "id": "refused",
-      "lane": "l_jos",
-      "col": 1,
+      "lane": "l_refuz",
+      "col": 0,
       "type": "security",
       "label": "PublishRefused",
       "sublabel": "rădăcina rămâne neatinsă",
@@ -255,24 +281,29 @@
       "toSide": "bottom"
     },
     {
-      "id": "e-validator-publish",
+      "id": "e-validator-measure",
       "from": "validator",
-      "to": "publish",
-      "label": "≤ 1,5 %",
+      "to": "measure",
+      "label": "acceptat",
       "variant": "emphasis"
     },
     {
-      "id": "e-targets-measure",
-      "from": "targets",
-      "to": "measure",
-      "role": "branch"
+      "id": "e-measure-farms",
+      "from": "measure",
+      "to": "farms",
+      "label": "CSV"
     },
     {
-      "id": "e-measure-publish",
-      "from": "measure",
+      "id": "e-farms-bundle",
+      "from": "farms",
+      "to": "bundle",
+      "label": "hartă"
+    },
+    {
+      "id": "e-bundle-publish",
+      "from": "bundle",
       "to": "publish",
-      "label": "CSV",
-      "role": "branch"
+      "route": "straight"
     },
     {
       "id": "e-publish-refused",
@@ -285,29 +316,29 @@
   "cards": [
     {
       "dot": "emerald",
-      "title": "Cifrele: rularea post-full-v3 (bundle-ul web actual)",
+      "title": "Cifrele: post pe AnnSet rc10f",
       "items": [
-        "Traseu 16.719,80 m (≈ 251 min la 4 km/h), închis la START",
-        "În afara domeniului 1,14 % (190,3 m); limita proprie 1,5 %",
-        "256 ținte must vizitate; 375 ținte în componente deconectate"
+        "Traseu 14 037,77 m ≈ 210,6 min la 4 km/h, închis la START",
+        "În afara domeniului 1,28 % (179,3 m); limita proprie 1,5 %, oficial 2 %",
+        "147 din 246 ținte must vizitate, 0 pierdute; 323 ținte în componente deconectate"
       ]
     },
     {
       "dot": "cyan",
       "title": "De ce așa",
       "items": [
-        "Must = defecte reale; opționalele intră doar la ocol ≤ 25 m",
-        "1,5 % lasă rezervă față de eliminarea oficială la 2 %",
-        "Ariile sunt uniuni în EPSG:32635, nu sume de poligoane"
+        "Must = row_gap ≥ 5 m, missing_row, waste; opționalele doar la ocol ≤ 25 m",
+        "5 treceri prin V13 (250 m, 81 rânduri): 63 goluri + 15 plante lipsă scoase din ținte",
+        "Ariile sunt uniuni în EPSG:32635: coroane 1,5428 ha, interrânduri 9,3244 ha"
       ]
     },
     {
       "dot": "amber",
       "title": "Câștig și stadiu",
       "items": [
-        "−55,6 % față de toate interrândurile (37.685,62 m)",
-        "−67,4 % față de ținte în ordinea ID (51.243,84 m)",
-        "import_marcaj și final: încă neimplementate (exit 3)"
+        "−79,4 % față de serpentina prin toate culoarele (68 187,66 m)",
+        "−65,9 % față de toate interrândurile; −61,0 % față de țintele în ordinea ID",
+        "import_marcaj lipsește încă: from-marcaj iese cu codul 3"
       ]
     }
   ]

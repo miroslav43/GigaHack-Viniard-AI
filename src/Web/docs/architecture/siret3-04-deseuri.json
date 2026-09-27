@@ -17,10 +17,10 @@
           "label": "flux principal"
         },
         "security": {
-          "label": "aprobare umană"
+          "label": "aprobare om / agent"
         },
         "dashed": {
-          "label": "intrare auxiliară"
+          "label": "auxiliar sau oprit"
         },
         "database": {
           "label": "strat stocat"
@@ -80,7 +80,7 @@
       "id": "filters",
       "type": "security",
       "label": "Filtre dure",
-      "sublabel": "7 reguli · rămân 18.947",
+      "sublabel": "7 reguli · rămân 19.064",
       "stage": 1,
       "row": 1,
       "width": 120,
@@ -99,62 +99,64 @@
     {
       "id": "probe",
       "type": "backend",
-      "label": "CLIP + probe",
+      "label": "CLIP + probă",
       "sublabel": "ViT-B-32 · AUC 0,991",
       "stage": 2,
       "row": 1,
       "width": 120,
-      "tag": "probe.py"
+      "tag": "activ în RC10f"
     },
     {
       "id": "sam",
       "type": "backend",
       "label": "Verificator SAM 3",
-      "sublabel": "CPU · 13,1 s/crop",
+      "sublabel": "oprit în RC10f",
       "stage": 2,
       "row": 2,
       "width": 120,
-      "tag": "Sam3Model"
+      "tag": "13,1 s/crop pe CPU"
     },
     {
-      "id": "confirmed",
+      "id": "agents",
       "type": "security",
-      "label": "Aprobare echipă",
-      "sublabel": "waste_confirmed.csv · 3 accept",
+      "label": "Revizie cu agenți",
+      "sublabel": "RC9f · 311 tile-uri",
       "stage": 3,
       "row": 0,
-      "width": 144,
-      "tag": "configs/"
+      "width": 120,
+      "tag": "anvelope · moloz",
+      "yOffset": -7
     },
     {
       "id": "review",
       "type": "frontend",
       "label": "Listă review",
-      "sublabel": "NMS · rank ≥ 0,3 · 1.335",
+      "sublabel": "NMS · rank ≥ 0,3 · 1.331",
       "stage": 3,
       "row": 1,
       "width": 120,
-      "tag": "waste_review.html"
+      "tag": "waste_review.html",
+      "yOffset": 7
     },
     {
-      "id": "cvat",
-      "type": "frontend",
-      "label": "Export CVAT",
-      "sublabel": "adnotări pentru Marcaj",
+      "id": "confirmed",
+      "type": "security",
+      "label": "waste_confirmed",
+      "sublabel": "13 cutii aprobate",
       "stage": 4,
       "row": 0,
-      "width": 120,
-      "tag": "cutii"
+      "width": 132,
+      "tag": "3 SAM 3 + 10 agenți"
     },
     {
       "id": "layer",
       "type": "database",
       "label": "Strat final waste",
-      "sublabel": "waste.parquet · 3 cutii",
+      "sublabel": "13 cutii → 11 în AnnSet",
       "stage": 4,
       "row": 1,
-      "width": 120,
-      "tag": "W0001–W0003"
+      "width": 132,
+      "tag": "→ CVAT waste"
     },
     {
       "id": "route",
@@ -163,7 +165,7 @@
       "sublabel": "prioritate 1 (maximă)",
       "stage": 4,
       "row": 2,
-      "width": 120,
+      "width": 132,
       "tag": "target_waste.py"
     }
   ],
@@ -176,6 +178,7 @@
       "variant": "default",
       "fromSide": "bottom",
       "toSide": "top",
+      "route": "straight",
       "labelAt": [
         100,
         200
@@ -196,6 +199,7 @@
       "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "top",
+      "route": "straight",
       "labelAt": [
         315,
         200
@@ -216,6 +220,7 @@
       "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "top",
+      "route": "straight",
       "labelAt": [
         530,
         200
@@ -225,10 +230,11 @@
       "id": "gate",
       "from": "probe",
       "to": "sam",
-      "label": "probe ≥ 0,3",
-      "variant": "default",
+      "label": "probă ≥ 0,3",
+      "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "top",
+      "route": "straight",
       "labelAt": [
         530,
         314
@@ -238,7 +244,7 @@
       "id": "ranked",
       "from": "probe",
       "to": "review",
-      "label": "scor probe",
+      "label": "rang probă",
       "variant": "emphasis"
     },
     {
@@ -246,24 +252,21 @@
       "from": "sam",
       "to": "review",
       "label": "scor SAM 3",
-      "variant": "default",
-      "fromSide": "right",
-      "toSide": "bottom",
-      "via": [
-        [
-          745,
-          385
-        ]
-      ]
+      "variant": "dashed"
+    },
+    {
+      "id": "agents-add",
+      "from": "agents",
+      "to": "confirmed",
+      "label": "10 adăugate",
+      "variant": "security"
     },
     {
       "id": "approve",
       "from": "review",
       "to": "confirmed",
-      "label": "linie CSV",
-      "variant": "security",
-      "fromSide": "top",
-      "toSide": "bottom"
+      "label": "3 aprobate",
+      "variant": "security"
     },
     {
       "id": "accepted",
@@ -271,17 +274,13 @@
       "to": "layer",
       "label": "IoU ≥ 0,5",
       "variant": "emphasis",
-      "fromSide": "right",
-      "toSide": "left"
-    },
-    {
-      "id": "to-cvat",
-      "from": "layer",
-      "to": "cvat",
-      "label": "cutii tile px",
-      "variant": "default",
-      "fromSide": "top",
-      "toSide": "bottom"
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        960,
+        200
+      ]
     },
     {
       "id": "to-route",
@@ -291,6 +290,7 @@
       "variant": "default",
       "fromSide": "bottom",
       "toSide": "top",
+      "route": "straight",
       "labelAt": [
         960,
         314
@@ -302,27 +302,24 @@
       "dot": "emerald",
       "title": "Reguli întâi: ieftine, clare",
       "items": [
-        "Candidat = pată vivid (S ≥ 150, V ≥ 70, nuanță în afara verdelui 25–95) sau bright (V > 200, S < 45), arie ≥ 0,015 m²; > 6 m² → filtrul vehicle",
-        "Filtrele resping ce seamănă cu un deșeu, dar nu e: tuburi albe, sol deschis, furtunuri, vehicule — „când ai dubii, lasă-l afară”",
-        "Rulare full-v2: too_small_white 63.337 · bright_soil 43.330 · tube_shape 9.943 · near_axis 6.084 · forbidden 1.697 · vehicle 385 · nms 57"
+        "Candidat = pată vivid (S ≥ 150, V ≥ 70, nuanță în afara verdelui 25–95) sau bright (V > 200, S < 45), arie 0,015–6 m².",
+        "RC10f: too_small_white 62.726 · bright_soil 42.844 · tube_shape 9.776 · near_axis 7.174 · forbidden 1.697 · vehicle 385 · nms 57."
       ]
     },
     {
       "dot": "violet",
       "title": "Modelele doar ordonează lista",
       "items": [
-        "Probe pe embedding CLIP: 3.000 pozitive UAVVaste și 8.292 negative Sireț3, validare încrucișată pe 5 grupuri",
-        "SAM 3 rulează pe CPU 5 prompturi text pe crop de 512 px, cu până la 3 cutii negative pe tuburile albe din jur",
-        "Buget de 1.800 s: 137 din 1.335 crop-uri verificate; un al doilea pas lângă blocuri: 162 crop-uri, 14,4 s/crop"
+        "Probă logistică pe embedding CLIP ViT-B-32: 3.000 pozitive UAVVaste, 8.292 negative Sireț3, AUC 0,991.",
+        "SAM 3 (5 prompturi text, crop 512 px) a rulat pe 26.09; în RC10f e oprit, verificarea L1 = probă + CLIP."
       ]
     },
     {
       "dot": "amber",
       "title": "Omul decide exportul",
       "items": [
-        "auto_accept_enabled: false — înainte de Publish nimic nu se exportă automat",
-        "9 pozitive SAM 3 (6 + 3); doar cele 3 aflate la ≤ 10 m de un bloc au fost aprobate de echipă",
-        "W0001–W0003 lângă V03, V01 și V14 (9,7 m · 7,2 m · 0,6 m), categoria debris"
+        "auto_accept_enabled: false — se exportă doar waste_confirmed.csv: 3 cutii SAM 3 aprobate de echipă + 10 găsite de agenți (RC9f).",
+        "2 anvelope stau pe tile-ul r012_c004, golit forțat, deci AnnSet și ZIP-urile au 11 deșeuri."
       ]
     }
   ]

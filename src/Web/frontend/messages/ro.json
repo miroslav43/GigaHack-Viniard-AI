@@ -934,23 +934,39 @@
     "d": {
       "sistem": {
         "title": "Sistemul, cap-coadă",
-        "caption": "Datele organizatorilor trec prin pipeline-ul vineyard pe laptop, devin ZIP-uri CVAT pentru Marcaj, iar exportul corectat revine în lanțul post care produce traseul, măsurătorile și datele acestei aplicații."
+        "caption": "Datele organizatorilor, cadastrul AGCC și drumurile OSM trec prin pipeline-ul vineyard; U-Net-ul intră doar în cele 149 de zone cadastrale, corecțiile revizuite de agenți revin în rulare, ZIP-urile CVAT merg în Marcaj, iar lanțul post produce traseul, măsurătorile, fermele și datele aplicației."
+      },
+      "adnotari": {
+        "title": "Adnotări, model și joncțiunea lor",
+        "caption": "Arhitectura completă RC10f: pipeline-ul clasic care produce adnotările, modelul vine-unet antrenat pe ieșirea lui, locul exact în care rețeaua se întoarce în clasic (149 de zone cadastrale, prob ≥ 0,5) și bucla de revizie până la Marcaj."
       },
       "perceptie": {
         "title": "Percepția pe tile",
-        "caption": "Etapele rulate pe fiecare tile: masca de vegetație, detecția rândurilor, legarea între tile-uri și blocuri, coroane, inter-rânduri, atribute, deșeuri și asamblarea setului de adnotări."
+        "caption": "Etapele de la cele 311 tile-uri la setul de adnotări RC10f: măștile, cele trei treceri de rânduri, legarea și blocurile, coroanele, inter-rândurile, golurile, deșeurile și asamblarea."
       },
       "randuri": {
         "title": "Cum găsim rândurile",
-        "caption": "Unghiul dominant, distanța dintre rânduri, filtrele care separă via de livezi și trecerea ghidată de vecini care recuperează viile tinere ratate."
+        "caption": "Trei treceri (profilul pe tile, grila vecinilor și semințele cu rețeaua vine-unet), apoi excluderile manuale, legarea peste marginile tile-urilor și blocurile tăiate la drumuri."
+      },
+      "model": {
+        "title": "Modelul vine-unet",
+        "caption": "Cum antrenăm U-Net-ul ResNet-18 pe pseudo-etichete din pipeline-ul clasic, de ce ablația A–E păstrează canopy-ul clasic și cum produce inferența probabilitatea de viță pe 88 de tile-uri."
+      },
+      "jonctiune": {
+        "title": "Joncțiunea NN ↔ adnotări",
+        "caption": "Singurul loc în care rețeaua intră în adnotări: în zonele-semință din parcelele cadastrale, masca a* e înlocuită cu probabilitatea vine-unet ≥ 0,5, iar rândurile noi trec prin verificarea agenților (RC10f)."
+      },
+      "revizie": {
+        "title": "Bucla de revizie",
+        "caption": "Cum au ajuns adnotările de la RC7 la RC10f: randări pe tile, revizie cu agenți, corecții versionate în configs/ (excluderi, semințe, deșeuri), re-rulare, verificarea diferențelor, porțile pe exemple și exportul în Marcaj."
       },
       "deseuri": {
         "title": "Lanțul de deșeuri",
-        "caption": "Candidați după culoare, filtre pentru tuburi și țăruși, clasificator CLIP antrenat pe UAVVaste și verificare SAM 3; doar casetele acceptate de echipă ajung în adnotări."
+        "caption": "Candidați după culoare, filtre pentru tuburi și sol deschis, clasificator CLIP pe UAVVaste; se exportă doar cele 13 cutii aprobate de echipă și de agenți (11 după tile-urile golite)."
       },
       "traseu": {
         "title": "Traseul și măsurătorile",
-        "caption": "După Marcaj: domeniul de mers, țintele obligatorii și opționale, rezolvarea GTSP cu OR-Tools, validarea (≤ 1,5 % în afara zonei, închidere la START) și măsurătorile."
+        "caption": "Din AnnSet-ul rc10f: domeniul de mers pe interrânduri și pasaje, cele 246 de ținte obligatorii, scara de politici și GTSP cu OR-Tools, validarea (1,28 % în afară, închidere la START), măsurătorile, fermele și publicarea."
       }
     }
   },

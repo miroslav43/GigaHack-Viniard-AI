@@ -5085,7 +5085,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       </div>
     </div>
 
-    <script id="archify-guided-views-data" type="application/json">[{"id":"straturi","label":"Din adnotări în straturi","focus":["annset","derive","passable"],"note":"Unește bucățile după row_id (abatere \u003e 0,4 m → avertisment QA), leagă interrândurile (≤ 3,8 m), face blocuri, scade zonele interzise."},{"id":"tinte","label":"Ce trebuie vizitat","focus":["targets","candidates"],"note":"row_gap ≥ 5 m, missing_row și waste sunt obligatorii; ținte de rând la \u003c 3 m de marginea acoperirii sunt artefacte (89 eliminate)."},{"id":"gtsp","label":"Scara de politici și GTSP","focus":["policies","gtsp","validator"],"note":"Per politică: graf penalizat → tabel D → sondă GTSP 5 s → validator. penalty: 1,72 % în afară, respinsă; penalty_x10 trece → final 30 s."},{"id":"livrare","label":"Validare și livrare","focus":["validator","measure","publish","refused"],"note":"web_bundle scrie în src/Web; publish recalculează totul din fișiere, iar orice verificare picată ridică PublishRefused."}]</script>
+    <script id="archify-guided-views-data" type="application/json">[{"id":"straturi","label":"Din adnotări în domeniul de mers","focus":["annset","derive","passable"],"note":"derive: 674 rânduri, 661 interrânduri. Domeniu = interrânduri ∪ pasaje − interzis − coroane; 5 treceri prin V13 intră în graf."},{"id":"tinte","label":"Ce trebuie vizitat","focus":["targets","candidates"],"note":"1 226 ținte: 246 must, 980 opționale; 93 eliminate la \u003c 3 m de marginea acoperirii; ≤ 3 candidați pe latură."},{"id":"gtsp","label":"Scara de politici și GTSP","focus":["policies","gtsp","validator"],"note":"penalty: 1,72 % în afară, respinsă (plan ≤ 1,4 %). penalty_x10: 1,28 %, acceptată; OR-Tools GLS 30 s."},{"id":"livrare","label":"Măsurători, ferme, livrare","focus":["measure","farms","bundle","publish","refused"],"note":"measure → farms (doar pentru hartă) → web_bundle; publish trece 11/11 verificări, altfel PublishRefused."}]</script>
 
     <script id="archify-i18n-data" type="application/json">{"locale":"en","messages":{"viewer.kind.frontend":"Frontend","viewer.kind.backend":"Backend","viewer.kind.database":"Database","viewer.kind.cloud":"Cloud","viewer.kind.security":"Security","viewer.kind.messagebus":"Message bus","viewer.kind.external":"External","viewer.kind.neutral":"Neutral","viewer.kind.node":"Node","viewer.kind.start":"Start","viewer.kind.active":"Active","viewer.kind.waiting":"Waiting","viewer.kind.decision":"Decision","viewer.kind.success":"Success","viewer.kind.failure":"Failure","viewer.toolbar.actions":"Diagram actions","viewer.theme.toggle.title":"Toggle theme (T)","viewer.theme.toggle":"Toggle color theme","viewer.theme.dark":"Dark","viewer.theme.light":"Light","viewer.preset.choose.title":"Choose visual style (S cycles)","viewer.preset.choose":"Choose visual style","viewer.preset.style":"Style","viewer.preset.menu":"Visual style","viewer.preset.identity":"Visual identity","viewer.preset.cycles":"S cycles","viewer.preset.classic":"Classic","viewer.preset.classic.short":"Classic","viewer.preset.classic.hint":"Stable technical default","viewer.preset.flow":"Signal Flow","viewer.preset.flow.short":"Flow","viewer.preset.flow.hint":"Motion-forward presentation","viewer.preset.blueprint":"Blueprint","viewer.preset.blueprint.hint":"Engineering review","viewer.preset.editorial":"Editorial","viewer.preset.editorial.hint":"Publication and launch notes","viewer.preset.badge.signalFlow":"SIGNAL FLOW","viewer.preset.badge.blueprint":"BLUEPRINT / REV 01","viewer.preset.badge.editorial":"EDITORIAL / FIELD NOTE","viewer.preset.badge.editorialPlate":"ARCHIFY / PLATE 04","viewer.preset.current":"Visual style: {style}. Choose visual style","viewer.motion.live":"Live","viewer.motion.still":"Still","viewer.motion.pause":"Pause motion","viewer.motion.resume":"Resume motion","viewer.motion.reduced":"Motion paused by reduced-motion preference","viewer.motion.hidden":"Motion paused while this page is hidden","viewer.motion.yielding":"Pause motion; currently yielding to {owner}","viewer.motion.yielding.title":"Live preview enabled · yielding to {owner}","viewer.owner.story":"the guided story","viewer.owner.chapter":"the active chapter","viewer.owner.chapterPreview":"the chapter delta preview","viewer.owner.handoff":"the chapter handoff","viewer.owner.route":"Route Probe","viewer.owner.lens":"Semantic Lens","viewer.owner.relationship":"Relationship Preview","viewer.owner.intent":"Intent Trace","viewer.owner.focus":"semantic focus","viewer.owner.legend":"legend preview","viewer.owner.reader":"reader interaction","viewer.present.enter":"Enter presentation stage","viewer.present.enter.title":"Presentation stage (F)","viewer.present.exit":"Exit presentation stage","viewer.present.exit.title":"Exit presentation stage (F or Escape)","viewer.present.present":"Present","viewer.present.exit.label":"Exit","viewer.export.button":"Export","viewer.export.button.title":"Export diagram (E)","viewer.export.diagram":"Export diagram","viewer.export.menu":"Export","viewer.export.subtitle":"Portable, clean outputs","viewer.export.share":"Share","viewer.export.shareCard":"Share Card","viewer.export.routeShareCard":"Route Share Card","viewer.export.reachShareCard":"Reach Share Card","viewer.export.copyShareCard":"Copy Share Card","viewer.export.copyDiagram":"Copy diagram","viewer.export.clipboardPng":"PNG to clipboard","viewer.export.raster":"Raster images","viewer.export.image":"Image","viewer.export.lossless":"Lossless image","viewer.export.compact":"Compact image","viewer.export.modern":"Modern image","viewer.export.vectorMotion":"Vector and motion","viewer.export.vectorMotion.heading":"Vector \u0026 motion","viewer.export.editable":"Editable vector","viewer.export.motion6s":"6s motion","viewer.export.unsupported":"Not supported by this browser","viewer.export.clipboardUnsupported":"Clipboard image write not supported by this browser","viewer.export.clipboardUnsupported.period":"Clipboard image write not supported by this browser.","viewer.export.clipboardUnsupported.short":"Clipboard image write not supported in this browser.","viewer.export.motionUnavailable":"Motion capture unavailable in this browser","viewer.export.webmUnavailable":"WebM unavailable in this browser","viewer.export.failed":"Export failed: {message}","viewer.export.unknownVariant":"Unknown Share Card variant: {variant}","viewer.export.routeRequired":"Trace a route before exporting a Route Share Card","viewer.export.reachRequired":"Trace authored reach before exporting a Reach Share Card","viewer.export.unknown":"unknown","viewer.export.routeFailed":"Route Share Card export failed: {message}","viewer.export.reachFailed":"Reach Share Card export failed: {message}","viewer.export.copyFailed":"Copy failed: {message}","viewer.export.copiedPng":"Copied PNG to clipboard","viewer.export.copiedShare":"Copied Share Card","viewer.export.downloadedShare":"Downloaded Share Card","viewer.export.downloadedRoute":"Downloaded Route Share Card","viewer.export.downloadedReach":"Downloaded Reach Share Card","viewer.export.downloadedWebm":"Downloaded WebM","viewer.export.recording":"Recording 6 seconds of motion…","viewer.export.card.routeSummary.one":"Route: {source} → {target} · {count} directed hop","viewer.export.card.routeSummary.other":"Route: {source} → {target} · {count} directed hops","viewer.export.card.reachSummary":"Authored {direction} from {origin} · {nodes} · {links} · max {hops}","viewer.export.card.node.one":"{count} node","viewer.export.card.node.other":"{count} nodes","viewer.export.card.link.one":"{count} link","viewer.export.card.link.other":"{count} links","viewer.export.card.hop.one":"{count} hop","viewer.export.card.hop.other":"{count} hops","viewer.export.card.routeBadge":"ARCHIFY · ROUTE · {hops}","viewer.export.card.reachBadge":"ARCHIFY · {direction} REACH","viewer.export.card.defaultBadge":"ARCHIFY · {preset} · {theme}","viewer.export.direction.upstream":"Upstream","viewer.export.direction.downstream":"Downstream","viewer.export.error.canvasUnavailable":"Canvas unavailable for {label}","viewer.export.error.contextUnavailable":"2D canvas context unavailable for {label}","viewer.export.error.toBlobUnavailable":"canvas.toBlob unavailable for {label}","viewer.export.error.toBlobNull":"canvas.toBlob returned no data for {label}","viewer.export.error.variantsCombined":"Share Card variants cannot be combined","viewer.export.error.viewerState":"Share Card export could not remove temporary viewer state","viewer.export.error.routeState":"Route Card export could not preserve the resolved route safely","viewer.export.error.reachState":"Reach Card export could not preserve authored reach safely","viewer.export.error.webmRequirements":"WebM motion export requires a trace animation and browser MediaRecorder support","viewer.export.error.mediaRecorder":"MediaRecorder failed","viewer.export.error.emptyWebm":"MediaRecorder produced an empty WebM","viewer.export.error.webmBackground":"SVG background could not be loaded for WebM export","viewer.guided.region":"Guided diagram views","viewer.guided.previous":"Previous guided view","viewer.guided.previous.title":"Previous guided view ([)","viewer.guided.next":"Next guided view","viewer.guided.next.title":"Next guided view (])","viewer.guided.views":"Guided views","viewer.guided.explore":"Explore this system","viewer.guided.intro":"Step through curated paths without changing the source diagram.","viewer.guided.trail":"Story trail","viewer.guided.beat":"Beat","viewer.guided.nextBeat":"Next","viewer.guided.play":"Play guided story","viewer.guided.play.title":"Play guided story (P)","viewer.guided.pause":"Pause guided story","viewer.guided.pause.title":"Pause guided story (P)","viewer.guided.replay":"Replay guided story","viewer.guided.replay.title":"Replay guided story (P)","viewer.guided.playStory":"Play story","viewer.guided.pauseStory":"Pause","viewer.guided.replayStory":"Replay story","viewer.guided.motionUnavailable":"Story playback unavailable while motion is Still","viewer.guided.enableMotion":"Switch motion to Live to play the guided story","viewer.guided.selectBeatLink":"Select a Story Beat to copy its exact link","viewer.guided.copyMoment":"Copy moment","viewer.guided.momentCopied":"Moment link copied","viewer.guided.momentCopyFailed":"Could not copy story moment link","viewer.guided.copied":"Copied","viewer.guided.copyFailed":"Copy failed","viewer.guided.showAll":"Show all","viewer.guided.showAll.aria":"Show entire diagram","viewer.guided.chapters":"Story chapters","viewer.guided.storyTrail":"Story trail for {label}: {count} beats","viewer.guided.chapter.open":"Open chapter {index} of {total}: {label}, {count} stops","viewer.guided.chapter.current":"Current chapter {index} of {total}: {label}, {count} stops","viewer.guided.chapter.selectedNodes":"{count} selected nodes","viewer.guided.chapter.stops":"{count} stops","viewer.guided.chapter.stop.one":"{count} stop","viewer.guided.chapter.stop.other":"{count} stops","viewer.guided.chapter.current.title":"{label} — current chapter, {count} stops","viewer.guided.chapter.delta.expanded":"{stay} stay, {enter} enter, {leave} leave","viewer.guided.chapter.delta.aria":"Open chapter {index} of {total}: {label}. Chapter focus delta: {delta}","viewer.guided.chapter.delta.title":"{label} — {delta} chapter focus","viewer.guided.handoff":"{from} → {to} · via {label}","viewer.guided.share.chapter":"Chapter {index} / {total}","viewer.guided.share.initial":"Chapter 01 / 01","viewer.guided.share.default":"Guided chapter","viewer.guided.state.ready":"Ready","viewer.guided.state.playing":"Playing","viewer.guided.state.settled":"Settled","viewer.guided.state.paused":"Paused","viewer.guided.state.pinned":"Pinned","viewer.guided.state.still":"Still","viewer.guided.share.step":"Step {index} / {total} · {label}","viewer.guided.share.staticMoment":"{step} · Static moment","viewer.guided.share.complete":"{count} steps complete · {note}","viewer.guided.share.settled":"Path settled for reading.","viewer.guided.share.staticPath":"{count} steps · Static path","viewer.guided.share.ready":"{count} steps · Ready","viewer.guided.share.aria":"{state} chapter {index} of {total}: {label}. {beat}. {route}","viewer.guided.beat.start":"Beat {index} / {total} · {label} · starting point","viewer.guided.beat.forward":"Beat {index} / {total} · {from} → {to}","viewer.guided.beat.reverse":"Beat {index} / {total} · {from} → {to} · reverse authored link","viewer.guided.beat.multiple":"Beat {index} / {total} · {from} ⇄ {to} · {count} authored links","viewer.guided.beat.group":"Beat {index} / {total} · {from} · {to} · grouped · no direct link","viewer.guided.beat.aria.prefix":"Story beat {index} of {total}: {label}. ","viewer.guided.beat.aria.start":"Starting point.","viewer.guided.beat.aria.forward":"From {from} through one authored forward relationship.","viewer.guided.beat.aria.reverse":"From {from}; the authored relationship points from {to} to {from}.","viewer.guided.beat.aria.multiple":"From {from} through {count} authored relationships; shown without arbitrary motion.","viewer.guided.beat.aria.group":"Grouped from {from} with no direct authored relationship.","viewer.guided.caption.start":"Starting point","viewer.guided.caption.grouped":"Grouped transition · no direct authored link","viewer.guided.caption.more":" +{count} more","viewer.guided.caption.reverse":"Reverse authored relationship","viewer.guided.caption.relationships":"{count} authored relationships","viewer.guided.caption.relationship":"Authored relationship","viewer.guided.caption.direction":"authored direction: {from} → {to}","viewer.guided.caption.starting":"Authored starting point","viewer.guided.beatLink":"Copy link to current story moment: Beat {index} of {total}: {label}","viewer.guided.noStory":"This diagram has no authored guided story.","viewer.guide.eyebrow":"Diagram guide","viewer.guide.close":"Close diagram guide","viewer.guide.inspecting":"Inspecting compiled semantics","viewer.guide.actions":"Diagram exploration actions","viewer.guide.find":"Find any node","viewer.guide.find.hint":"Search labels, responsibilities, kinds, and stable IDs.","viewer.guide.route":"Trace a route","viewer.guide.route.aria":"Trace a directed route","viewer.guide.route.hint":"Ask how two semantic nodes connect in authored direction.","viewer.guide.map":"See the whole system","viewer.guide.map.hint":"Open Semantic Radar with a live viewport and stable nodes.","viewer.guide.lens":"Compare semantic kinds","viewer.guide.lens.hint":"Count roles, reveal their traffic, and compare direct authored links.","viewer.guide.story":"Play the guided story","viewer.guide.story.hint":"Walk the authored chapters and real relationships.","viewer.guide.present":"Enter Presentation Stage","viewer.guide.present.hint":"Give the live diagram the viewport without changing export.","viewer.guide.shortcuts":"Additional keyboard shortcuts","viewer.guide.shortcut.export":"Export","viewer.guide.shortcut.theme":"Theme","viewer.guide.shortcut.style":"Style","viewer.guide.shortcut.reset":"Reset","viewer.guide.shortcut.zoomIn":"Zoom in","viewer.guide.shortcut.zoomOut":"Zoom out","viewer.guide.shortcut.close":"Close","viewer.guide.facts":"{nodes} · {relationships} · {views}","viewer.guide.fact.node.one":"{count} semantic node","viewer.guide.fact.node.other":"{count} semantic nodes","viewer.guide.fact.relationship.one":"{count} relationship","viewer.guide.fact.relationship.other":"{count} relationships","viewer.guide.fact.view.one":"{count} guided view","viewer.guide.fact.view.other":"{count} guided views","viewer.guide.story.available.one":"Walk {count} authored chapter and its real relationships.","viewer.guide.story.available.other":"Walk {count} authored chapters and their real relationships.","viewer.guide.story.unavailable":"No authored guided story in this diagram.","viewer.guide.open":"Open diagram guide","viewer.guide.noStory":"This diagram has no authored guided story.","viewer.finder.title":"Find a node","viewer.finder.close":"Close node finder","viewer.finder.placeholder":"Search labels or IDs","viewer.finder.search":"Search diagram nodes","viewer.finder.results":"Diagram nodes","viewer.finder.empty":"No matching nodes","viewer.finder.result.focus":"Focus {label}","viewer.finder.result.routeStart":"Choose {label} as route start","viewer.finder.result.routeTarget":"Choose {label} as route destination, {links}","viewer.finder.status.empty":"No matching nodes","viewer.finder.status.count.one":"{count} matching node","viewer.finder.status.count.other":"{count} matching nodes","viewer.finder.noun.nodes":"nodes","viewer.finder.link.one":"{count} link","viewer.finder.link.other":"{count} links","viewer.finder.result.focus.one":"Focus {label}, {count} related connection","viewer.finder.result.focus.other":"Focus {label}, {count} related connections","viewer.finder.status.filtered":"{visible} of {available} {noun}","viewer.finder.status.all":"{available} {noun}","viewer.passport.eyebrow":"Semantic passport","viewer.passport.metadata":"Node metadata","viewer.passport.evidence":"Verified source evidence","viewer.passport.verified":"Verified source","viewer.passport.verificationScope":"Verified against local Git at the pinned revision. Remote access has not been checked.","viewer.passport.reach":"Authored reach","viewer.passport.reach.trace":"Trace authored reachability","viewer.passport.upstream":"Upstream","viewer.passport.downstream":"Downstream","viewer.passport.upstream.trace":"Trace upstream authored reachability","viewer.passport.downstream.trace":"Trace downstream authored reachability","viewer.passport.close":"Close semantic passport","viewer.passport.copy":"Copy link","viewer.passport.copy.focus":"Copy link to focused node","viewer.passport.relations":"Relations","viewer.passport.relations.show":"Show connected relationships","viewer.passport.relations.hide":"Hide connected relationships","viewer.passport.relations.list":"Connected relationships","viewer.passport.copyRelation":"Copy relation","viewer.passport.copyNode":"Copy node","viewer.passport.copyPinned":"Copy link to pinned relationship","viewer.passport.copySource":"Copy link to source node","viewer.passport.copy.focused.success":"Focused node link copied","viewer.passport.copy.pinned.success":"Pinned relationship link copied","viewer.passport.copy.focused.failed":"Could not copy focused node link","viewer.passport.copy.pinned.failed":"Could not copy pinned relationship link","viewer.passport.relationship.none":"No connected relationships","viewer.passport.relationship.count.one":"{count} relation","viewer.passport.relationship.count.other":"{count} relations","viewer.passport.relationship.show.one":"Show {count} connected relationship","viewer.passport.relationship.show.other":"Show {count} connected relationships","viewer.passport.relationship.summary":"{out} outgoing · {in} incoming{loops}","viewer.passport.relationship.loops":" · {count} loop","viewer.passport.relationship.explorer":"Direct relationship explorer","viewer.passport.relationship.help":"Use arrow keys to explore relationships. Press Enter or Space to pin details; Escape clears.","viewer.passport.relationship.loopsBack":"loops back","viewer.passport.relationship.connectsTo":"connects to","viewer.passport.relationship.connectsFrom":"connects from","viewer.passport.relationship.pinned":"Pinned relationship · {from} → {to} · {label}","viewer.passport.relationship.inspect":"Inspect relationship {index} of {total}: {from} to {to}, {label}. Press Enter for details.","viewer.passport.relationship.group.out":"Outgoing","viewer.passport.relationship.group.in":"Incoming","viewer.passport.relationship.group.loop":"Self loops","viewer.passport.relationship.row":"{group}: {relationship}, {neighbor}","viewer.passport.relationship.direction.out":"OUT →","viewer.passport.relationship.direction.in":"← IN","viewer.passport.relationship.direction.loop":"LOOP","viewer.passport.sourceCount.one":"{count} verified source reference","viewer.passport.sourceCount.other":"{count} verified source references","viewer.passport.sourceMarker":"SRC","viewer.passport.beacon.one":"{count} verified source; focus this node to inspect","viewer.passport.beacon.other":"{count} verified sources; focus this node to inspect","viewer.passport.repository.open":"Open verified repository revision {revision}","viewer.passport.source.open":"Open verified source {path} at revision {revision}","viewer.passport.source.openLink":"Open ↗","viewer.passport.reach.upstream.one":"Trace {count} upstream authored node","viewer.passport.reach.upstream.other":"Trace {count} upstream authored nodes","viewer.passport.reach.downstream.one":"Trace {count} downstream authored node","viewer.passport.reach.downstream.other":"Trace {count} downstream authored nodes","viewer.passport.reach.noUpstream":"No upstream authored nodes","viewer.passport.reach.noDownstream":"No downstream authored nodes","viewer.passport.reach.status":"{direction} · {nodes} nodes · {links} links · max {hops} hops","viewer.route.eyebrow":"Route probe","viewer.route.start":"Choose a start node","viewer.route.start.find":"Find start","viewer.route.start.find.aria":"Find a route start","viewer.route.copy":"Copy link","viewer.route.copy.aria":"Copy link to traced route","viewer.route.clear":"Clear","viewer.route.clear.aria":"Clear route probe","viewer.route.traced":"Traced route","viewer.route.pickTwo":"Pick two semantic nodes on the diagram","viewer.route.pickOne":"Pick a semantic node on the diagram","viewer.route.controls":"Route journey controls","viewer.route.previous":"Previous route position","viewer.route.play":"Play route journey","viewer.route.pause":"Pause route journey","viewer.route.replay":"Replay route journey","viewer.route.next":"Next route position","viewer.route.journey":"Journey","viewer.route.pause.label":"Pause","viewer.route.replay.label":"Replay","viewer.route.overview":"Overview","viewer.route.overview.aria":"Show complete route overview","viewer.route.instructions":"Choose the source, then the destination. Direction matters.","viewer.route.destination":"Choose a destination from {label}","viewer.route.destination.find":"Find target","viewer.route.destination.find.aria":"Find a reachable route destination","viewer.route.differentDestination":"Choose a different destination","viewer.route.distinct":"A route needs two distinct semantic nodes.","viewer.route.unreachable":"No directed route to {label}","viewer.route.unreachable.detail":"{target} is not reachable from {source}. Pick a highlighted destination.","viewer.route.start.instructions":"Select the source. The next step will reveal only directed destinations.","viewer.route.copy.success":"Traced route link copied","viewer.route.copy.failed":"Could not copy traced route link","viewer.route.position":"Route position {index} of {total}: {label}","viewer.route.step":"Step {index} of {total} · {phase} · {label}","viewer.route.motionRequired":"Automatic journey requires Live motion","viewer.route.trigger.clear":"Clear traced route","viewer.route.overview.status":"{nodes} · {hops} · shortest authored route","viewer.route.overview.node.one":"{count} node","viewer.route.overview.node.other":"{count} nodes","viewer.route.overview.hop.one":"{count} directed hop","viewer.route.overview.hop.other":"{count} directed hops","viewer.route.phase.playing":"Playing","viewer.route.phase.complete":"Complete","viewer.route.phase.inspecting":"Inspecting","viewer.route.destination.count.one":"{count} directed destination available. Pick a highlighted node.","viewer.route.destination.count.other":"{count} directed destinations available. Pick a highlighted node.","viewer.route.noOutgoing":"No outgoing route starts here. Clear and choose another source.","viewer.route.result.title":"{source} to {target}","viewer.route.finder.source.title":"Choose route start","viewer.route.finder.source.placeholder":"Search route sources","viewer.route.finder.source.empty":"No matching route sources","viewer.route.finder.source.results":"Nodes that can start a route","viewer.route.finder.source.noun":"route sources","viewer.route.finder.source.badge":"start","viewer.route.finder.target.title":"Destination from {label}","viewer.route.finder.target.placeholder":"Search reachable destinations","viewer.route.finder.target.empty":"No matching reachable destinations","viewer.route.finder.target.results":"Reachable route destinations","viewer.route.finder.target.noun":"reachable destinations","viewer.route.hop.one":"{count} hop","viewer.route.hop.other":"{count} hops","viewer.lens.eyebrow":"Semantic lens","viewer.lens.title":"Compare system roles","viewer.lens.close":"Close semantic lens","viewer.lens.instruction":"Choose up to two semantic kinds. One reveals its real traffic; two compare only direct authored relationships.","viewer.lens.kinds":"Semantic kinds","viewer.lens.choose":"Choose a kind to inspect its nodes and touching relationships.","viewer.lens.copy":"Copy link to semantic lens","viewer.lens.clear":"Clear semantic lens","viewer.lens.open":"Open semantic lens","viewer.lens.openActive":"Open active semantic lens","viewer.lens.legend":"Semantic legend","viewer.lens.legend.inspect.one":"Inspect {label}, {count} node","viewer.lens.legend.inspect.other":"Inspect {label}, {count} nodes","viewer.lens.kind.count.one":"{label}, {count} node","viewer.lens.kind.count.other":"{label}, {count} nodes","viewer.lens.compare.one":"{first} → {second}: {forward} · {second} → {first}: {reverse} · {count} direct relationship","viewer.lens.compare.other":"{first} → {second}: {forward} · {second} → {first}: {reverse} · {count} direct relationships","viewer.lens.single":"{nodes} · {relationships} · connected peers remain visible","viewer.lens.node.one":"{count} {label} node","viewer.lens.node.other":"{count} {label} nodes","viewer.lens.relationship.one":"{count} touching relationship","viewer.lens.relationship.other":"{count} touching relationships","viewer.radar.title":"Semantic radar","viewer.radar.building":"Building overview","viewer.radar.openFull":"Open full semantic radar","viewer.radar.open":"Open radar","viewer.radar.close":"Close semantic radar","viewer.radar.surface":"Diagram overview. Click a node to focus it, or use arrow keys to pan.","viewer.radar.click":"Click node","viewer.radar.drag":"Drag to pan","viewer.radar.space":"Semantic radar needs more MAP space.","viewer.radar.nodes":"Semantic diagram radar nodes","viewer.radar.focus":"Focus {label} from Semantic Radar","viewer.radar.status":"{count} nodes · {viewport}","viewer.radar.fullMap":"{count} nodes · full map","viewer.radar.compacted":"Radar compacted to avoid covering the Semantic Passport or MAP controls.","viewer.radar.cancelWaiting":"Cancel semantic radar waiting for more MAP space","viewer.radar.needsSpace":"Semantic radar needs more visible MAP space","viewer.radar.viewport.full":"full map","viewer.radar.viewport.width":"{percent}% width","viewer.radar.viewport.scale":"{percent}% viewport","viewer.nav.controls":"Diagram view controls","viewer.nav.route":"Trace a directed route","viewer.nav.route.title":"Trace route (R)","viewer.nav.route.short":"PATH","viewer.nav.radar":"Open semantic radar","viewer.nav.radar.title":"Semantic radar (M)","viewer.nav.radar.short":"MAP","viewer.nav.lens":"Open semantic lens","viewer.nav.lens.title":"Semantic lens (L)","viewer.nav.lens.short":"LENS","viewer.nav.find":"Find a node","viewer.nav.find.title":"Find a node (/)","viewer.nav.guide":"Open diagram guide","viewer.nav.guide.title":"Diagram guide (?)","viewer.nav.zoomOut":"Zoom out","viewer.nav.zoomOut.title":"Zoom out (-)","viewer.nav.reset":"Reset diagram view","viewer.nav.reset.title":"Reset view (0)","viewer.nav.read":"READ","viewer.nav.zoomIn":"Zoom in","viewer.nav.zoomIn.title":"Zoom in (+)","viewer.nav.camera":"{hint}. Reset diagram view","viewer.nav.camera.title":"{semantic}{hint} · reset view (0)","viewer.nav.camera.semantic":"Semantic camera active · ","viewer.nav.level.map":"MAP","viewer.nav.level.read":"READ","viewer.nav.level.full":"FULL","viewer.nav.level.auto":"AUTO","viewer.nav.detail.map":"Zoom in to reveal relationship labels and node context","viewer.nav.detail.read":"Zoom in again to reveal tags and annotations","viewer.nav.detail.full":"Full diagram detail","viewer.intent.summary":"{label}. {out} outgoing, {in} incoming{loops}. {total} connections. Press Enter for details.","viewer.intent.loops":", {count} self loop","viewer.common.copied":"Copied","viewer.common.copyFailed":"Copy failed","viewer.common.copyLink":"Copy link","viewer.common.clear":"Clear","viewer.common.close":"Close"}}</script>
     <div class="guided-views no-print" id="guided-views" hidden aria-label="Guided diagram views">
@@ -5130,7 +5130,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / PLATE 04">
-      <svg viewBox="0 0 1232 408" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1218 534" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">Sireț3 · de la AnnSet la traseul de inspecție</title>
         <desc id="archify-diagram-description">A workflow diagram generated by Archify.</desc>
         <!-- Definitions -->
@@ -5156,11 +5156,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Swimlanes -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1142" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / Straturi, ținte și politici →</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1129" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / Straturi, domeniu și ținte →</text>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="1142" height="106" rx="10" class="c-lane" stroke-width="1"/>
-        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / ← GTSP, validare și livrare</text>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="1129" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / ← Traseu, măsurători și livrare</text>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="1129" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="exception-lane" data-composition-frame-id="lane-2-exception" x="46" y="310" width="1117" height="94" rx="8" class="c-security-group" stroke-width="1"/>
+        <text x="54" y="326" class="t-security" font-size="10" font-weight="600">EX / Refuz la publicare</text>
 
         <!-- Phase headers -->
 
@@ -5169,227 +5173,259 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="annset" data-edge-to="derive" data-edge-label="bucăți" data-edge-key="0" data-edge-id="e-annset-derive" data-composition-points="198,120;244.8,120" d="M 198 120 L 244.8 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="candidates" data-edge-to="policies" data-edge-label="seturi" data-edge-key="1" data-edge-id="e-candidates-policies" data-composition-points="986.8000000000001,120;1033.6000000000001,120" d="M 986.8000000000001 120 L 1033.6000000000001 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="derive" data-edge-to="passable" data-edge-label="straturi" data-edge-key="2" data-edge-id="e-derive-passable" data-composition-points="384.8,120;441.20000000000005,120" d="M 384.8 120 L 441.20000000000005 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="gtsp" data-edge-to="validator" data-edge-label="traseu" data-edge-key="3" data-edge-id="e-gtsp-validator" data-composition-points="1033.6000000000001,246;986.8000000000001,246" d="M 1033.6000000000001 246 L 986.8000000000001 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="measure" data-edge-to="publish" data-edge-label="CSV" data-edge-key="4" data-edge-id="e-measure-publish" data-composition-points="529.2,212;529.2,196;725.2,196;725.2,212" d="M 529.2 212 L 529.2 196 L 725.2 196 L 725.2 212" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="passable" data-edge-to="targets" data-edge-key="5" data-edge-id="e-passable-targets" data-composition-points="529.2,86;529.2,70;725.2,70;725.2,86" d="M 529.2 86 L 529.2 70 L 725.2 70 L 725.2 86" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="policies" data-edge-to="gtsp" data-edge-label="D în cm" data-edge-key="6" data-edge-id="e-policies-gtsp" data-composition-points="1173.6000000000001,120;1213.2,120;1213.2,246;1173.6000000000001,246" d="M 1173.6000000000001 120 L 1213.2 120 L 1213.2 246 L 1173.6000000000001 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="publish" data-edge-to="refused" data-edge-key="7" data-edge-id="e-publish-refused" data-composition-points="725.2,280;725.2,296;314.8,296;314.8,280" d="M 725.2 280 L 725.2 296 L 314.8 296 L 314.8 280" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="targets" data-edge-to="candidates" data-edge-key="8" data-edge-id="e-targets-candidates" data-composition-points="795.2,120;846.8000000000001,120" d="M 795.2 120 L 846.8000000000001 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="targets" data-edge-to="measure" data-edge-key="9" data-edge-id="e-targets-measure" data-composition-points="655.2,120;639.2,120;639.2,168;529.2,168;529.2,212" d="M 655.2 120 L 639.2 120 L 639.2 168 L 529.2 168 L 529.2 212" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="validator" data-edge-to="policies" data-edge-label="respinsă" data-edge-key="10" data-edge-id="e-validator-policies" data-composition-points="916.8000000000001,212;916.8000000000001,196;1194,196;1194,170;1103.6000000000001,170;1103.6000000000001,154" d="M 916.8000000000001 212 L 916.8000000000001 196 L 1194 196 L 1194 170 L 1103.6000000000001 170 L 1103.6000000000001 154" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="validator" data-edge-to="publish" data-edge-label="≤ 1,5 %" data-edge-key="11" data-edge-id="e-validator-publish" data-composition-points="846.8000000000001,246;795.2,246" d="M 846.8000000000001 246 L 795.2 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="annset" data-edge-to="derive" data-edge-label="bucăți" data-edge-key="0" data-edge-id="e-annset-derive" data-composition-points="188,120;234.8,120" d="M 188 120 L 234.8 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="bundle" data-edge-to="publish" data-edge-key="1" data-edge-id="e-bundle-publish" data-composition-points="231.8,246;188,246" d="M 231.8 246 L 188 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="candidates" data-edge-to="policies" data-edge-label="seturi" data-edge-key="2" data-edge-id="e-candidates-policies" data-composition-points="970.6,120;1020.4000000000001,120" d="M 970.6 120 L 1020.4000000000001 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="derive" data-edge-to="passable" data-edge-label="straturi" data-edge-key="3" data-edge-id="e-derive-passable" data-composition-points="374.8,120;431.20000000000005,120" d="M 374.8 120 L 431.20000000000005 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="farms" data-edge-to="bundle" data-edge-label="hartă" data-edge-key="4" data-edge-id="e-farms-bundle" data-composition-points="442.20000000000005,246;377.8,246" d="M 442.20000000000005 246 L 377.8 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="gtsp" data-edge-to="validator" data-edge-label="traseu" data-edge-key="5" data-edge-id="e-gtsp-validator" data-composition-points="1020.4000000000001,246;973.6,246" d="M 1020.4000000000001 246 L 973.6 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="measure" data-edge-to="farms" data-edge-label="CSV" data-edge-key="6" data-edge-id="e-measure-farms" data-composition-points="627.2,246;588.2,246" d="M 627.2 246 L 588.2 246" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="passable" data-edge-to="targets" data-edge-key="7" data-edge-id="e-passable-targets" data-composition-points="599.2,120;627.2,120" d="M 599.2 120 L 627.2 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="policies" data-edge-to="gtsp" data-edge-label="D în cm" data-edge-key="8" data-edge-id="e-policies-gtsp" data-composition-points="1160.4,120;1200,120;1200,246;1160.4,246" d="M 1160.4 120 L 1200 120 L 1200 246 L 1160.4 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="publish" data-edge-to="refused" data-edge-key="9" data-edge-id="e-publish-refused" data-composition-points="188,246;204,246;204,372;188,372" d="M 188 246 L 204 246 L 204 372 L 188 372" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="targets" data-edge-to="candidates" data-edge-key="10" data-edge-id="e-targets-candidates" data-composition-points="771.2,120;830.6,120" d="M 771.2 120 L 830.6 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="validator" data-edge-to="measure" data-edge-label="acceptat" data-edge-key="11" data-edge-id="e-validator-measure" data-composition-points="827.6,246;771.2,246" d="M 827.6 246 L 771.2 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="validator" data-edge-to="policies" data-edge-label="respinsă" data-edge-key="12" data-edge-id="e-validator-policies" data-composition-points="900.6,212;900.6,196;1181,196;1181,170;1090.4,170;1090.4,154" d="M 900.6 212 L 900.6 196 L 1181 196 L 1181 170 L 1090.4 170 L 1090.4 154" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
 
         <!-- Nodes -->
-        <g id="node-annset" data-node-id="annset" data-node-label="AnnSet model" tabindex="0" role="button" aria-label="Focus AnnSet model, rularea full-v3, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="external" data-node-sublabel="rularea full-v3" data-node-tag="import_marcaj: neimplementat" data-node-context="Straturi, ținte și politici →">
-          <title>AnnSet model · rularea full-v3 · Straturi, ținte și politici → · import_marcaj: neimplementat</title>
-          <rect x="48" y="86" width="150" height="68" rx="6" class="c-mask"/>
-          <rect x="48" y="86" width="150" height="68" rx="6" class="c-external" stroke-width="1.5"/>
+        <g id="node-annset" data-node-id="annset" data-node-label="AnnSet rc10f" tabindex="0" role="button" aria-label="Focus AnnSet rc10f, adnotările modelului, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="external" data-node-sublabel="adnotările modelului" data-node-tag="1 508 bucăți de rând" data-node-context="Straturi, domeniu și ținte →">
+          <title>AnnSet rc10f · adnotările modelului · Straturi, domeniu și ținte → · 1 508 bucăți de rând</title>
+          <rect x="48" y="86" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="48" y="86" width="140" height="68" rx="6" class="c-external" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 92) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="123" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AnnSet model</text>
-          <text data-detail="context" x="123" y="124" class="t-muted" font-size="8" text-anchor="middle">rularea full-v3</text>
-        <text data-detail="fine" x="123" y="142" class="t-external" font-size="7" text-anchor="middle">import_marcaj: neimplementat</text>
+          <text data-node-label="" data-detail-anchor="" x="118" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AnnSet rc10f</text>
+          <text data-detail="context" x="118" y="124" class="t-muted" font-size="8" text-anchor="middle">adnotările modelului</text>
+        <text data-detail="fine" x="118" y="142" class="t-external" font-size="7" text-anchor="middle">1 508 bucăți de rând</text>
         </g>
 
-        <g id="node-derive" data-node-id="derive" data-node-label="Derivare" tabindex="0" role="button" aria-label="Focus Derivare, 717 rânduri, 54 blocuri, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="717 rânduri, 54 blocuri" data-node-tag="unește și leagă interrânduri" data-node-context="Straturi, ținte și politici →">
-          <title>Derivare · 717 rânduri, 54 blocuri · Straturi, ținte și politici → · unește și leagă interrânduri</title>
-          <rect x="244.8" y="86" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="244.8" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(250.8 92) scale(0.6875)">
+        <g id="node-derive" data-node-id="derive" data-node-label="Derivare" tabindex="0" role="button" aria-label="Focus Derivare, 674 rânduri, 44 blocuri, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="674 rânduri, 44 blocuri" data-node-tag="661 interrânduri" data-node-context="Straturi, domeniu și ținte →">
+          <title>Derivare · 674 rânduri, 44 blocuri · Straturi, domeniu și ținte → · 661 interrânduri</title>
+          <rect x="234.8" y="86" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="234.8" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(240.8 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="314.8" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Derivare</text>
-          <text data-detail="context" x="314.8" y="124" class="t-muted" font-size="8" text-anchor="middle">717 rânduri, 54 blocuri</text>
-        <text data-detail="fine" x="314.8" y="142" class="t-backend" font-size="7" text-anchor="middle">unește și leagă interrânduri</text>
+          <text data-node-label="" data-detail-anchor="" x="304.8" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Derivare</text>
+          <text data-detail="context" x="304.8" y="124" class="t-muted" font-size="8" text-anchor="middle">674 rânduri, 44 blocuri</text>
+        <text data-detail="fine" x="304.8" y="142" class="t-backend" font-size="7" text-anchor="middle">661 interrânduri</text>
         </g>
 
-        <g id="node-passable" data-node-id="passable" data-node-label="Domeniu pietonal" tabindex="0" role="button" aria-label="Focus Domeniu pietonal, interrânduri ∪ pasaje − interzis, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="security" data-node-sublabel="interrânduri ∪ pasaje − interzis" data-node-tag="126.598 m² după scădere" data-node-context="Straturi, ținte și politici →">
-          <title>Domeniu pietonal · interrânduri ∪ pasaje − interzis · Straturi, ținte și politici → · 126.598 m² după scădere</title>
-          <rect x="441.20000000000005" y="86" width="176" height="68" rx="6" class="c-mask"/>
-          <rect x="441.20000000000005" y="86" width="176" height="68" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(447.20000000000005 92) scale(0.6875)">
+        <g id="node-passable" data-node-id="passable" data-node-label="Domeniu pietonal" tabindex="0" role="button" aria-label="Focus Domeniu pietonal, interrânduri ∪ pasaje − interzis, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="security" data-node-sublabel="interrânduri ∪ pasaje − interzis" data-node-tag="130 108 m² · 5 treceri" data-node-context="Straturi, domeniu și ținte →">
+          <title>Domeniu pietonal · interrânduri ∪ pasaje − interzis · Straturi, domeniu și ținte → · 130 108 m² · 5 treceri</title>
+          <rect x="431.20000000000005" y="86" width="168" height="68" rx="6" class="c-mask"/>
+          <rect x="431.20000000000005" y="86" width="168" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(437.20000000000005 92) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="529.2" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Domeniu pietonal</text>
-          <text data-detail="context" x="529.2" y="124" class="t-muted" font-size="8" text-anchor="middle">interrânduri ∪ pasaje − interzis</text>
-        <text data-detail="fine" x="529.2" y="142" class="t-security" font-size="7" text-anchor="middle">126.598 m² după scădere</text>
+          <text data-node-label="" data-detail-anchor="" x="515.2" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Domeniu pietonal</text>
+          <text data-detail="context" x="515.2" y="124" class="t-muted" font-size="8" text-anchor="middle">interrânduri ∪ pasaje − interzis</text>
+        <text data-detail="fine" x="515.2" y="142" class="t-security" font-size="7" text-anchor="middle">130 108 m² · 5 treceri</text>
         </g>
 
-        <g id="node-targets" data-node-id="targets" data-node-label="Ținte de inspecție" tabindex="0" role="button" aria-label="Focus Ținte de inspecție, 390 must din 1.367 ținte, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="390 must din 1.367 ținte" data-node-tag="row_gap, missing_row, waste" data-node-context="Straturi, ținte și politici →">
-          <title>Ținte de inspecție · 390 must din 1.367 ținte · Straturi, ținte și politici → · row_gap, missing_row, waste</title>
-          <rect x="655.2" y="86" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="655.2" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(661.2 92) scale(0.6875)">
+        <g id="node-targets" data-node-id="targets" data-node-label="Ținte de inspecție" tabindex="0" role="button" aria-label="Focus Ținte de inspecție, 246 must din 1 226, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="246 must din 1 226" data-node-tag="row_gap, missing_row, waste" data-node-context="Straturi, domeniu și ținte →">
+          <title>Ținte de inspecție · 246 must din 1 226 · Straturi, domeniu și ținte → · row_gap, missing_row, waste</title>
+          <rect x="627.2" y="86" width="144" height="68" rx="6" class="c-mask"/>
+          <rect x="627.2" y="86" width="144" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(633.2 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="725.2" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ținte de inspecție</text>
-          <text data-detail="context" x="725.2" y="124" class="t-muted" font-size="8" text-anchor="middle">390 must din 1.367 ținte</text>
-        <text data-detail="fine" x="725.2" y="142" class="t-backend" font-size="7" text-anchor="middle">row_gap, missing_row, waste</text>
+          <text data-node-label="" data-detail-anchor="" x="699.2" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ținte de inspecție</text>
+          <text data-detail="context" x="699.2" y="124" class="t-muted" font-size="8" text-anchor="middle">246 must din 1 226</text>
+        <text data-detail="fine" x="699.2" y="142" class="t-backend" font-size="7" text-anchor="middle">row_gap, missing_row, waste</text>
         </g>
 
-        <g id="node-candidates" data-node-id="candidates" data-node-label="Seturi de candidați" tabindex="0" role="button" aria-label="Focus Seturi de candidați, ≤ 3 candidați pe latură, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="≤ 3 candidați pe latură" data-node-tag="318 seturi · o vizită / țintă" data-node-context="Straturi, ținte și politici →">
-          <title>Seturi de candidați · ≤ 3 candidați pe latură · Straturi, ținte și politici → · 318 seturi · o vizită / țintă</title>
-          <rect x="846.8000000000001" y="86" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="846.8000000000001" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(852.8000000000001 92) scale(0.6875)">
+        <g id="node-candidates" data-node-id="candidates" data-node-label="Seturi de candidați" tabindex="0" role="button" aria-label="Focus Seturi de candidați, ≤ 3 pe latură · 1,9 m, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="backend" data-node-sublabel="≤ 3 pe latură · 1,9 m" data-node-tag="209 seturi" data-node-context="Straturi, domeniu și ținte →">
+          <title>Seturi de candidați · ≤ 3 pe latură · 1,9 m · Straturi, domeniu și ținte → · 209 seturi</title>
+          <rect x="830.6" y="86" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="830.6" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(836.6 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="916.8000000000001" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Seturi de candidați</text>
-          <text data-detail="context" x="916.8000000000001" y="124" class="t-muted" font-size="8" text-anchor="middle">≤ 3 candidați pe latură</text>
-        <text data-detail="fine" x="916.8000000000001" y="142" class="t-backend" font-size="7" text-anchor="middle">318 seturi · o vizită / țintă</text>
+          <text data-node-label="" data-detail-anchor="" x="900.6" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Seturi de candidați</text>
+          <text data-detail="context" x="900.6" y="124" class="t-muted" font-size="8" text-anchor="middle">≤ 3 pe latură · 1,9 m</text>
+        <text data-detail="fine" x="900.6" y="142" class="t-backend" font-size="7" text-anchor="middle">209 seturi</text>
         </g>
 
-        <g id="node-policies" data-node-id="policies" data-node-label="Scara de politici" tabindex="0" role="button" aria-label="Focus Scara de politici, graf penalizat per politică, Straturi, ținte și politici →" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="graf penalizat per politică" data-node-tag="penalty → penalty_x10 → …" data-node-context="Straturi, ținte și politici →">
-          <title>Scara de politici · graf penalizat per politică · Straturi, ținte și politici → · penalty → penalty_x10 → …</title>
-          <rect x="1033.6000000000001" y="86" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="1033.6000000000001" y="86" width="140" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(1039.6000000000001 92) scale(0.6875)">
+        <g id="node-policies" data-node-id="policies" data-node-label="Scara de politici" tabindex="0" role="button" aria-label="Focus Scara de politici, graf penalizat per politică, Straturi, domeniu și ținte →" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="graf penalizat per politică" data-node-tag="penalty → penalty_x10" data-node-context="Straturi, domeniu și ținte →">
+          <title>Scara de politici · graf penalizat per politică · Straturi, domeniu și ținte → · penalty → penalty_x10</title>
+          <rect x="1020.4000000000001" y="86" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="1020.4000000000001" y="86" width="140" height="68" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(1026.4 92) scale(0.6875)">
             <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
             <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1103.6000000000001" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Scara de politici</text>
-          <text data-detail="context" x="1103.6000000000001" y="124" class="t-muted" font-size="8" text-anchor="middle">graf penalizat per politică</text>
-        <text data-detail="fine" x="1103.6000000000001" y="142" class="t-messagebus" font-size="7" text-anchor="middle">penalty → penalty_x10 → …</text>
+          <text data-node-label="" data-detail-anchor="" x="1090.4" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Scara de politici</text>
+          <text data-detail="context" x="1090.4" y="124" class="t-muted" font-size="8" text-anchor="middle">graf penalizat per politică</text>
+        <text data-detail="fine" x="1090.4" y="142" class="t-messagebus" font-size="7" text-anchor="middle">penalty → penalty_x10</text>
         </g>
 
-        <g id="node-refused" data-node-id="refused" data-node-label="PublishRefused" tabindex="0" role="button" aria-label="Focus PublishRefused, rădăcina rămâne neatinsă, ← GTSP, validare și livrare" aria-pressed="false" data-node-kind="security" data-node-sublabel="rădăcina rămâne neatinsă" data-node-tag="exit ≠ 0" data-node-context="← GTSP, validare și livrare">
-          <title>PublishRefused · rădăcina rămâne neatinsă · ← GTSP, validare și livrare · exit ≠ 0</title>
-          <rect x="244.8" y="212" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="244.8" y="212" width="140" height="68" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(250.8 218) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="314.8" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PublishRefused</text>
-          <text data-detail="context" x="314.8" y="250" class="t-muted" font-size="8" text-anchor="middle">rădăcina rămâne neatinsă</text>
-        <text data-detail="fine" x="314.8" y="268" class="t-security" font-size="7" text-anchor="middle">exit ≠ 0</text>
-        </g>
-
-        <g id="node-measure" data-node-id="measure" data-node-label="Măsurători" tabindex="0" role="button" aria-label="Focus Măsurători, uniune de arii, UTM plan, ← GTSP, validare și livrare" aria-pressed="false" data-node-kind="database" data-node-sublabel="uniune de arii, UTM plan" data-node-tag="interrânduri 9,06 ha" data-node-context="← GTSP, validare și livrare">
-          <title>Măsurători · uniune de arii, UTM plan · ← GTSP, validare și livrare · interrânduri 9,06 ha</title>
-          <rect x="441.20000000000005" y="212" width="176" height="68" rx="6" class="c-mask"/>
-          <rect x="441.20000000000005" y="212" width="176" height="68" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(447.20000000000005 218) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="529.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Măsurători</text>
-          <text data-detail="context" x="529.2" y="250" class="t-muted" font-size="8" text-anchor="middle">uniune de arii, UTM plan</text>
-        <text data-detail="fine" x="529.2" y="268" class="t-database" font-size="7" text-anchor="middle">interrânduri 9,06 ha</text>
-        </g>
-
-        <g id="node-publish" data-node-id="publish" data-node-label="Web bundle + publish" tabindex="0" role="button" aria-label="Focus Web bundle + publish, traseu 16.719,80 m, ← GTSP, validare și livrare" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="traseu 16.719,80 m" data-node-tag="route.geojson + CSV" data-node-context="← GTSP, validare și livrare">
-          <title>Web bundle + publish · traseu 16.719,80 m · ← GTSP, validare și livrare · route.geojson + CSV</title>
-          <rect x="655.2" y="212" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="655.2" y="212" width="140" height="68" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(661.2 218) scale(0.6875)">
+        <g id="node-publish" data-node-id="publish" data-node-label="vineyard publish" tabindex="0" role="button" aria-label="Focus vineyard publish, traseu 14 037,77 m, ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="traseu 14 037,77 m" data-node-tag="11/11 verificări" data-node-context="← Traseu, măsurători și livrare">
+          <title>vineyard publish · traseu 14 037,77 m · ← Traseu, măsurători și livrare · 11/11 verificări</title>
+          <rect x="48" y="212" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="48" y="212" width="140" height="68" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(54 218) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="725.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Web bundle + publish</text>
-          <text data-detail="context" x="725.2" y="250" class="t-muted" font-size="8" text-anchor="middle">traseu 16.719,80 m</text>
-        <text data-detail="fine" x="725.2" y="268" class="t-frontend" font-size="7" text-anchor="middle">route.geojson + CSV</text>
+          <text data-node-label="" data-detail-anchor="" x="118" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">vineyard publish</text>
+          <text data-detail="context" x="118" y="250" class="t-muted" font-size="8" text-anchor="middle">traseu 14 037,77 m</text>
+        <text data-detail="fine" x="118" y="268" class="t-frontend" font-size="7" text-anchor="middle">11/11 verificări</text>
         </g>
 
-        <g id="node-validator" data-node-id="validator" data-node-label="Validator traseu" tabindex="0" role="button" aria-label="Focus Validator traseu, 1,14 % în afară (≤ 1,5 %), ← GTSP, validare și livrare" aria-pressed="false" data-node-kind="security" data-node-sublabel="1,14 % în afară (≤ 1,5 %)" data-node-tag="închidere la START 0,00 m" data-node-context="← GTSP, validare și livrare">
-          <title>Validator traseu · 1,14 % în afară (≤ 1,5 %) · ← GTSP, validare și livrare · închidere la START 0,00 m</title>
-          <rect x="846.8000000000001" y="212" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="846.8000000000001" y="212" width="140" height="68" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(852.8000000000001 218) scale(0.6875)">
+        <g id="node-bundle" data-node-id="bundle" data-node-label="web_bundle" tabindex="0" role="button" aria-label="Focus web_bundle, 13 fișiere → src/Web/data, ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="13 fișiere → src/Web/data" data-node-tag="1 226 ținte · traseu" data-node-context="← Traseu, măsurători și livrare">
+          <title>web_bundle · 13 fișiere → src/Web/data · ← Traseu, măsurători și livrare · 1 226 ținte · traseu</title>
+          <rect x="231.8" y="212" width="146" height="68" rx="6" class="c-mask"/>
+          <rect x="231.8" y="212" width="146" height="68" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(237.8 218) scale(0.6875)">
+            <rect x="2" y="3" width="12" height="10" rx="2"/>
+            <path d="M2 6.5h12"/>
+            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
+            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="304.8" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">web_bundle</text>
+          <text data-detail="context" x="304.8" y="250" class="t-muted" font-size="8" text-anchor="middle">13 fișiere → src/Web/data</text>
+        <text data-detail="fine" x="304.8" y="268" class="t-frontend" font-size="7" text-anchor="middle">1 226 ținte · traseu</text>
+        </g>
+
+        <g id="node-farms" data-node-id="farms" data-node-label="Ferme și drumuri" tabindex="0" role="button" aria-label="Focus Ferme și drumuri, 27 ferme · 337 drumuri, ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="backend" data-node-sublabel="27 ferme · 337 drumuri" data-node-tag="AGCC + OSM · doar hartă" data-node-context="← Traseu, măsurători și livrare">
+          <title>Ferme și drumuri · 27 ferme · 337 drumuri · ← Traseu, măsurători și livrare · AGCC + OSM · doar hartă</title>
+          <rect x="442.20000000000005" y="212" width="146" height="68" rx="6" class="c-mask"/>
+          <rect x="442.20000000000005" y="212" width="146" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(448.20000000000005 218) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="515.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ferme și drumuri</text>
+          <text data-detail="context" x="515.2" y="250" class="t-muted" font-size="8" text-anchor="middle">27 ferme · 337 drumuri</text>
+        <text data-detail="fine" x="515.2" y="268" class="t-backend" font-size="7" text-anchor="middle">AGCC + OSM · doar hartă</text>
+        </g>
+
+        <g id="node-measure" data-node-id="measure" data-node-label="Măsurători" tabindex="0" role="button" aria-label="Focus Măsurători, uniuni de arii, UTM plan, ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="database" data-node-sublabel="uniuni de arii, UTM plan" data-node-tag="interrânduri 9,3244 ha" data-node-context="← Traseu, măsurători și livrare">
+          <title>Măsurători · uniuni de arii, UTM plan · ← Traseu, măsurători și livrare · interrânduri 9,3244 ha</title>
+          <rect x="627.2" y="212" width="144" height="68" rx="6" class="c-mask"/>
+          <rect x="627.2" y="212" width="144" height="68" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(633.2 218) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="699.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Măsurători</text>
+          <text data-detail="context" x="699.2" y="250" class="t-muted" font-size="8" text-anchor="middle">uniuni de arii, UTM plan</text>
+        <text data-detail="fine" x="699.2" y="268" class="t-database" font-size="7" text-anchor="middle">interrânduri 9,3244 ha</text>
+        </g>
+
+        <g id="node-validator" data-node-id="validator" data-node-label="Validator traseu" tabindex="0" role="button" aria-label="Focus Validator traseu, 1,28 % în afară (≤ 1,5 %), ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="security" data-node-sublabel="1,28 % în afară (≤ 1,5 %)" data-node-tag="închidere la START 0,00 m" data-node-context="← Traseu, măsurători și livrare">
+          <title>Validator traseu · 1,28 % în afară (≤ 1,5 %) · ← Traseu, măsurători și livrare · închidere la START 0,00 m</title>
+          <rect x="827.6" y="212" width="146" height="68" rx="6" class="c-mask"/>
+          <rect x="827.6" y="212" width="146" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(833.6 218) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="916.8000000000001" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Validator traseu</text>
-          <text data-detail="context" x="916.8000000000001" y="250" class="t-muted" font-size="8" text-anchor="middle">1,14 % în afară (≤ 1,5 %)</text>
-        <text data-detail="fine" x="916.8000000000001" y="268" class="t-security" font-size="7" text-anchor="middle">închidere la START 0,00 m</text>
+          <text data-node-label="" data-detail-anchor="" x="900.6" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Validator traseu</text>
+          <text data-detail="context" x="900.6" y="250" class="t-muted" font-size="8" text-anchor="middle">1,28 % în afară (≤ 1,5 %)</text>
+        <text data-detail="fine" x="900.6" y="268" class="t-security" font-size="7" text-anchor="middle">închidere la START 0,00 m</text>
         </g>
 
-        <g id="node-gtsp" data-node-id="gtsp" data-node-label="Distanțe + GTSP" tabindex="0" role="button" aria-label="Focus Distanțe + GTSP, Dijkstra → OR-Tools, ← GTSP, validare și livrare" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Dijkstra → OR-Tools" data-node-tag="sondă 5 s · final 30 s" data-node-context="← GTSP, validare și livrare">
-          <title>Distanțe + GTSP · Dijkstra → OR-Tools · ← GTSP, validare și livrare · sondă 5 s · final 30 s</title>
-          <rect x="1033.6000000000001" y="212" width="140" height="68" rx="6" class="c-mask"/>
-          <rect x="1033.6000000000001" y="212" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1039.6000000000001 218) scale(0.6875)">
+        <g id="node-gtsp" data-node-id="gtsp" data-node-label="Distanțe + GTSP" tabindex="0" role="button" aria-label="Focus Distanțe + GTSP, Dijkstra → OR-Tools GLS, ← Traseu, măsurători și livrare" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Dijkstra → OR-Tools GLS" data-node-tag="sondă 5 s · final 30 s" data-node-context="← Traseu, măsurători și livrare">
+          <title>Distanțe + GTSP · Dijkstra → OR-Tools GLS · ← Traseu, măsurători și livrare · sondă 5 s · final 30 s</title>
+          <rect x="1020.4000000000001" y="212" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="1020.4000000000001" y="212" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1026.4 218) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1103.6000000000001" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Distanțe + GTSP</text>
-          <text data-detail="context" x="1103.6000000000001" y="250" class="t-muted" font-size="8" text-anchor="middle">Dijkstra → OR-Tools</text>
-        <text data-detail="fine" x="1103.6000000000001" y="268" class="t-backend" font-size="7" text-anchor="middle">sondă 5 s · final 30 s</text>
+          <text data-node-label="" data-detail-anchor="" x="1090.4" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Distanțe + GTSP</text>
+          <text data-detail="context" x="1090.4" y="250" class="t-muted" font-size="8" text-anchor="middle">Dijkstra → OR-Tools GLS</text>
+        <text data-detail="fine" x="1090.4" y="268" class="t-backend" font-size="7" text-anchor="middle">sondă 5 s · final 30 s</text>
+        </g>
+
+        <g id="node-refused" data-node-id="refused" data-node-label="PublishRefused" tabindex="0" role="button" aria-label="Focus PublishRefused, rădăcina rămâne neatinsă, Refuz la publicare" aria-pressed="false" data-node-kind="security" data-node-sublabel="rădăcina rămâne neatinsă" data-node-tag="exit ≠ 0" data-node-context="Refuz la publicare">
+          <title>PublishRefused · rădăcina rămâne neatinsă · Refuz la publicare · exit ≠ 0</title>
+          <rect x="48" y="338" width="140" height="68" rx="6" class="c-mask"/>
+          <rect x="48" y="338" width="140" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(54 344) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="118" y="359" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PublishRefused</text>
+          <text data-detail="context" x="118" y="376" class="t-muted" font-size="8" text-anchor="middle">rădăcina rămâne neatinsă</text>
+        <text data-detail="fine" x="118" y="394" class="t-security" font-size="7" text-anchor="middle">exit ≠ 0</text>
         </g>
 
         <!-- Edge labels -->
         <g data-detail="context" data-edge-from="annset" data-edge-to="derive" data-edge-label="bucăți" data-edge-key="0" data-edge-id="e-annset-derive">
-          <rect x="202" y="100" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="221.4" y="110" class="t-backend" font-size="8" text-anchor="middle">bucăți</text>
-        </g>
-        <g data-detail="context" data-edge-from="candidates" data-edge-to="policies" data-edge-label="seturi" data-edge-key="1" data-edge-id="e-candidates-policies">
-          <rect x="990.8000000000001" y="100" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="1010.2" y="110" class="t-muted" font-size="8" text-anchor="middle">seturi</text>
-        </g>
-        <g data-detail="context" data-edge-from="derive" data-edge-to="passable" data-edge-label="straturi" data-edge-key="2" data-edge-id="e-derive-passable">
-          <rect x="388.8" y="100" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="413" y="110" class="t-muted" font-size="8" text-anchor="middle">straturi</text>
-        </g>
-        <g data-detail="context" data-edge-from="gtsp" data-edge-to="validator" data-edge-label="traseu" data-edge-key="3" data-edge-id="e-gtsp-validator">
-          <rect x="990.8000000000001" y="226" width="38.8" height="14" rx="3" class="c-mask"/>
-          <text x="1010.2" y="236" class="t-muted" font-size="8" text-anchor="middle">traseu</text>
-        </g>
-        <g data-detail="context" data-edge-from="measure" data-edge-to="publish" data-edge-label="CSV" data-edge-key="4" data-edge-id="e-measure-publish">
-          <rect x="612.2" y="176" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="627.2" y="186" class="t-muted" font-size="8" text-anchor="middle">CSV</text>
+          <rect x="192" y="100" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="211.4" y="110" class="t-backend" font-size="8" text-anchor="middle">bucăți</text>
         </g>
 
-        <g data-detail="context" data-edge-from="policies" data-edge-to="gtsp" data-edge-label="D în cm" data-edge-key="6" data-edge-id="e-policies-gtsp">
-          <rect x="1171.6000000000001" y="100" width="43.6" height="14" rx="3" class="c-mask"/>
-          <text x="1193.4" y="110" class="t-backend" font-size="8" text-anchor="middle">D în cm</text>
+        <g data-detail="context" data-edge-from="candidates" data-edge-to="policies" data-edge-label="seturi" data-edge-key="2" data-edge-id="e-candidates-policies">
+          <rect x="976.1" y="100" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="995.5" y="110" class="t-muted" font-size="8" text-anchor="middle">seturi</text>
+        </g>
+        <g data-detail="context" data-edge-from="derive" data-edge-to="passable" data-edge-label="straturi" data-edge-key="3" data-edge-id="e-derive-passable">
+          <rect x="378.8" y="100" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="403" y="110" class="t-muted" font-size="8" text-anchor="middle">straturi</text>
+        </g>
+        <g data-detail="context" data-edge-from="farms" data-edge-to="bundle" data-edge-label="hartă" data-edge-key="4" data-edge-id="e-farms-bundle">
+          <rect x="393" y="226" width="34" height="14" rx="3" class="c-mask"/>
+          <text x="410" y="236" class="t-muted" font-size="8" text-anchor="middle">hartă</text>
+        </g>
+        <g data-detail="context" data-edge-from="gtsp" data-edge-to="validator" data-edge-label="traseu" data-edge-key="5" data-edge-id="e-gtsp-validator">
+          <rect x="977.6" y="226" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="997" y="236" class="t-muted" font-size="8" text-anchor="middle">traseu</text>
+        </g>
+        <g data-detail="context" data-edge-from="measure" data-edge-to="farms" data-edge-label="CSV" data-edge-key="6" data-edge-id="e-measure-farms">
+          <rect x="592.7" y="226" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="607.7" y="236" class="t-muted" font-size="8" text-anchor="middle">CSV</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="policies" data-edge-to="gtsp" data-edge-label="D în cm" data-edge-key="8" data-edge-id="e-policies-gtsp">
+          <rect x="1158.4" y="100" width="43.6" height="14" rx="3" class="c-mask"/>
+          <text x="1180.2" y="110" class="t-backend" font-size="8" text-anchor="middle">D în cm</text>
         </g>
 
 
-
-        <g data-detail="context" data-edge-from="validator" data-edge-to="policies" data-edge-label="respinsă" data-edge-key="10" data-edge-id="e-validator-policies">
-          <rect x="1031.2" y="176" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="1055.4" y="186" class="t-database" font-size="8" text-anchor="middle">respinsă</text>
+        <g data-detail="context" data-edge-from="validator" data-edge-to="measure" data-edge-label="acceptat" data-edge-key="11" data-edge-id="e-validator-measure">
+          <rect x="775.2" y="226" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="799.4000000000001" y="236" class="t-backend" font-size="8" text-anchor="middle">acceptat</text>
         </g>
-        <g data-detail="context" data-edge-from="validator" data-edge-to="publish" data-edge-label="≤ 1,5 %" data-edge-key="11" data-edge-id="e-validator-publish">
-          <rect x="799.2" y="226" width="43.6" height="14" rx="3" class="c-mask"/>
-          <text x="821" y="236" class="t-backend" font-size="8" text-anchor="middle">≤ 1,5 %</text>
+        <g data-detail="context" data-edge-from="validator" data-edge-to="policies" data-edge-label="respinsă" data-edge-key="12" data-edge-id="e-validator-policies">
+          <rect x="1016.5999999999999" y="176" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="1040.8" y="186" class="t-database" font-size="8" text-anchor="middle">respinsă</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="20" y="308" class="t-primary" font-size="12" font-weight="650">Legend</text>
-          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="Livrare" data-legend-x="20" data-legend-baseline="328" data-legend-width="74">
-            <rect x="20" y="320" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-            <text x="42" y="328" class="t-muted" font-size="7.5" font-weight="500">Livrare</text>
+          <text x="20" y="434" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="Livrare" data-legend-x="20" data-legend-baseline="454" data-legend-width="74">
+            <rect x="20" y="446" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+            <text x="42" y="454" class="t-muted" font-size="7.5" font-weight="500">Livrare</text>
           </g>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Procesare" data-legend-x="101" data-legend-baseline="328" data-legend-width="83">
-            <rect x="101" y="320" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="123" y="328" class="t-muted" font-size="7.5" font-weight="500">Procesare</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Procesare" data-legend-x="101" data-legend-baseline="454" data-legend-width="83">
+            <rect x="101" y="446" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="123" y="454" class="t-muted" font-size="7.5" font-weight="500">Procesare</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="Constrângere / poartă" data-legend-x="191" data-legend-baseline="328" data-legend-width="135">
-            <rect x="191" y="320" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-            <text x="213" y="328" class="t-muted" font-size="7.5" font-weight="500">Constrângere / poartă</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="Constrângere / poartă" data-legend-x="191" data-legend-baseline="454" data-legend-width="135">
+            <rect x="191" y="446" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
+            <text x="213" y="454" class="t-muted" font-size="7.5" font-weight="500">Constrângere / poartă</text>
           </g>
-          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="Scară de politici" data-legend-x="333" data-legend-baseline="328" data-legend-width="117">
-            <rect x="333" y="320" width="14" height="9" rx="2" class="c-messagebus" stroke-width="1"/>
-            <text x="355" y="328" class="t-muted" font-size="7.5" font-weight="500">Scară de politici</text>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="Scară de politici" data-legend-x="333" data-legend-baseline="454" data-legend-width="117">
+            <rect x="333" y="446" width="14" height="9" rx="2" class="c-messagebus" stroke-width="1"/>
+            <text x="355" y="454" class="t-muted" font-size="7.5" font-weight="500">Scară de politici</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="Măsurători" data-legend-x="457" data-legend-baseline="328" data-legend-width="87">
-            <rect x="457" y="320" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="479" y="328" class="t-muted" font-size="7.5" font-weight="500">Măsurători</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="Măsurători" data-legend-x="457" data-legend-baseline="454" data-legend-width="87">
+            <rect x="457" y="446" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="479" y="454" class="t-muted" font-size="7.5" font-weight="500">Măsurători</text>
           </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="Intrare adnotări" data-legend-x="551" data-legend-baseline="328" data-legend-width="113">
-            <rect x="551" y="320" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="573" y="328" class="t-muted" font-size="7.5" font-weight="500">Intrare adnotări</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="Intrare adnotări" data-legend-x="551" data-legend-baseline="454" data-legend-width="113">
+            <rect x="551" y="446" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="573" y="454" class="t-muted" font-size="7.5" font-weight="500">Intrare adnotări</text>
           </g>
         </g>
       </svg>
@@ -5581,12 +5617,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>Cifrele: rularea post-full-v3 (bundle-ul web actual)</h3>
+          <h3>Cifrele: post pe AnnSet rc10f</h3>
         </div>
         <ul>
-          <li>&bull; Traseu 16.719,80 m (≈ 251 min la 4 km/h), închis la START</li>
-          <li>&bull; În afara domeniului 1,14 % (190,3 m); limita proprie 1,5 %</li>
-          <li>&bull; 256 ținte must vizitate; 375 ținte în componente deconectate</li>
+          <li>&bull; Traseu 14 037,77 m ≈ 210,6 min la 4 km/h, închis la START</li>
+          <li>&bull; În afara domeniului 1,28 % (179,3 m); limita proprie 1,5 %, oficial 2 %</li>
+          <li>&bull; 147 din 246 ținte must vizitate, 0 pierdute; 323 ținte în componente deconectate</li>
         </ul>
       </div>
 
@@ -5596,9 +5632,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>De ce așa</h3>
         </div>
         <ul>
-          <li>&bull; Must = defecte reale; opționalele intră doar la ocol ≤ 25 m</li>
-          <li>&bull; 1,5 % lasă rezervă față de eliminarea oficială la 2 %</li>
-          <li>&bull; Ariile sunt uniuni în EPSG:32635, nu sume de poligoane</li>
+          <li>&bull; Must = row_gap ≥ 5 m, missing_row, waste; opționalele doar la ocol ≤ 25 m</li>
+          <li>&bull; 5 treceri prin V13 (250 m, 81 rânduri): 63 goluri + 15 plante lipsă scoase din ținte</li>
+          <li>&bull; Ariile sunt uniuni în EPSG:32635: coroane 1,5428 ha, interrânduri 9,3244 ha</li>
         </ul>
       </div>
 
@@ -5608,9 +5644,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Câștig și stadiu</h3>
         </div>
         <ul>
-          <li>&bull; −55,6 % față de toate interrândurile (37.685,62 m)</li>
-          <li>&bull; −67,4 % față de ținte în ordinea ID (51.243,84 m)</li>
-          <li>&bull; import_marcaj și final: încă neimplementate (exit 3)</li>
+          <li>&bull; −79,4 % față de serpentina prin toate culoarele (68 187,66 m)</li>
+          <li>&bull; −65,9 % față de toate interrândurile; −61,0 % față de țintele în ordinea ID</li>
+          <li>&bull; import_marcaj lipsește încă: from-marcaj iese cu codul 3</li>
         </ul>
       </div>
     </div>

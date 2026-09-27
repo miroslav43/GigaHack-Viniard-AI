@@ -933,24 +933,40 @@
     "note": "Diagrams made with archify; diagram text is in Romanian. Drag to pan, scroll to zoom, click a node for details.",
     "d": {
       "sistem": {
-        "title": "System, end to end",
-        "caption": "Organiser data flows through the vineyard pipeline on the laptop into CVAT ZIPs for Marcaj; the corrected export returns to the post chain that produces the route, measurements and this app's data."
+        "title": "The system, end to end",
+        "caption": "Organiser data, AGCC cadastre and OSM roads flow through the vineyard pipeline; the U-Net enters only in the 149 cadastral zones, agent-reviewed corrections feed back into the run, CVAT ZIPs go to Marcaj, and the post chain produces the route, measurements, farms and this app's data."
+      },
+      "adnotari": {
+        "title": "Annotations, model and their junction",
+        "caption": "The full RC10f architecture: the classic pipeline that produces the annotations, the vine-unet model trained on its output, the exact place where the network feeds back into the classic chain (149 cadastral zones, prob ≥ 0.5) and the review loop up to Marcaj."
       },
       "perceptie": {
         "title": "Per-tile perception",
-        "caption": "The stages run on every tile: vegetation mask, row detection, cross-tile linking and blocks, canopies, inter-rows, attributes, waste and AnnSet assembly."
+        "caption": "The stages from the 311 tiles to the RC10f annotation set: masks, the three row passes, linking and blocks, canopies, inter-rows, gaps, waste and assembly."
       },
       "randuri": {
-        "title": "How rows are found",
-        "caption": "Dominant angle, row spacing, the filters that tell vines from orchards, and the neighbour-guided pass that recovers missed young vineyards."
+        "title": "How we find the rows",
+        "caption": "Three passes (per-tile profile, neighbour grid, and seeds with the vine-unet network), then manual exclusions, linking across tile edges, and blocks split at roads."
+      },
+      "model": {
+        "title": "The vine-unet model",
+        "caption": "How the ResNet-18 U-Net is trained on pseudo-labels from the classic pipeline, why the A–E ablation keeps the classic canopy, and how inference produces the vine probability on 88 tiles."
+      },
+      "jonctiune": {
+        "title": "NN ↔ annotation junction",
+        "caption": "The one place the network enters the annotations: inside cadastre-parcel seed zones the a* mask is replaced by the vine-unet probability ≥ 0.5, and the new rows go through agent verification (RC10f)."
+      },
+      "revizie": {
+        "title": "Review loop",
+        "caption": "How the annotations went from RC7 to RC10f: per-tile renders, agent review, versioned corrections in configs/ (exclusions, seeds, waste), re-runs, diff verification, the example gates and the export to Marcaj."
       },
       "deseuri": {
         "title": "Waste chain",
-        "caption": "Colour candidates, tube and stake filters, a CLIP probe trained on UAVVaste and SAM 3 verification; only team-approved boxes reach the annotations."
+        "caption": "Colour candidates, filters for tubes and bright soil, a CLIP classifier trained on UAVVaste; only the 13 boxes approved by the team and the agents are exported (11 after emptied tiles)."
       },
       "traseu": {
         "title": "Route and measurements",
-        "caption": "After Marcaj: walkable domain, must and optional targets, GTSP with OR-Tools, validation (≤ 1.5 % outside, closure at START) and measurements."
+        "caption": "From the rc10f AnnSet: the walking domain on inter-rows and passages, the 246 must-visit targets, the policy ladder and OR-Tools GTSP, validation (1.28 % outside, closed at START), measurements, farms and publishing."
       }
     }
   },

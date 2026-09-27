@@ -1,0 +1,565 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Sireț3 · joncțiunea NN ↔ adnotări (RC10)",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "547fddc033db31604663ac7a91fce219a839846d"
+    },
+    "views": [
+      {
+        "id": "seeds",
+        "label": "Semințe din cadastru",
+        "focus": [
+          "cadastre",
+          "rows9g",
+          "seedgen",
+          "seeds"
+        ],
+        "note": "Partea neacoperită a fiecărei parcele AGCC cu ≥ 3 rânduri devine o semință cadastre_auto."
+      },
+      {
+        "id": "mask",
+        "label": "Masca mixtă",
+        "focus": [
+          "prob",
+          "veg",
+          "subst",
+          "seeds"
+        ],
+        "note": "Doar în poligonul seminței, masca a* e înlocuită cu probabilitatea vine-unet ≥ 0,5."
+      },
+      {
+        "id": "detect",
+        "label": "Detecție și legare",
+        "focus": [
+          "subst",
+          "seeded",
+          "link",
+          "final",
+          "canopy"
+        ],
+        "note": "Rândurile găsite intră în rows_link ca orice candidat, apoi în blocuri, coroane și interrânduri."
+      },
+      {
+        "id": "rejected",
+        "label": "RC10b respins",
+        "focus": [
+          "seeds",
+          "rc10b",
+          "veg"
+        ],
+        "note": "Aceleași semințe pe masca a* desenau rânduri peste pajiști și livezi: 1829 piese."
+      },
+      {
+        "id": "review",
+        "label": "Verificare RC10f",
+        "focus": [
+          "seeded",
+          "link",
+          "verify",
+          "overrides",
+          "final"
+        ],
+        "note": "18 agenți au comparat RC10c cu RC9g; 21 de piese noi respinse devin exclude_areas W001–W021."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "cadastre",
+      "type": "external",
+      "label": "Parcele AGCC",
+      "sublabel": "cadastru geodata.gov.md",
+      "tag": "terenuri · cod cadastral",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/farms/cadastre.py",
+          "label": "parcele AGCC"
+        }
+      ]
+    },
+    {
+      "id": "rc10b",
+      "type": "security",
+      "label": "RC10b · respins",
+      "sublabel": "masca a*: pajiști, livezi",
+      "tag": "1829 piese vs 1521 (RC10c)",
+      "pos": [
+        300,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ]
+    },
+    {
+      "id": "prob",
+      "type": "database",
+      "label": "canopy_prob (diag. 7)",
+      "sublabel": "1024² → 2048² liniar",
+      "tag": "88 PNG · vine-unet v1",
+      "pos": [
+        560,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/probs.py",
+          "line": 81,
+          "end_line": 91,
+          "label": "upsample_prob"
+        }
+      ]
+    },
+    {
+      "id": "canopy",
+      "type": "backend",
+      "label": "Canopy (ExG)",
+      "sublabel": "coroane în coridoare noi",
+      "tag": "NN nu intră direct aici",
+      "pos": [
+        820,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/canopy.py",
+          "line": 186,
+          "end_line": 195,
+          "label": "fără raster NN"
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "type": "database",
+      "label": "AnnSet RC10f",
+      "sublabel": "1508 piese · 674 rânduri",
+      "tag": "44 blocuri · canopy 0,8755",
+      "pos": [
+        1080,
+        70
+      ],
+      "size": [
+        180,
+        84
+      ]
+    },
+    {
+      "id": "seedgen",
+      "type": "backend",
+      "label": "Generator cadastre_auto",
+      "sublabel": "parcelă − rânduri − drumuri",
+      "tag": "offline · commit 638ec02",
+      "pos": [
+        40,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ]
+    },
+    {
+      "id": "seeds",
+      "type": "database",
+      "label": "row_seeds.csv",
+      "sublabel": "149 cadastre_auto · 88 tile",
+      "tag": "+ 48 semințe revizuite",
+      "pos": [
+        300,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/row_seeds.csv",
+          "label": "semințe"
+        }
+      ]
+    },
+    {
+      "id": "subst",
+      "type": "backend",
+      "label": "nn_in_seed_zones",
+      "sublabel": "în poligon: p ≥ 0,5",
+      "tag": "în rest a* · − zone interzise",
+      "pos": [
+        560,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/_rows_seeded_io.py",
+          "line": 140,
+          "end_line": 156,
+          "label": "înlocuirea măștii"
+        },
+        {
+          "path": "src/AI/configs/default.yaml",
+          "line": 783,
+          "end_line": 784,
+          "label": "nn_kinds · prag 0,5"
+        }
+      ]
+    },
+    {
+      "id": "seeded",
+      "type": "backend",
+      "label": "Detecție pe semințe",
+      "sublabel": "±3° · pas ±15 % · ≥ 3 rânduri",
+      "tag": "50 ok · 292 rânduri · 147 eșuate",
+      "pos": [
+        820,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/rows_seeded.py",
+          "line": 259,
+          "end_line": 302,
+          "label": "seed_rows · seeded_detect"
+        }
+      ]
+    },
+    {
+      "id": "link",
+      "type": "backend",
+      "label": "rows_link",
+      "sublabel": "conflict → overrides → legare",
+      "tag": "7168 candidați → 848 lanțuri",
+      "pos": [
+        1080,
+        262
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/rows_link.py",
+          "line": 175,
+          "end_line": 184,
+          "label": "ghidat → semințe → overrides"
+        }
+      ]
+    },
+    {
+      "id": "rows9g",
+      "type": "database",
+      "label": "Rânduri RC9g",
+      "sublabel": "1488 piese de rând",
+      "tag": "ce acoperă deja fiecare parcelă",
+      "pos": [
+        40,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ]
+    },
+    {
+      "id": "veg",
+      "type": "database",
+      "label": "Masca a* (tile_prep)",
+      "sublabel": "Lab −a* > 4 · σ 2,5 px",
+      "tag": "neschimbată în afara zonelor",
+      "pos": [
+        560,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/vegmask.py",
+          "label": "masca de vegetație"
+        }
+      ]
+    },
+    {
+      "id": "overrides",
+      "type": "database",
+      "label": "overrides W001–W021",
+      "sublabel": "21 piese · 558 m excluse",
+      "tag": "doar partea nouă față de RC9g",
+      "pos": [
+        820,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/overrides.yaml",
+          "line": 87,
+          "end_line": 149,
+          "label": "exclude_areas W"
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "type": "external",
+      "label": "18 agenți Sonnet",
+      "sublabel": "RC10c vs RC9g · 36 tile",
+      "tag": "17 mai bune · 8 mixte · 10 mai rele",
+      "pos": [
+        1080,
+        454
+      ],
+      "size": [
+        180,
+        84
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "A · Zone-semință din cadastru",
+      "wraps": [
+        "cadastre",
+        "seedgen",
+        "rows9g"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "B · rows_link: masca mixtă și detecția pe semințe",
+      "wraps": [
+        "seeds",
+        "subst",
+        "seeded",
+        "link"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "C · Verificare RC10f",
+      "wraps": [
+        "overrides",
+        "verify"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "D · Aval",
+      "wraps": [
+        "canopy",
+        "final"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cadastre-seedgen",
+      "from": "cadastre",
+      "to": "seedgen",
+      "label": "≥ 3 rânduri",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        130,
+        208
+      ]
+    },
+    {
+      "id": "rows9g-seedgen",
+      "from": "rows9g",
+      "to": "seedgen",
+      "label": "acoperire",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        130,
+        400
+      ]
+    },
+    {
+      "id": "seedgen-seeds",
+      "from": "seedgen",
+      "to": "seeds",
+      "label": "149 zone",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seeds-rc10b",
+      "from": "seeds",
+      "to": "rc10b",
+      "label": "fără nn_kinds",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        390,
+        208
+      ]
+    },
+    {
+      "id": "seeds-subst",
+      "from": "seeds",
+      "to": "subst",
+      "label": "poligoane",
+      "variant": "emphasis"
+    },
+    {
+      "id": "prob-subst",
+      "from": "prob",
+      "to": "subst",
+      "label": "p ≥ 0,5",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        650,
+        208
+      ]
+    },
+    {
+      "id": "veg-subst",
+      "from": "veg",
+      "to": "subst",
+      "label": "în rest",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        650,
+        400
+      ]
+    },
+    {
+      "id": "subst-seeded",
+      "from": "subst",
+      "to": "seeded",
+      "label": "mixtă",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seeded-link",
+      "from": "seeded",
+      "to": "link",
+      "label": "candidați",
+      "variant": "emphasis"
+    },
+    {
+      "id": "link-final",
+      "from": "link",
+      "to": "final",
+      "label": "1508 piese",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        1170,
+        208
+      ]
+    },
+    {
+      "id": "final-canopy",
+      "from": "final",
+      "to": "canopy",
+      "label": "coridoare",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "link-verify",
+      "from": "link",
+      "to": "verify",
+      "label": "36 tile",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1170,
+        400
+      ]
+    },
+    {
+      "id": "verify-overrides",
+      "from": "verify",
+      "to": "overrides",
+      "label": "21 piese",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "overrides-seeded",
+      "from": "overrides",
+      "to": "seeded",
+      "label": "taie piese",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        910,
+        400
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Semințele cadastre_auto",
+      "items": [
+        "Parcelă AGCC cu ≥ 3 rânduri → partea neacoperită, minus drumuri și tile-uri goale forțat, la unghiul și pasul rândurilor ei",
+        "Ex.: „parcel 80371110020: 10 rows, gap 139 m2”; generatorul a rulat offline, în repo e doar CSV-ul"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Unde intră NN-ul (un singur loc)",
+      "items": [
+        "În poligonul seminței masca a* devine p ≥ 0,5; în rest rămâne a*; apoi se scad zonele interzise",
+        "Căutare ±3° (pas 0,25°), pas ±15 %, ocupare ≥ 0,2, rând ≥ 4 m, ≥ 3 rânduri, tăiat la goluri ≥ 4 m, la ≥ 1 m de rândurile existente"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "De ce NN, nu masca a*",
+      "items": [
+        "RC10b (a*): 1829 piese, rânduri peste pajiști și livezi; RC10c (NN): 1521, față de 1488 în RC9g",
+        "RC10f = RC10c − 21 piese respinse de agenți; porțile pe exemple rămân: canopy 0,8755, rows F1 1,0"
+      ]
+    }
+  ]
+}

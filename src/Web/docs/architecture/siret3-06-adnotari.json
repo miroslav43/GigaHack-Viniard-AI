@@ -1,0 +1,743 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Sireț3 · adnotări, model și joncțiunea lor (RC10f)",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "547fddc033db31604663ac7a91fce219a839846d"
+    },
+    "views": [
+      {
+        "id": "clasic",
+        "label": "Adnotarea clasică",
+        "focus": [
+          "tiles",
+          "tile_prep",
+          "rows_detect",
+          "rows_link",
+          "blocks",
+          "attrs",
+          "assemble"
+        ],
+        "note": "Reguli de viziune pe fiecare tile: vegetație, rânduri, blocuri, coroane, interrânduri, goluri."
+      },
+      {
+        "id": "model",
+        "label": "Modelul vine-unet",
+        "focus": [
+          "full_v2",
+          "pseudo",
+          "train",
+          "ablation",
+          "infer"
+        ],
+        "note": "U-Net ResNet-18 antrenat pe etichete produse de pipeline-ul clasic; comparat cu el în ablația A–E."
+      },
+      {
+        "id": "jonctiune",
+        "label": "Joncțiunea RC10",
+        "focus": [
+          "agcc",
+          "seeds",
+          "hybrid",
+          "infer",
+          "tile_prep",
+          "rows_link"
+        ],
+        "note": "În 149 de zone cadastrale masca de vegetație e înlocuită de probabilitatea NN ≥ 0,5."
+      },
+      {
+        "id": "revizie",
+        "label": "Revizie și livrare",
+        "focus": [
+          "export",
+          "agents",
+          "overrides",
+          "rows_link",
+          "blocks",
+          "marcaj"
+        ],
+        "note": "Agenții verifică randările, excluderile intră în overrides.yaml, apoi 5 ZIP-uri merg în Marcaj."
+      },
+      {
+        "id": "cerc",
+        "label": "Clasic ↔ NN",
+        "focus": [
+          "full_v2",
+          "pseudo",
+          "train",
+          "infer",
+          "hybrid",
+          "rows_link"
+        ],
+        "note": "Clasicul învață rețeaua; rețeaua se întoarce în clasic doar la detecția rândurilor din parcele."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "full_v2",
+      "type": "database",
+      "label": "AnnSet full-v2",
+      "sublabel": "rulare clasică anterioară",
+      "tag": "rânduri + mască veg",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "pseudo",
+      "type": "backend",
+      "label": "Pseudo-etichete",
+      "sublabel": "etichete 1 / 0 / 255",
+      "tag": "339 patch-uri 512²",
+      "pos": [
+        298,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/pseudolabels.py",
+          "line": 167,
+          "label": "classify_corridor_veg"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "type": "backend",
+      "label": "Antrenare U-Net",
+      "sublabel": "ResNet-18 · BCE + Dice",
+      "tag": "best epoch 8 / 11",
+      "pos": [
+        556,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/model.py",
+          "line": 49,
+          "end_line": 53,
+          "label": "smp.Unet resnet18"
+        },
+        {
+          "path": "src/AI/vineyard/nn/train.py",
+          "label": "bucla de antrenare"
+        }
+      ]
+    },
+    {
+      "id": "ablation",
+      "type": "security",
+      "label": "Ablație A–E",
+      "sublabel": "scor canopy oficial",
+      "tag": "A 0,816 · D 0,773",
+      "pos": [
+        814,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/ablation.py",
+          "label": "regula de promovare"
+        }
+      ]
+    },
+    {
+      "id": "infer",
+      "type": "backend",
+      "label": "vineyard nn infer",
+      "sublabel": "tile 1024² @ 0,05 m",
+      "tag": "88 tile-uri · 9,9 s",
+      "pos": [
+        1072,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/nn/infer.py",
+          "label": "inferență MPS → CPU"
+        }
+      ]
+    },
+    {
+      "id": "hybrid",
+      "type": "security",
+      "label": "Mască hibridă",
+      "sublabel": "în zonă: prob ≥ 0,5",
+      "tag": "în rest: mască a*",
+      "pos": [
+        1072,
+        270
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/_rows_seeded_io.py",
+          "line": 140,
+          "end_line": 156,
+          "label": "nn_in_seed_zones"
+        }
+      ]
+    },
+    {
+      "id": "seeds",
+      "type": "database",
+      "label": "row_seeds.csv",
+      "sublabel": "197 semințe · 111 tile-uri",
+      "tag": "149 cadastre_auto",
+      "pos": [
+        814,
+        270
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/row_seeds.csv",
+          "label": "semințe revizuite + cadastru"
+        }
+      ]
+    },
+    {
+      "id": "agcc",
+      "type": "external",
+      "label": "Cadastru AGCC",
+      "sublabel": "parcele cu ≥ 3 rânduri",
+      "tag": "partea neacoperită",
+      "pos": [
+        556,
+        270
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/farms/cadastre.py",
+          "label": "parcele AGCC"
+        }
+      ]
+    },
+    {
+      "id": "tiles",
+      "type": "external",
+      "label": "Plăci Sireț3",
+      "sublabel": "311 GeoTIFF · 2,5 cm/px",
+      "tag": "EPSG:32635",
+      "pos": [
+        40,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "tile_prep",
+      "type": "backend",
+      "label": "tile_prep",
+      "sublabel": "valid · veg a* · vis",
+      "tag": "−a* > 4 · σ 2,5 px",
+      "pos": [
+        298,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/vegmask.py",
+          "line": 43,
+          "end_line": 57,
+          "label": "neg_a + veg_mask"
+        }
+      ]
+    },
+    {
+      "id": "rows_detect",
+      "type": "backend",
+      "label": "rows_detect",
+      "sublabel": "unghi · pas · SNR · Huber",
+      "tag": "1,8–3,8 m · SNR ≥ 3",
+      "pos": [
+        556,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/rows_detect.py",
+          "label": "detecție pe tile"
+        }
+      ]
+    },
+    {
+      "id": "rows_link",
+      "type": "backend",
+      "label": "rows_link",
+      "sublabel": "ghidat · seeded · legare",
+      "tag": "7 168 → 848 lanțuri",
+      "pos": [
+        814,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/rows_link.py",
+          "line": 174,
+          "end_line": 182,
+          "label": "ordinea pașilor"
+        },
+        {
+          "path": "src/AI/vineyard/perception/rows_guided.py",
+          "label": "trecerea ghidată"
+        }
+      ]
+    },
+    {
+      "id": "blocks",
+      "type": "backend",
+      "label": "blocks",
+      "sublabel": "graf · drumuri OSM",
+      "tag": "44 blocuri · 674 rânduri",
+      "pos": [
+        1072,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/blocks.py",
+          "label": "graf de rânduri"
+        },
+        {
+          "path": "src/AI/vineyard/perception/road_split.py",
+          "label": "tăiere la drumuri"
+        },
+        {
+          "path": "src/AI/vineyard/perception/row_regularize.py",
+          "label": "regularizare"
+        }
+      ]
+    },
+    {
+      "id": "attrs",
+      "type": "backend",
+      "label": "canopy · interrow",
+      "sublabel": "ExG > 25 · ±0,30 m",
+      "tag": "13 702 coroane",
+      "pos": [
+        1072,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/canopy.py",
+          "label": "coroane"
+        }
+      ]
+    },
+    {
+      "id": "assemble",
+      "type": "database",
+      "label": "AnnSet rc10f",
+      "sublabel": "assemble · 0 erori",
+      "tag": "1 508 piese rând",
+      "pos": [
+        814,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/annset/assemble.py",
+          "label": "invarianți + prioritate"
+        }
+      ]
+    },
+    {
+      "id": "overrides",
+      "type": "security",
+      "label": "overrides.yaml",
+      "sublabel": "exclude · force_empty",
+      "tag": "X · M · MD · V · W",
+      "pos": [
+        40,
+        870
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/overrides.yaml",
+          "label": "corecții revizuite"
+        },
+        {
+          "path": "src/AI/vineyard/perception/overrides.py",
+          "label": "aplicare"
+        }
+      ]
+    },
+    {
+      "id": "agents",
+      "type": "cloud",
+      "label": "Revizie cu agenți",
+      "sublabel": "RC9f 50+26 · RC10f 18",
+      "tag": "tile cu tile",
+      "pos": [
+        556,
+        870
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "export",
+      "type": "backend",
+      "label": "export_cvat",
+      "sublabel": "qa_previews · CVAT 1.1",
+      "tag": "5 ZIP ≈ 77 MB",
+      "pos": [
+        556,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/qa_previews.py",
+          "label": "randări QA"
+        },
+        {
+          "path": "src/AI/vineyard/cvat/export.py",
+          "label": "export CVAT"
+        }
+      ]
+    },
+    {
+      "id": "marcaj",
+      "type": "external",
+      "label": "Marcaj",
+      "sublabel": "corecție umană",
+      "tag": "311 imagini",
+      "pos": [
+        298,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Modelul vine-unet · antrenat o dată, pe ieșirea clasicului",
+      "wraps": [
+        "full_v2",
+        "pseudo",
+        "train",
+        "ablation",
+        "infer"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Joncțiunea RC10 · zone cadastrale",
+      "wraps": [
+        "agcc",
+        "seeds",
+        "hybrid"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "vineyard run · detecția rândurilor",
+      "wraps": [
+        "tile_prep",
+        "rows_detect",
+        "rows_link",
+        "blocks"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "vineyard run · atribute și export",
+      "wraps": [
+        "export",
+        "assemble",
+        "attrs"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Revizie tile cu tile",
+      "wraps": [
+        "overrides",
+        "agents"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "fv2-pseudo",
+      "from": "full_v2",
+      "to": "pseudo",
+      "label": "coridor"
+    },
+    {
+      "id": "pseudo-train",
+      "from": "pseudo",
+      "to": "train",
+      "label": "339 patch"
+    },
+    {
+      "id": "train-ablation",
+      "from": "train",
+      "to": "ablation",
+      "label": "weights"
+    },
+    {
+      "id": "ablation-infer",
+      "from": "ablation",
+      "to": "infer",
+      "label": "A rămâne",
+      "variant": "dashed"
+    },
+    {
+      "id": "infer-hybrid",
+      "from": "infer",
+      "to": "hybrid",
+      "label": "canopy_prob PNG",
+      "variant": "emphasis",
+      "labelAt": [
+        1158,
+        168
+      ]
+    },
+    {
+      "id": "agcc-seeds",
+      "from": "agcc",
+      "to": "seeds",
+      "label": "unghi+pas"
+    },
+    {
+      "id": "seeds-hybrid",
+      "from": "seeds",
+      "to": "hybrid",
+      "label": "149 zone",
+      "variant": "emphasis"
+    },
+    {
+      "id": "hybrid-link",
+      "from": "hybrid",
+      "to": "rows_link",
+      "label": "seeded ±3°",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "tiles-prep",
+      "from": "tiles",
+      "to": "tile_prep",
+      "label": "RGB"
+    },
+    {
+      "id": "prep-detect",
+      "from": "tile_prep",
+      "to": "rows_detect",
+      "label": "veg a*"
+    },
+    {
+      "id": "detect-link",
+      "from": "rows_detect",
+      "to": "rows_link",
+      "label": "candidați"
+    },
+    {
+      "id": "link-blocks",
+      "from": "rows_link",
+      "to": "blocks",
+      "label": "lanțuri"
+    },
+    {
+      "id": "blocks-attrs",
+      "from": "blocks",
+      "to": "attrs",
+      "label": "axe rânduri",
+      "labelAt": [
+        1158,
+        568
+      ]
+    },
+    {
+      "id": "attrs-assemble",
+      "from": "attrs",
+      "to": "assemble",
+      "label": "parquet"
+    },
+    {
+      "id": "assemble-export",
+      "from": "assemble",
+      "to": "export",
+      "label": "AnnSet"
+    },
+    {
+      "id": "export-marcaj",
+      "from": "export",
+      "to": "marcaj",
+      "label": "5 ZIP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "export-agents",
+      "from": "export",
+      "to": "agents",
+      "label": "JPEG / tile",
+      "labelAt": [
+        642,
+        768
+      ]
+    },
+    {
+      "id": "agents-overrides",
+      "from": "agents",
+      "to": "overrides",
+      "label": "W001–W021 · M · V"
+    },
+    {
+      "id": "overrides-link",
+      "from": "overrides",
+      "to": "rows_link",
+      "label": "exclude_areas",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [
+        [
+          126,
+          612
+        ],
+        [
+          900,
+          612
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Adnotarea clasică (praguri din default.yaml)",
+      "items": [
+        "Vegetație: −a* din Lab, blur σ 2,5 px, prag 4,0; masca validă erodată 4 px. Coroanele folosesc separat ExG = 2G − R − B > 25.",
+        "Rânduri: unghi grosier 2°, apoi fin 0,5°; pas prin autocorelație în [1,8; 3,8] m; SNR spectral ≥ 3; fit Huber în bandă de 0,35 m; maximum 3 orientări pe tile.",
+        "Respingeri dure: short, low_occupancy < 0,15, too_wide (p80 ≥ 1,2 m și coronament închis). Respingeri soft (no_periodicity, low_snr) pot fi salvate la legare.",
+        "rows_link: conflicte de orientare → trecere ghidată (până la 6 runde: 188/31/3/0 rânduri; too_wide abia la p80 > 2,2 m și contrast < 0,3) → seeded → overrides → union-find (Δθ ≤ 3°, offset ≤ 0,3 m, cusături ≤ 0,4 m).",
+        "blocks: vecini paraleli ≤ 4 m / ≤ 5°, muchii skip-one; drumurile OSM taie rândurile (≥ 3 rânduri, 60 % fără viță); regularizare: capete, rețea, rânduri rătăcite.",
+        "canopy/interrow/row_attrs: coridor ±0,30 m, separare la gâtuituri, poligoane ≥ 0,19 m²; acoperire bare_soil < 0,25 < mixed < 0,75 < vegetation; gol ≥ 5 m → disrupted."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Modelul vine-unet (antrenat pe full-v2)",
+      "items": [
+        "smp.Unet cu encoder ResNet-18, 3 canale RGB → 1 logit, normalizare ImageNet în model; ≈ 14,3 M parametri (estimat din fișierul fp32 de 57 MB).",
+        "Etichete: 1 = vegetație în coridorul unui rând; 0 = restul; 255 = ignorat (nodata, marginea de 1 px, surplomb, copaci).",
+        "Date: 72 de tile-uri pozitive + 18 goale → 339 de patch-uri de 512²; validare pe r006_c004 și r021_c012, scoase din antrenare.",
+        "Antrenare: BCE (label smoothing 0,05) + Dice, AdamW lr 3e-4, cosine, batch 8, MPS; oprire timpurie la epoca 8 din 11 (val 0,678).",
+        "Ablație pe scorul canopy oficial: A clasic 0,8159 · B 0,6747 · C 0,7074 · D 0,7730 · E 0,6412 → nicio variantă NN nu bate A pe fiecare tile, deci canopy rămâne clasic."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Joncțiunea RC10: unde intră rețeaua",
+      "items": [
+        "Pentru fiecare parcelă AGCC care are deja ≥ 3 rânduri, partea neacoperită (fără drumuri și tile-uri forțat goale) devine o sămânță cadastre_auto cu unghiul și pasul parcelei.",
+        "149 de semințe pe 88 de tile-uri; `vineyard nn infer` scrie canopy_prob doar pentru aceste 88 de tile-uri (9,9 s pe MPS).",
+        "În poligonul seminței masca a* e înlocuită cu prob ≥ 0,5 (rows_seeded.nn_kinds = [cadastre_auto]); în afara lui masca rămâne neschimbată.",
+        "Detecție seeded: unghi ±3° (pas 0,25°), pas ±15 %, ocupare ≥ 0,2, rând ≥ 4 m, ≥ 3 rânduri, la ≥ 1 m de rândurile existente: 50 de semințe reușite, 292 de rânduri.",
+        "Varianta RC10b cu masca a* în loc de NN a desenat rânduri peste pajiști și livezi și a fost respinsă: masca NN e precisă, dar conservatoare."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Revizie și livrare",
+      "items": [
+        "RC9f: 50 de agenți au revizuit toate cele 311 tile-uri, apoi 26 de agenți au verificat cele 51 de tile-uri schimbate.",
+        "RC10f: 18 agenți au comparat 36 de tile-uri (17 mai bune · 8 mixte · 10 mai slabe · 1 la fel) → 21 de piese noi (558 m) excluse ca W001–W021.",
+        "overrides.yaml: 5 tile-uri forțat goale; X001–X011 din verificarea formei după cadastru, X012–X013 blocuri false (curte, margine de drum); M/MD/V din RC9f; W din RC10f.",
+        "Export: 5 ZIP-uri de 76,9–77,8 MB (limită 85 MB): 13 705 poligoane vineyard, 1 508 row, 1 330 interrow_area, 11 waste; 0 erori."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Rezultatul RC10f",
+      "items": [
+        "674 de rânduri în 44 de blocuri; 124 de tile-uri cu rânduri; 143 de rânduri respinse la gruparea în blocuri.",
+        "Pe cele 2 tile-uri de referință: canopy 0,8755, rows F1 1,0, interrow IoU 0,960, atribute 1,0.",
+        "nn.enabled rămâne false: rețeaua atinge coroanele doar indirect, prin rândurile pe care le-a ajutat să existe."
+      ]
+    }
+  ]
+}

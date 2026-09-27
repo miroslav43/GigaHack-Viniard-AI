@@ -8,19 +8,19 @@
       "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
       "provider": "github",
       "link_mode": "local-only",
-      "revision": "83afe0bb2d4821beb78a2b13ef80685a23fb7818"
+      "revision": "547fddc033db31604663ac7a91fce219a839846d"
     }
   },
   "components": [
     {
       "id": "tiles",
       "type": "external",
-      "label": "Plăci Sireț3",
-      "sublabel": "311 GeoTIFF · EPSG:32635",
-      "tag": "2048 px × 0.025 m = 51.2 m",
+      "label": "Date organizatori",
+      "sublabel": "311 GeoTIFF + 02_route",
+      "tag": "EPSG:32635 · 2,5 cm/px",
       "pos": [
         40,
-        220
+        240
       ],
       "size": [
         176,
@@ -28,28 +28,38 @@
       ]
     },
     {
-      "id": "route_inputs",
+      "id": "geo_refs",
       "type": "external",
-      "label": "Intrări rută",
-      "sublabel": "START · passages · forbidden",
-      "tag": "02_route/*.geojson",
+      "label": "Cadastru AGCC + OSM",
+      "sublabel": "3 003 parcele · drumuri OSM",
+      "tag": "data/cadastre · data/osm",
       "pos": [
         40,
-        400
+        480
       ],
       "size": [
         176,
         80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/data/osm/siret3_highways.geojson",
+          "label": "drumuri OSM (ODbL)"
+        },
+        {
+          "path": "src/AI/vineyard/farms/cadastre.py",
+          "label": "parcele AGCC"
+        }
       ]
     },
     {
       "id": "unet",
       "type": "backend",
       "label": "vine-unet v1",
-      "sublabel": "U-Net ResNet-18 · opțional",
-      "tag": "nn.enabled=false",
+      "sublabel": "U-Net ResNet-18 · nn infer",
+      "tag": "88 tile-uri · 9,9 s pe MPS",
       "pos": [
-        312,
+        328,
         40
       ],
       "size": [
@@ -58,19 +68,25 @@
       ],
       "sources": [
         {
-          "path": "src/AI/vineyard/nn/fusion.py",
-          "label": "fuziune A–E"
+          "path": "src/AI/vineyard/nn/infer.py",
+          "label": "inferență canopy_prob"
+        },
+        {
+          "path": "src/AI/vineyard/pipeline/stages/_rows_seeded_io.py",
+          "line": 140,
+          "end_line": 157,
+          "label": "nn_in_seed_zones"
         }
       ]
     },
     {
       "id": "waste_ml",
       "type": "backend",
-      "label": "Probe CLIP + SAM 3",
-      "sublabel": "probă activă · SAM 3 opțional",
-      "tag": "probe=true · sam3=false",
+      "label": "Probă CLIP ViT-B-32",
+      "sublabel": "rang deșeuri · SAM 3 oprit",
+      "tag": "13 confirmate · 11 exportate",
       "pos": [
-        584,
+        600,
         40
       ],
       "size": [
@@ -89,10 +105,10 @@
       "type": "backend",
       "label": "vineyard run",
       "sublabel": "ingest → … → qa_previews",
-      "tag": "157.4 s · cache parțial",
+      "tag": "rc10f · 12 etape · 384 s",
       "pos": [
-        312,
-        220
+        328,
+        240
       ],
       "size": [
         176,
@@ -101,13 +117,48 @@
       "sources": [
         {
           "path": "src/AI/vineyard/pipeline/registry.py",
-          "line": 24,
-          "end_line": 25,
+          "line": 23,
+          "end_line": 26,
           "label": "etape percepție"
         },
         {
-          "path": "src/AI/vineyard/pipeline/stages/ingest.py",
-          "label": "ingest → in_*"
+          "path": "src/AI/vineyard/pipeline/stages/rows_link.py",
+          "line": 175,
+          "end_line": 180,
+          "label": "ghidat → semințe → overrides"
+        },
+        {
+          "path": "src/AI/vineyard/perception/road_split.py",
+          "label": "tăieri la drumuri"
+        }
+      ]
+    },
+    {
+      "id": "configs",
+      "type": "database",
+      "label": "Corecții revizuite",
+      "sublabel": "overrides · row_seeds · waste",
+      "tag": "agenți RC9f + RC10f",
+      "pos": [
+        328,
+        480
+      ],
+      "size": [
+        176,
+        80
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/overrides.yaml",
+          "label": "excluderi, tile-uri goale"
+        },
+        {
+          "path": "src/AI/configs/row_seeds.csv",
+          "label": "197 semințe de rânduri"
+        },
+        {
+          "path": "src/AI/configs/waste_confirmed.csv",
+          "label": "deșeuri aprobate"
         }
       ]
     },
@@ -115,11 +166,11 @@
       "id": "export_cvat",
       "type": "backend",
       "label": "export-cvat",
-      "sublabel": "5 ZIP CVAT 1.1 · ≤ 85 MB",
+      "sublabel": "5 ZIP CVAT 1.1 · ~77 MB",
       "tag": "≤ 85 000 000 B / ZIP",
       "pos": [
-        584,
-        220
+        600,
+        240
       ],
       "size": [
         176,
@@ -137,10 +188,10 @@
       "type": "cloud",
       "label": "Marcaj",
       "sublabel": "corecție umană · Publish",
-      "tag": "311 fișiere încărcate",
+      "tag": "RC10f încărcat · 311 imagini",
       "pos": [
-        856,
-        220
+        872,
+        240
       ],
       "size": [
         176,
@@ -151,11 +202,11 @@
       "id": "post",
       "type": "backend",
       "label": "vineyard post",
-      "sublabel": "derive → … → web_bundle",
-      "tag": "655.4 s · AnnSet model",
+      "sublabel": "derive → … → farms → web_bundle",
+      "tag": "AnnSet rc10f · ≈ 602 s",
       "pos": [
-        584,
-        400
+        600,
+        480
       ],
       "size": [
         176,
@@ -165,12 +216,12 @@
         {
           "path": "src/AI/vineyard/pipeline/registry.py",
           "line": 27,
-          "end_line": 28,
+          "end_line": 29,
           "label": "etape post"
         },
         {
-          "path": "src/AI/vineyard/pipeline/stages/_post_io.py",
-          "label": "intrări post"
+          "path": "src/AI/vineyard/pipeline/stages/farms.py",
+          "label": "ferme și drumuri"
         }
       ]
     },
@@ -179,10 +230,10 @@
       "type": "database",
       "label": "route.geojson",
       "sublabel": "+ measurements.csv",
-      "tag": "rădăcina repo",
+      "tag": "14 037,77 m · rădăcina repo",
       "pos": [
-        856,
-        400
+        872,
+        480
       ],
       "size": [
         176,
@@ -200,10 +251,10 @@
       "type": "database",
       "label": "Bundle web",
       "sublabel": "surveys/siret3/pipeline",
-      "tag": "EPSG:32635",
+      "tag": "44 blocuri · 27 ferme",
       "pos": [
-        1128,
-        400
+        1144,
+        480
       ],
       "size": [
         176,
@@ -223,8 +274,8 @@
       "sublabel": "EPSG:32635 → EPSG:4326",
       "tag": "→ public/data/siret3",
       "pos": [
-        1128,
-        220
+        1144,
+        240
       ],
       "size": [
         176,
@@ -241,10 +292,10 @@
       "id": "webapp",
       "type": "frontend",
       "label": "Aplicația Next.js",
-      "sublabel": "hartă · blocuri · rută",
+      "sublabel": "hartă · ferme · rută",
       "tag": "/sarcini + Supabase auth",
       "pos": [
-        1128,
+        1144,
         40
       ],
       "size": [
@@ -258,8 +309,14 @@
       "kind": "region",
       "label": "Date organizatori · data & info/",
       "wraps": [
-        "tiles",
-        "route_inputs"
+        "tiles"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Referințe externe",
+      "wraps": [
+        "geo_refs"
       ]
     },
     {
@@ -269,6 +326,7 @@
         "unet",
         "waste_ml",
         "perception",
+        "configs",
         "export_cvat",
         "post"
       ]
@@ -299,23 +357,37 @@
       "variant": "emphasis"
     },
     {
-      "id": "route-inputs-to-run",
-      "from": "route_inputs",
+      "id": "osm-to-run",
+      "from": "geo_refs",
       "to": "perception",
-      "label": "ingest → in_*",
-      "fromSide": "right",
-      "toSide": "bottom",
-      "labelSegment": 0
+      "label": "OSM → tăieri",
+      "fromSide": "top",
+      "toSide": "left"
     },
     {
-      "id": "unet-fusion",
+      "id": "agcc-to-configs",
+      "from": "geo_refs",
+      "to": "configs",
+      "label": "AGCC → semințe",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "refs-to-farms",
+      "from": "geo_refs",
+      "to": "post",
+      "label": "AGCC + OSM → farms",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "unet-to-run",
       "from": "unet",
       "to": "perception",
-      "label": "fuziune canopy",
-      "variant": "dashed",
+      "label": "p ≥ 0,5 · 149 zone",
       "fromSide": "bottom",
       "toSide": "top",
-      "labelDy": 30
+      "labelDy": 24
     },
     {
       "id": "waste-rank",
@@ -326,10 +398,31 @@
       "toSide": "top"
     },
     {
+      "id": "configs-to-run",
+      "from": "configs",
+      "to": "perception",
+      "label": "overrides · semințe",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDx": -48
+    },
+    {
+      "id": "run-to-review",
+      "from": "perception",
+      "to": "configs",
+      "label": "QA → agenți",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24,
+      "labelDx": 50
+    },
+    {
       "id": "run-to-export",
       "from": "perception",
       "to": "export_cvat",
-      "label": "AnnSet(model)",
+      "label": "AnnSet rc10f",
       "variant": "emphasis"
     },
     {
@@ -343,16 +436,16 @@
       "id": "run-to-post",
       "from": "perception",
       "to": "post",
-      "label": "AnnSet(model) · in_*",
-      "fromSide": "bottom",
-      "toSide": "top"
+      "label": "AnnSet · in_*",
+      "fromSide": "right",
+      "toSide": "left"
     },
     {
       "id": "marcaj-to-post",
       "from": "marcaj",
       "to": "post",
-      "label": "export CVAT 1.1 → from-marcaj",
-      "variant": "emphasis",
+      "label": "CVAT 1.1 → from-marcaj",
+      "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "top"
     },
@@ -392,36 +485,29 @@
   "cards": [
     {
       "dot": "emerald",
-      "title": "Pipeline AI (laptop local)",
+      "title": "Adnotări RC10f (vineyard run, 384 s)",
       "items": [
-        "Vegetație: −a* > 4.0 (a* < −4); rânduri cu pas 1.8–3.8 m, SNR ≥ 3, fit Huber",
-        "Rută GTSP cu OR-Tools; publish refuză dacă în afară > 1.5%",
-        "Timp: run 157.4 s (cache parțial, fără probă; ≈ 288 s cu probă); post 655.4 s pe AnnSet(model)"
+        "Lab −a* > 4; pas 1,8–3,8 m, SNR ≥ 3, fit Huber; coroane din ExG > 25",
+        "Trecere ghidată în 6 runde + 197 semințe → 674 rânduri în 44 blocuri",
+        "AnnSet: 1 508 bucăți de rând, 13 702 coroane, 1 330 interrânduri, 11 deșeuri"
       ]
     },
     {
       "dot": "violet",
-      "title": "Marcaj (extern)",
+      "title": "Rețeaua neuronală: un singur punct de intrare",
       "items": [
-        "Echipa încarcă 5 ZIP-uri, publică, corectează și exportă CVAT 1.1",
-        "Deșeuri exportate doar din waste_confirmed.csv (3 cutii)"
+        "vine-unet v1, rulat separat (nn infer): 88 tile-uri, 9,9 s pe MPS",
+        "Doar în 149 zone cadastre_auto vegetația devine p ≥ 0,5",
+        "Coroanele rămân clasice: A 0,816 față de D 0,773, cea mai bună NN"
       ]
     },
     {
       "dot": "amber",
-      "title": "Aplicația web",
+      "title": "Revizie, Marcaj, post",
       "items": [
-        "build-survey.mjs reproiectează bundle-ul pentru hartă",
-        "/harta, /blocuri, /ruta, /sarcini; fără Supabase rulează demo"
-      ]
-    },
-    {
-      "dot": "slate",
-      "title": "ML: probă activă, SAM 3 oprit",
-      "items": [
-        "U-Net: 0.773 (D) sub 0.816 clasic (A), deci rămâne A",
-        "Probă CLIP ViT-B-32 activă implicit: percepția ≈288 s, nu 157.4 s",
-        "Doar SAM 3 e oprit: 13.1 s pe CPU per decupaj de 512 px"
+        "Agenți RC9f + RC10f → overrides: 46 zone excluse, 19 rânduri șterse",
+        "5 ZIP-uri de ~77 MB în Marcaj; import_marcaj încă neimplementat",
+        "Post ≈ 602 s: traseu 14 037,77 m, 1,28 % în afară, 27 ferme"
       ]
     }
   ]

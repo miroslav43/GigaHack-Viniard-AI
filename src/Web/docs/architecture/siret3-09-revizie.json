@@ -1,0 +1,393 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Sireț3 · bucla de revizie a adnotărilor (RC7 → RC10f)",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/miroslav43/GigaHack-Viniard-AI",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "547fddc033db31604663ac7a91fce219a839846d"
+    },
+    "views": [
+      {
+        "id": "bucla",
+        "label": "Bucla automată",
+        "focus": [
+          "run",
+          "previews",
+          "review",
+          "configs"
+        ],
+        "note": "Randare pe tile, revizie, corecții în configs/, re-rulare."
+      },
+      {
+        "id": "verificare",
+        "label": "Verificarea diferențelor",
+        "focus": [
+          "review",
+          "verify",
+          "configs",
+          "gates"
+        ],
+        "note": "Al doilea rând de agenți compară RC-ul vechi cu cel nou doar pe tile-urile schimbate."
+      },
+      {
+        "id": "cadastru",
+        "label": "Cadastrul AGCC",
+        "focus": [
+          "cad",
+          "configs",
+          "run"
+        ],
+        "note": "Verificarea formei după parcele și semințele cadastre_auto intră tot prin configs/."
+      },
+      {
+        "id": "livrare",
+        "label": "Livrare în Marcaj",
+        "focus": [
+          "verify",
+          "gates",
+          "export",
+          "marcaj"
+        ],
+        "note": "Doar un RC care trece porțile se exportă; ce nu se poate corecta automat merge la adnotatori."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "cad",
+      "type": "external",
+      "label": "Cadastru AGCC",
+      "sublabel": "axa parcelei · folosință",
+      "tag": "X001–X011 · 149 semințe",
+      "pos": [
+        556,
+        70
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/farms/cadastre.py",
+          "label": "parcele AGCC"
+        }
+      ]
+    },
+    {
+      "id": "configs",
+      "type": "database",
+      "label": "configs/",
+      "sublabel": "overrides · seeds · waste",
+      "tag": "versionat în git",
+      "pos": [
+        556,
+        270
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/configs/overrides.yaml",
+          "label": "overrides.yaml"
+        },
+        {
+          "path": "src/AI/configs/row_seeds.csv",
+          "label": "row_seeds.csv"
+        },
+        {
+          "path": "src/AI/configs/waste_confirmed.csv",
+          "label": "waste_confirmed.csv"
+        }
+      ]
+    },
+    {
+      "id": "run",
+      "type": "backend",
+      "label": "vineyard run",
+      "sublabel": "12 etape · rc10f 384 s",
+      "tag": "RC7 … RC10f",
+      "pos": [
+        40,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/perception/overrides.py",
+          "label": "aplică overrides"
+        }
+      ]
+    },
+    {
+      "id": "previews",
+      "type": "backend",
+      "label": "qa_previews",
+      "sublabel": "JPEG pe tile · coadă",
+      "tag": "311 tile-uri",
+      "pos": [
+        298,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/pipeline/stages/qa_previews.py",
+          "label": "randări QA"
+        },
+        {
+          "path": "src/AI/vineyard/qa/review.py",
+          "label": "prioritate revizie"
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "type": "cloud",
+      "label": "Revizie pe tile",
+      "sublabel": "50 agenți × 6–7 tile",
+      "tag": "RC9f · pas 1",
+      "pos": [
+        556,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "verify",
+      "type": "cloud",
+      "label": "Verifică diferențe",
+      "sublabel": "RC vechi vs RC nou",
+      "tag": "26 / 51 · 18 / 36 tile",
+      "pos": [
+        814,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "gates",
+      "type": "security",
+      "label": "Porți exemple",
+      "sublabel": "canopy 0,8755 · F1 1",
+      "tag": "eval-examples --gates",
+      "pos": [
+        1072,
+        470
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "marcaj",
+      "type": "external",
+      "label": "Marcaj",
+      "sublabel": "corecție manuală",
+      "tag": "marcaj_todo.csv · 183",
+      "pos": [
+        814,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ]
+    },
+    {
+      "id": "export",
+      "type": "backend",
+      "label": "export_cvat",
+      "sublabel": "5 ZIP · 0 erori",
+      "tag": "≤ 85 MB / ZIP",
+      "pos": [
+        1072,
+        670
+      ],
+      "size": [
+        172,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/AI/vineyard/cvat/export.py",
+          "label": "export CVAT"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Pipeline vineyard",
+      "wraps": [
+        "run",
+        "previews"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Revizie: agenți Sonnet + echipă",
+      "wraps": [
+        "review",
+        "verify"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Porți și export",
+      "wraps": [
+        "gates",
+        "export"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cad-cfg",
+      "from": "cad",
+      "to": "configs",
+      "label": "cadastre_auto",
+      "labelAt": [
+        642,
+        168
+      ]
+    },
+    {
+      "id": "cfg-run",
+      "from": "configs",
+      "to": "run",
+      "label": "re-rulare RC",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "top"
+    },
+    {
+      "id": "run-prev",
+      "from": "run",
+      "to": "previews",
+      "label": "AnnSet",
+      "variant": "emphasis"
+    },
+    {
+      "id": "prev-review",
+      "from": "previews",
+      "to": "review",
+      "label": "JPEG",
+      "variant": "emphasis"
+    },
+    {
+      "id": "review-verify",
+      "from": "review",
+      "to": "verify",
+      "label": "RC nou",
+      "variant": "emphasis"
+    },
+    {
+      "id": "verify-gates",
+      "from": "verify",
+      "to": "gates",
+      "label": "acceptat",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gates-export",
+      "from": "gates",
+      "to": "export",
+      "label": "trec",
+      "variant": "emphasis",
+      "labelAt": [
+        1158,
+        568
+      ]
+    },
+    {
+      "id": "export-marcaj",
+      "from": "export",
+      "to": "marcaj",
+      "label": "ZIP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "review-cfg",
+      "from": "review",
+      "to": "configs",
+      "label": "excluderi · semințe",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        642,
+        390
+      ]
+    },
+    {
+      "id": "verify-cfg",
+      "from": "verify",
+      "to": "configs",
+      "label": "W001–W021",
+      "fromSide": "top",
+      "toSide": "right"
+    },
+    {
+      "id": "verify-marcaj",
+      "from": "verify",
+      "to": "marcaj",
+      "label": "de corectat manual",
+      "labelAt": [
+        900,
+        568
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Ce intră în configs/",
+      "items": [
+        "overrides.yaml: exclude_areas (linia tăiată, se păstrează partea cea mai lungă), force_empty_tiles, delete / extend / add pe rânduri.",
+        "row_seeds.csv: poligon + unghi + pas pe tile (tile_id, vines, confidence, polygon_px, angle_deg, spacing_m, kind, note); 197 de semințe.",
+        "waste_confirmed.csv: 13 cutii (3 SAM 3 aprobate de echipă + 10 din revizia RC9f); doar ele pot ajunge în export (11 în RC10f).",
+        "O excludere care ar tăia un rând la mijloc (copac, drum în vie) nu se aplică automat: merge în lista pentru Marcaj."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Cronologia RC",
+      "items": [
+        "RC7: 5 tile-uri forțat goale după revizie vizuală + prima listă Marcaj.",
+        "RC8: X001–X011 din verificarea după cadastru; 33 de semințe din loturile de revizie: 602 → 730 de rânduri.",
+        "RC9f: 50 de agenți pe toate tile-urile, apoi 26 pe cele 51 schimbate; 10 deșeuri; listă de 174 de intrări.",
+        "RC9g: sămânța de lângă START avea 118,4° în loc de 127,3° (detectorul caută doar ±3°) → unghiul se ia de la rândurile vecine.",
+        "RC10: 149 de semințe cadastre_auto căutate pe masca vine-unet. RC10f: 18 agenți pe 36 de tile-uri → 21 de piese (558 m) excluse."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Reguli ale buclei",
+      "items": [
+        "Agenții aplică doar corecțiile de încredere mare; tot restul devine sarcină pentru adnotatori.",
+        "Fiecare RC nou trece porțile pe cele 2 tile-uri de referință (canopy, rows F1, interrow, atribute) înainte de export.",
+        "RC10f a fost ultimul import automat: de acum corecțiile se fac doar manual, în Marcaj."
+      ]
+    }
+  ]
+}

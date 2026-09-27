@@ -5177,12 +5177,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="axes" data-edge-to="filters" data-edge-label="&lt; 0,6 m de axă" data-edge-key="2" data-edge-id="axis-in" data-composition-points="315,186;315,242" d="M 315 186 L 315 242" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="filters" data-edge-to="probe" data-edge-label="crop 224 px" data-edge-key="3" data-edge-id="survivors" data-composition-points="375,271;470,271" d="M 375 271 L 470 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="uav" data-edge-to="probe" data-edge-label="antrenare offline" data-edge-key="4" data-edge-id="train" data-composition-points="530,186;530,242" d="M 530 186 L 530 242" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="probe" data-edge-to="sam" data-edge-label="probe ≥ 0,3" data-edge-key="5" data-edge-id="gate" data-composition-points="530,300;530,356" d="M 530 300 L 530 356" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="probe" data-edge-to="review" data-edge-label="scor probe" data-edge-key="6" data-edge-id="ranked" data-composition-points="590,271;685,271" d="M 590 271 L 685 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="sam" data-edge-to="review" data-edge-label="scor SAM 3" data-edge-key="7" data-edge-id="sam-boost" data-composition-points="590,385;745,385;745,300" d="M 590 385 L 745 385 L 745 300" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="review" data-edge-to="confirmed" data-edge-label="linie CSV" data-edge-key="8" data-edge-id="approve" data-composition-points="745,242;745,186" d="M 745 242 L 745 186" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="confirmed" data-edge-to="layer" data-edge-label="IoU ≥ 0,5" data-edge-key="9" data-edge-id="accepted" data-composition-points="817,157;858.5,157;858.5,271;900,271" d="M 817 157 L 858.5 157 L 858.5 271 L 900 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="layer" data-edge-to="cvat" data-edge-label="cutii tile px" data-edge-key="10" data-edge-id="to-cvat" data-composition-points="960,242;960,186" d="M 960 242 L 960 186" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="probe" data-edge-to="sam" data-edge-label="probă ≥ 0,3" data-edge-key="5" data-edge-id="gate" data-composition-points="530,300;530,356" d="M 530 300 L 530 356" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="probe" data-edge-to="review" data-edge-label="rang probă" data-edge-key="6" data-edge-id="ranked" data-composition-points="590,271;685,271" d="M 590 271 L 685 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="sam" data-edge-to="review" data-edge-label="scor SAM 3" data-edge-key="7" data-edge-id="sam-boost" data-composition-points="590,385;637.5,385;637.5,285;685,285" d="M 590 385 L 637.5 385 L 637.5 285 L 685 285" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="agents" data-edge-to="confirmed" data-edge-label="10 adăugate" data-edge-key="8" data-edge-id="agents-add" data-composition-points="805,150;894,150" d="M 805 150 L 894 150" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="review" data-edge-to="confirmed" data-edge-label="3 aprobate" data-edge-key="9" data-edge-id="approve" data-composition-points="805,278;849.5,278;849.5,164;894,164" d="M 805 278 L 849.5 278 L 849.5 164 L 894 164" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="confirmed" data-edge-to="layer" data-edge-label="IoU ≥ 0,5" data-edge-key="10" data-edge-id="accepted" data-composition-points="960,186;960,242" d="M 960 186 L 960 242" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="layer" data-edge-to="route" data-edge-label="centrul cutiei" data-edge-key="11" data-edge-id="to-route" data-composition-points="960,300;960,356" d="M 960 300 L 960 356" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
@@ -5224,8 +5224,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="315" y="175" class="t-database" font-size="7" text-anchor="middle">rows.parquet</text>
         </g>
 
-        <g id="node-filters" data-node-id="filters" data-node-label="Filtre dure" tabindex="0" role="button" aria-label="Focus Filtre dure, 7 reguli · rămân 18.947, 02 / Filtre dure" aria-pressed="false" data-node-kind="security" data-node-sublabel="7 reguli · rămân 18.947" data-node-tag="filters.py" data-node-context="02 / Filtre dure">
-          <title>Filtre dure · 7 reguli · rămân 18.947 · 02 / Filtre dure · filters.py</title>
+        <g id="node-filters" data-node-id="filters" data-node-label="Filtre dure" tabindex="0" role="button" aria-label="Focus Filtre dure, 7 reguli · rămân 19.064, 02 / Filtre dure" aria-pressed="false" data-node-kind="security" data-node-sublabel="7 reguli · rămân 19.064" data-node-tag="filters.py" data-node-context="02 / Filtre dure">
+          <title>Filtre dure · 7 reguli · rămân 19.064 · 02 / Filtre dure · filters.py</title>
           <rect x="255" y="242" width="120" height="58" rx="6" class="c-mask"/>
           <rect x="255" y="242" width="120" height="58" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(261 248) scale(0.6875)">
@@ -5233,7 +5233,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="315" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Filtre dure</text>
-          <text data-detail="context" x="315" y="279" class="t-muted" font-size="7" text-anchor="middle">7 reguli · rămân 18.947</text>
+          <text data-detail="context" x="315" y="279" class="t-muted" font-size="7" text-anchor="middle">7 reguli · rămân 19.064</text>
         <text data-detail="fine" x="315" y="289" class="t-security" font-size="7" text-anchor="middle">filters.py</text>
         </g>
 
@@ -5250,91 +5250,89 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="530" y="175" class="t-external" font-size="7" text-anchor="middle">CC-BY-4.0</text>
         </g>
 
-        <g id="node-probe" data-node-id="probe" data-node-label="CLIP + probe" tabindex="0" role="button" aria-label="Focus CLIP + probe, ViT-B-32 · AUC 0,991, 03 / Scor ML" aria-pressed="false" data-node-kind="backend" data-node-sublabel="ViT-B-32 · AUC 0,991" data-node-tag="probe.py" data-node-context="03 / Scor ML">
-          <title>CLIP + probe · ViT-B-32 · AUC 0,991 · 03 / Scor ML · probe.py</title>
+        <g id="node-probe" data-node-id="probe" data-node-label="CLIP + probă" tabindex="0" role="button" aria-label="Focus CLIP + probă, ViT-B-32 · AUC 0,991, 03 / Scor ML" aria-pressed="false" data-node-kind="backend" data-node-sublabel="ViT-B-32 · AUC 0,991" data-node-tag="activ în RC10f" data-node-context="03 / Scor ML">
+          <title>CLIP + probă · ViT-B-32 · AUC 0,991 · 03 / Scor ML · activ în RC10f</title>
           <rect x="470" y="242" width="120" height="58" rx="6" class="c-mask"/>
           <rect x="470" y="242" width="120" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(476 248) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="530" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">CLIP + probe</text>
+          <text data-node-label="" data-detail-anchor="" x="530" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">CLIP + probă</text>
           <text data-detail="context" x="530" y="279" class="t-muted" font-size="7" text-anchor="middle">ViT-B-32 · AUC 0,991</text>
-        <text data-detail="fine" x="530" y="289" class="t-backend" font-size="7" text-anchor="middle">probe.py</text>
+        <text data-detail="fine" x="530" y="289" class="t-backend" font-size="7" text-anchor="middle">activ în RC10f</text>
         </g>
 
-        <g id="node-sam" data-node-id="sam" data-node-label="Verificator SAM 3" tabindex="0" role="button" aria-label="Focus Verificator SAM 3, CPU · 13,1 s/crop, 03 / Scor ML" aria-pressed="false" data-node-kind="backend" data-node-sublabel="CPU · 13,1 s/crop" data-node-tag="Sam3Model" data-node-context="03 / Scor ML">
-          <title>Verificator SAM 3 · CPU · 13,1 s/crop · 03 / Scor ML · Sam3Model</title>
+        <g id="node-sam" data-node-id="sam" data-node-label="Verificator SAM 3" tabindex="0" role="button" aria-label="Focus Verificator SAM 3, oprit în RC10f, 03 / Scor ML" aria-pressed="false" data-node-kind="backend" data-node-sublabel="oprit în RC10f" data-node-tag="13,1 s/crop pe CPU" data-node-context="03 / Scor ML">
+          <title>Verificator SAM 3 · oprit în RC10f · 03 / Scor ML · 13,1 s/crop pe CPU</title>
           <rect x="470" y="356" width="120" height="58" rx="6" class="c-mask"/>
           <rect x="470" y="356" width="120" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(476 362) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="530" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Verificator SAM 3</text>
-          <text data-detail="context" x="530" y="393" class="t-muted" font-size="7" text-anchor="middle">CPU · 13,1 s/crop</text>
-        <text data-detail="fine" x="530" y="403" class="t-backend" font-size="7" text-anchor="middle">Sam3Model</text>
+          <text data-detail="context" x="530" y="393" class="t-muted" font-size="7" text-anchor="middle">oprit în RC10f</text>
+        <text data-detail="fine" x="530" y="403" class="t-backend" font-size="7" text-anchor="middle">13,1 s/crop pe CPU</text>
         </g>
 
-        <g id="node-confirmed" data-node-id="confirmed" data-node-label="Aprobare echipă" tabindex="0" role="button" aria-label="Focus Aprobare echipă, waste_confirmed.csv · 3 accept, 04 / Decizie umană" aria-pressed="false" data-node-kind="security" data-node-sublabel="waste_confirmed.csv · 3 accept" data-node-tag="configs/" data-node-context="04 / Decizie umană">
-          <title>Aprobare echipă · waste_confirmed.csv · 3 accept · 04 / Decizie umană · configs/</title>
-          <rect x="673" y="128" width="144" height="58" rx="6" class="c-mask"/>
-          <rect x="673" y="128" width="144" height="58" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(679 134) scale(0.6875)">
+        <g id="node-agents" data-node-id="agents" data-node-label="Revizie cu agenți" tabindex="0" role="button" aria-label="Focus Revizie cu agenți, RC9f · 311 tile-uri, 04 / Decizie umană" aria-pressed="false" data-node-kind="security" data-node-sublabel="RC9f · 311 tile-uri" data-node-tag="anvelope · moloz" data-node-context="04 / Decizie umană">
+          <title>Revizie cu agenți · RC9f · 311 tile-uri · 04 / Decizie umană · anvelope · moloz</title>
+          <rect x="685" y="121" width="120" height="58" rx="6" class="c-mask"/>
+          <rect x="685" y="121" width="120" height="58" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(691 127) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="745" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Aprobare echipă</text>
-          <text data-detail="context" x="745" y="165" class="t-muted" font-size="7" text-anchor="middle">waste_confirmed.csv · 3 accept</text>
-        <text data-detail="fine" x="745" y="175" class="t-security" font-size="7" text-anchor="middle">configs/</text>
+          <text data-node-label="" data-detail-anchor="" x="745" y="142" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Revizie cu agenți</text>
+          <text data-detail="context" x="745" y="158" class="t-muted" font-size="7" text-anchor="middle">RC9f · 311 tile-uri</text>
+        <text data-detail="fine" x="745" y="168" class="t-security" font-size="7" text-anchor="middle">anvelope · moloz</text>
         </g>
 
-        <g id="node-review" data-node-id="review" data-node-label="Listă review" tabindex="0" role="button" aria-label="Focus Listă review, NMS · rank ≥ 0,3 · 1.335, 04 / Decizie umană" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="NMS · rank ≥ 0,3 · 1.335" data-node-tag="waste_review.html" data-node-context="04 / Decizie umană">
-          <title>Listă review · NMS · rank ≥ 0,3 · 1.335 · 04 / Decizie umană · waste_review.html</title>
-          <rect x="685" y="242" width="120" height="58" rx="6" class="c-mask"/>
-          <rect x="685" y="242" width="120" height="58" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(691 248) scale(0.6875)">
+        <g id="node-review" data-node-id="review" data-node-label="Listă review" tabindex="0" role="button" aria-label="Focus Listă review, NMS · rank ≥ 0,3 · 1.331, 04 / Decizie umană" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="NMS · rank ≥ 0,3 · 1.331" data-node-tag="waste_review.html" data-node-context="04 / Decizie umană">
+          <title>Listă review · NMS · rank ≥ 0,3 · 1.331 · 04 / Decizie umană · waste_review.html</title>
+          <rect x="685" y="249" width="120" height="58" rx="6" class="c-mask"/>
+          <rect x="685" y="249" width="120" height="58" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(691 255) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="745" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Listă review</text>
-          <text data-detail="context" x="745" y="279" class="t-muted" font-size="7" text-anchor="middle">NMS · rank ≥ 0,3 · 1.335</text>
-        <text data-detail="fine" x="745" y="289" class="t-frontend" font-size="7" text-anchor="middle">waste_review.html</text>
+          <text data-node-label="" data-detail-anchor="" x="745" y="270" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Listă review</text>
+          <text data-detail="context" x="745" y="286" class="t-muted" font-size="7" text-anchor="middle">NMS · rank ≥ 0,3 · 1.331</text>
+        <text data-detail="fine" x="745" y="296" class="t-frontend" font-size="7" text-anchor="middle">waste_review.html</text>
         </g>
 
-        <g id="node-cvat" data-node-id="cvat" data-node-label="Export CVAT" tabindex="0" role="button" aria-label="Focus Export CVAT, adnotări pentru Marcaj, 05 / Export" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="adnotări pentru Marcaj" data-node-tag="cutii" data-node-context="05 / Export">
-          <title>Export CVAT · adnotări pentru Marcaj · 05 / Export · cutii</title>
-          <rect x="900" y="128" width="120" height="58" rx="6" class="c-mask"/>
-          <rect x="900" y="128" width="120" height="58" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(906 134) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
+        <g id="node-confirmed" data-node-id="confirmed" data-node-label="waste_confirmed" tabindex="0" role="button" aria-label="Focus waste_confirmed, 13 cutii aprobate, 05 / Export" aria-pressed="false" data-node-kind="security" data-node-sublabel="13 cutii aprobate" data-node-tag="3 SAM 3 + 10 agenți" data-node-context="05 / Export">
+          <title>waste_confirmed · 13 cutii aprobate · 05 / Export · 3 SAM 3 + 10 agenți</title>
+          <rect x="894" y="128" width="132" height="58" rx="6" class="c-mask"/>
+          <rect x="894" y="128" width="132" height="58" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(900 134) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="960" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Export CVAT</text>
-          <text data-detail="context" x="960" y="165" class="t-muted" font-size="7" text-anchor="middle">adnotări pentru Marcaj</text>
-        <text data-detail="fine" x="960" y="175" class="t-frontend" font-size="7" text-anchor="middle">cutii</text>
+          <text data-node-label="" data-detail-anchor="" x="960" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">waste_confirmed</text>
+          <text data-detail="context" x="960" y="165" class="t-muted" font-size="7" text-anchor="middle">13 cutii aprobate</text>
+        <text data-detail="fine" x="960" y="175" class="t-security" font-size="7" text-anchor="middle">3 SAM 3 + 10 agenți</text>
         </g>
 
-        <g id="node-layer" data-node-id="layer" data-node-label="Strat final waste" tabindex="0" role="button" aria-label="Focus Strat final waste, waste.parquet · 3 cutii, 05 / Export" aria-pressed="false" data-node-kind="database" data-node-sublabel="waste.parquet · 3 cutii" data-node-tag="W0001–W0003" data-node-context="05 / Export">
-          <title>Strat final waste · waste.parquet · 3 cutii · 05 / Export · W0001–W0003</title>
-          <rect x="900" y="242" width="120" height="58" rx="6" class="c-mask"/>
-          <rect x="900" y="242" width="120" height="58" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(906 248) scale(0.6875)">
+        <g id="node-layer" data-node-id="layer" data-node-label="Strat final waste" tabindex="0" role="button" aria-label="Focus Strat final waste, 13 cutii → 11 în AnnSet, 05 / Export" aria-pressed="false" data-node-kind="database" data-node-sublabel="13 cutii → 11 în AnnSet" data-node-tag="→ CVAT waste" data-node-context="05 / Export">
+          <title>Strat final waste · 13 cutii → 11 în AnnSet · 05 / Export · → CVAT waste</title>
+          <rect x="894" y="242" width="132" height="58" rx="6" class="c-mask"/>
+          <rect x="894" y="242" width="132" height="58" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(900 248) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="960" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Strat final waste</text>
-          <text data-detail="context" x="960" y="279" class="t-muted" font-size="7" text-anchor="middle">waste.parquet · 3 cutii</text>
-        <text data-detail="fine" x="960" y="289" class="t-database" font-size="7" text-anchor="middle">W0001–W0003</text>
+          <text data-detail="context" x="960" y="279" class="t-muted" font-size="7" text-anchor="middle">13 cutii → 11 în AnnSet</text>
+        <text data-detail="fine" x="960" y="289" class="t-database" font-size="7" text-anchor="middle">→ CVAT waste</text>
         </g>
 
         <g id="node-route" data-node-id="route" data-node-label="Ținte de traseu" tabindex="0" role="button" aria-label="Focus Ținte de traseu, prioritate 1 (maximă), 05 / Export" aria-pressed="false" data-node-kind="backend" data-node-sublabel="prioritate 1 (maximă)" data-node-tag="target_waste.py" data-node-context="05 / Export">
           <title>Ținte de traseu · prioritate 1 (maximă) · 05 / Export · target_waste.py</title>
-          <rect x="900" y="356" width="120" height="58" rx="6" class="c-mask"/>
-          <rect x="900" y="356" width="120" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(906 362) scale(0.6875)">
+          <rect x="894" y="356" width="132" height="58" rx="6" class="c-mask"/>
+          <rect x="894" y="356" width="132" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(900 362) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="960" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Ținte de traseu</text>
@@ -5363,29 +5361,29 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="482.35" y="189" width="95.3" height="16" rx="4" class="c-mask"/>
           <text x="530" y="200" class="t-messagebus" font-size="8" text-anchor="middle">antrenare offline</text>
         </g>
-        <g data-detail="context" data-edge-from="probe" data-edge-to="sam" data-edge-label="probe ≥ 0,3" data-edge-key="5" data-edge-id="gate">
+        <g data-detail="context" data-edge-from="probe" data-edge-to="sam" data-edge-label="probă ≥ 0,3" data-edge-key="5" data-edge-id="gate">
           <rect x="497.05" y="303" width="65.9" height="16" rx="4" class="c-mask"/>
-          <text x="530" y="314" class="t-muted" font-size="8" text-anchor="middle">probe ≥ 0,3</text>
+          <text x="530" y="314" class="t-messagebus" font-size="8" text-anchor="middle">probă ≥ 0,3</text>
         </g>
-        <g data-detail="context" data-edge-from="probe" data-edge-to="review" data-edge-label="scor probe" data-edge-key="6" data-edge-id="ranked">
+        <g data-detail="context" data-edge-from="probe" data-edge-to="review" data-edge-label="rang probă" data-edge-key="6" data-edge-id="ranked">
           <rect x="607" y="250" width="61" height="16" rx="4" class="c-mask"/>
-          <text x="637.5" y="261" class="t-backend" font-size="8" text-anchor="middle">scor probe</text>
+          <text x="637.5" y="261" class="t-backend" font-size="8" text-anchor="middle">rang probă</text>
         </g>
         <g data-detail="context" data-edge-from="sam" data-edge-to="review" data-edge-label="scor SAM 3" data-edge-key="7" data-edge-id="sam-boost">
-          <rect x="714.5" y="321.5" width="61" height="16" rx="4" class="c-mask"/>
-          <text x="745" y="332.5" class="t-muted" font-size="8" text-anchor="middle">scor SAM 3</text>
+          <rect x="607" y="314" width="61" height="16" rx="4" class="c-mask"/>
+          <text x="637.5" y="325" class="t-messagebus" font-size="8" text-anchor="middle">scor SAM 3</text>
         </g>
-        <g data-detail="context" data-edge-from="review" data-edge-to="confirmed" data-edge-label="linie CSV" data-edge-key="8" data-edge-id="approve">
-          <rect x="716.95" y="221" width="56.1" height="16" rx="4" class="c-mask"/>
-          <text x="745" y="232" class="t-security" font-size="8" text-anchor="middle">linie CSV</text>
+        <g data-detail="context" data-edge-from="agents" data-edge-to="confirmed" data-edge-label="10 adăugate" data-edge-key="8" data-edge-id="agents-add">
+          <rect x="816.55" y="129" width="65.9" height="16" rx="4" class="c-mask"/>
+          <text x="849.5" y="140" class="t-security" font-size="8" text-anchor="middle">10 adăugate</text>
         </g>
-        <g data-detail="context" data-edge-from="confirmed" data-edge-to="layer" data-edge-label="IoU ≥ 0,5" data-edge-key="9" data-edge-id="accepted">
-          <rect x="830.45" y="193" width="56.1" height="16" rx="4" class="c-mask"/>
-          <text x="858.5" y="204" class="t-backend" font-size="8" text-anchor="middle">IoU ≥ 0,5</text>
+        <g data-detail="context" data-edge-from="review" data-edge-to="confirmed" data-edge-label="3 aprobate" data-edge-key="9" data-edge-id="approve">
+          <rect x="819" y="200" width="61" height="16" rx="4" class="c-mask"/>
+          <text x="849.5" y="211" class="t-security" font-size="8" text-anchor="middle">3 aprobate</text>
         </g>
-        <g data-detail="context" data-edge-from="layer" data-edge-to="cvat" data-edge-label="cutii tile px" data-edge-key="10" data-edge-id="to-cvat">
-          <rect x="922.15" y="221" width="75.7" height="16" rx="4" class="c-mask"/>
-          <text x="960" y="232" class="t-muted" font-size="8" text-anchor="middle">cutii tile px</text>
+        <g data-detail="context" data-edge-from="confirmed" data-edge-to="layer" data-edge-label="IoU ≥ 0,5" data-edge-key="10" data-edge-id="accepted">
+          <rect x="931.95" y="189" width="56.1" height="16" rx="4" class="c-mask"/>
+          <text x="960" y="200" class="t-backend" font-size="8" text-anchor="middle">IoU ≥ 0,5</text>
         </g>
         <g data-detail="context" data-edge-from="layer" data-edge-to="route" data-edge-label="centrul cutiei" data-edge-key="11" data-edge-id="to-route">
           <rect x="919.7" y="303" width="80.6" height="16" rx="4" class="c-mask"/>
@@ -5399,21 +5397,21 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M 40 481 L 74 481" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
             <text x="83" y="484" class="t-muted" font-size="10" font-weight="500">flux principal</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-x="175" data-legend-baseline="484" data-legend-width="113">
+          <g data-legend-semantic-kind="security" data-legend-x="175" data-legend-baseline="484" data-legend-width="138">
             <path d="M 175 481 L 209 481" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-            <text x="218" y="484" class="t-muted" font-size="10" font-weight="500">aprobare umană</text>
+            <text x="218" y="484" class="t-muted" font-size="10" font-weight="500">aprobare om / agent</text>
           </g>
-          <g data-legend-semantic-kind="dashed" data-legend-x="310" data-legend-baseline="484" data-legend-width="128">
-            <path d="M 310 481 L 344 481" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-            <text x="353" y="484" class="t-muted" font-size="10" font-weight="500">intrare auxiliară</text>
+          <g data-legend-semantic-kind="dashed" data-legend-x="335" data-legend-baseline="484" data-legend-width="133">
+            <path d="M 335 481 L 369 481" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+            <text x="378" y="484" class="t-muted" font-size="10" font-weight="500">auxiliar sau oprit</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="strat stocat" data-legend-x="460" data-legend-baseline="484" data-legend-width="103">
-            <rect x="460" y="476" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="482" y="484" class="t-muted" font-size="10" font-weight="500">strat stocat</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="strat stocat" data-legend-x="490" data-legend-baseline="484" data-legend-width="103">
+            <rect x="490" y="476" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="512" y="484" class="t-muted" font-size="10" font-weight="500">strat stocat</text>
           </g>
-          <g data-legend-semantic-kind="default" data-legend-x="585" data-legend-baseline="484" data-legend-width="103">
-            <path d="M 585 481 L 619 481" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-            <text x="628" y="484" class="t-muted" font-size="10" font-weight="500">flux de date</text>
+          <g data-legend-semantic-kind="default" data-legend-x="615" data-legend-baseline="484" data-legend-width="103">
+            <path d="M 615 481 L 649 481" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+            <text x="658" y="484" class="t-muted" font-size="10" font-weight="500">flux de date</text>
           </g>
         </g>
       </svg>
@@ -5608,9 +5606,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Reguli întâi: ieftine, clare</h3>
         </div>
         <ul>
-          <li>&bull; Candidat = pată vivid (S ≥ 150, V ≥ 70, nuanță în afara verdelui 25–95) sau bright (V &gt; 200, S &lt; 45), arie ≥ 0,015 m²; &gt; 6 m² → filtrul vehicle</li>
-          <li>&bull; Filtrele resping ce seamănă cu un deșeu, dar nu e: tuburi albe, sol deschis, furtunuri, vehicule — „când ai dubii, lasă-l afară”</li>
-          <li>&bull; Rulare full-v2: too_small_white 63.337 · bright_soil 43.330 · tube_shape 9.943 · near_axis 6.084 · forbidden 1.697 · vehicle 385 · nms 57</li>
+          <li>&bull; Candidat = pată vivid (S ≥ 150, V ≥ 70, nuanță în afara verdelui 25–95) sau bright (V &gt; 200, S &lt; 45), arie 0,015–6 m².</li>
+          <li>&bull; RC10f: too_small_white 62.726 · bright_soil 42.844 · tube_shape 9.776 · near_axis 7.174 · forbidden 1.697 · vehicle 385 · nms 57.</li>
         </ul>
       </div>
 
@@ -5620,9 +5617,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Modelele doar ordonează lista</h3>
         </div>
         <ul>
-          <li>&bull; Probe pe embedding CLIP: 3.000 pozitive UAVVaste și 8.292 negative Sireț3, validare încrucișată pe 5 grupuri</li>
-          <li>&bull; SAM 3 rulează pe CPU 5 prompturi text pe crop de 512 px, cu până la 3 cutii negative pe tuburile albe din jur</li>
-          <li>&bull; Buget de 1.800 s: 137 din 1.335 crop-uri verificate; un al doilea pas lângă blocuri: 162 crop-uri, 14,4 s/crop</li>
+          <li>&bull; Probă logistică pe embedding CLIP ViT-B-32: 3.000 pozitive UAVVaste, 8.292 negative Sireț3, AUC 0,991.</li>
+          <li>&bull; SAM 3 (5 prompturi text, crop 512 px) a rulat pe 26.09; în RC10f e oprit, verificarea L1 = probă + CLIP.</li>
         </ul>
       </div>
 
@@ -5632,9 +5628,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Omul decide exportul</h3>
         </div>
         <ul>
-          <li>&bull; auto_accept_enabled: false — înainte de Publish nimic nu se exportă automat</li>
-          <li>&bull; 9 pozitive SAM 3 (6 + 3); doar cele 3 aflate la ≤ 10 m de un bloc au fost aprobate de echipă</li>
-          <li>&bull; W0001–W0003 lângă V03, V01 și V14 (9,7 m · 7,2 m · 0,6 m), categoria debris</li>
+          <li>&bull; auto_accept_enabled: false — se exportă doar waste_confirmed.csv: 3 cutii SAM 3 aprobate de echipă + 10 găsite de agenți (RC9f).</li>
+          <li>&bull; 2 anvelope stau pe tile-ul r012_c004, golit forțat, deci AnnSet și ZIP-urile au 11 deșeuri.</li>
         </ul>
       </div>
     </div>
