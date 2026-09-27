@@ -486,4 +486,4 @@ These values come from the uploaded model annotations: run `rc10f` → post run 
 | segmentation-models-pytorch | MIT |
 | ResNet-18 ImageNet encoder weights | torchvision `resnet18-5c106cde.pth` (torchvision: BSD-3-Clause), mirrored as `smp-hub/resnet18.imagenet` (licence tag "other"); trained on ImageNet |
 | Main libraries | PyTorch and torchvision (BSD-style), transformers (Apache-2.0), OR-Tools (Apache-2.0), python-tsp (MIT), rasterio / shapely / geopandas (BSD-3-Clause) |
-| **This repository's code** | **TODO: choose a licence.** There is no LICENSE file yet; `src/AI/pyproject.toml` declares MIT. |
+| **This repository's code** | **MIT** ([`LICENSE`](LICENSE)). The data and model licences above still apply to the data and weights |
