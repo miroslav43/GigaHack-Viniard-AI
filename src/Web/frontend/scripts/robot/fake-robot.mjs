@@ -108,9 +108,9 @@ function motors(req, res) {
   if (url.pathname === "/move") {
     const m = Number(q.get("motor")), dir = Number(q.get("dir")), speed = Number(q.get("speed")), steps = Number(q.get("steps"));
     if (![1, 2].includes(m) || !speed || !steps) return text(res, 400, "Eroare: Parametri lipsă!");
-    const deg = (steps * 360) / 200;
-    if (m === 1) state.pan += dir === 0 ? deg : -deg;
-    else state.tilt += dir === 0 ? deg : -deg;
+    // like the robot: motor 2 turns the camera (degrees), motor 1 raises it (the picture shifts up with it)
+    if (m === 2) state.pan += ((dir === 0 ? 1 : -1) * steps * 360) / 200;
+    else state.tilt += (dir === 0 ? 1 : -1) * steps * 0.05;
     state.soft[m] = false;
     log("motors", `motor ${m} dir ${dir} ${steps} steps @ ${speed} pps → pan ${state.pan}°, tilt ${state.tilt}°`);
     // like the firmware: the answer comes when the motor has stopped

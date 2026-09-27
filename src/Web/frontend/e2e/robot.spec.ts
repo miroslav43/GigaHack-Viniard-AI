@@ -60,15 +60,17 @@ test.describe("with the stand-in boards", () => {
 
     await page.getByTestId("robot-camera-pad").getByRole("button", { name: "Camera la dreapta" }).click();
     await expect(status).toHaveText("Camera s-a mișcat.");
-    await expect(page.getByText(/Poziție estimată: 14° orizontal, 0° vertical/)).toBeVisible();
+    await expect(page.getByText(/Poziție: 14° orizontal, înălțime 0 pași\./)).toBeVisible();
+    await page.getByTestId("robot-camera-pad").getByRole("button", { name: "Camera în sus" }).click();
+    await expect(page.getByText(/Poziție: 14° orizontal, înălțime 200 pași\./)).toBeVisible();
 
     await page.getByTestId("robot-capture").click();
     await expect(status).toHaveText("Poza a fost salvată în galerie.");
     await expect(page.getByTestId("robot-photo")).toHaveCount(1);
-    await expect(page.getByTestId("robot-photo")).toContainText("14° / 0°");
+    await expect(page.getByTestId("robot-photo")).toContainText("14° · înălțime 200");
     const download = page.waitForEvent("download");
     await page.getByTestId("robot-photo").getByRole("button", { name: "Descarcă" }).click();
-    expect((await download).suggestedFilename()).toMatch(/^robot_\d{8}_\d{6}_pan14_tilt0\.jpg$/);
+    expect((await download).suggestedFilename()).toMatch(/^robot_\d{8}_\d{6}_pan14_h200\.jpg$/);
 
     await expect(page.getByTestId("robot-distance")).toHaveText(/Distanță \(senzor\): 10\d\.\d cm/);
 

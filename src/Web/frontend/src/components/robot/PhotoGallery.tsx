@@ -16,16 +16,17 @@ export interface Photo {
   /** object URL of the JPEG */
   url: string;
   takenAt: Date;
-  /** estimated camera angles when it was taken (degrees from the zeroed position): the street view mode will use them */
+  /** estimated camera position when it was taken, from the zeroed position (the street view mode will use them):
+   *  pan in degrees, height in motor steps */
   panDeg: number;
-  tiltDeg: number;
+  heightSteps: number;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
 export const photoFileName = (p: Photo) => {
   const d = p.takenAt;
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  return `robot_${stamp}_pan${Math.round(p.panDeg)}_tilt${Math.round(p.tiltDeg)}.jpg`;
+  return `robot_${stamp}_pan${Math.round(p.panDeg)}_h${p.heightSteps}.jpg`;
 };
 
 function download(p: Photo) {
@@ -59,7 +60,7 @@ export function PhotoGallery({ photos, onRemove }: { photos: Photo[]; onRemove: 
               <img src={p.url} alt={photoFileName(p)} style={{ width: "100%", display: "block", aspectRatio: "4 / 3", objectFit: "cover" }} />
               <Box sx={{ display: "flex", alignItems: "center", px: 1.5, py: 1 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-                  {p.takenAt.toLocaleTimeString()} · {t("angles", { pan: Math.round(p.panDeg), tilt: Math.round(p.tiltDeg) })}
+                  {p.takenAt.toLocaleTimeString()} · {t("angles", { pan: Math.round(p.panDeg), height: p.heightSteps })}
                 </Typography>
                 <Tooltip title={t("download")}>
                   <IconButton size="small" onClick={() => download(p)} aria-label={t("download")}>

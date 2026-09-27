@@ -16,7 +16,7 @@ const DEVICES: Device[] = ["cam", "motors", "drive"];
 
 export function SettingsCard({ settings, onChange }: { settings: RobotSettings; onChange: (patch: SettingsPatch) => void }) {
   const t = useTranslations("robot.settings");
-  const num = (key: "stepsPerRev" | "stepDeg" | "speedPps" | "driveMs" | "wheelSpeed", min: number, max: number) => (
+  const num = (key: "stepsPerRev" | "stepDeg" | "speedPps" | "liftSteps" | "liftSpeedPps" | "driveMs" | "wheelSpeed", min: number, max: number) => (
     <TextField
       size="small"
       type="number"
@@ -59,8 +59,19 @@ export function SettingsCard({ settings, onChange }: { settings: RobotSettings; 
           {num("stepDeg", 1, 180)}
           {num("stepsPerRev", 1, 100000)}
           {num("speedPps", LIMITS.speedPps[0], LIMITS.speedPps[1])}
+          {num("liftSteps", 1, LIMITS.steps[1])}
+          {num("liftSpeedPps", LIMITS.speedPps[0], LIMITS.speedPps[1])}
           {num("driveMs", LIMITS.driveMs[0], LIMITS.driveMs[1])}
           {num("wheelSpeed", LIMITS.wheelSpeed[0], LIMITS.wheelSpeed[1])}
+        </Box>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          {(["panInvert", "liftInvert"] as const).map((k) => (
+            <FormControlLabel
+              key={k}
+              control={<Checkbox size="small" checked={settings[k]} onChange={(e) => onChange({ [k]: e.target.checked })} />}
+              label={t(k)}
+            />
+          ))}
         </Box>
         {/* which wheel motor is on which side, and which are wired the other way round (calibrate with "Înainte") */}
         <Typography variant="subtitle2">{t("wheels")}</Typography>

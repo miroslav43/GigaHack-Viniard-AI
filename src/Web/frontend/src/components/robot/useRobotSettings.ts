@@ -8,12 +8,19 @@ import type { Device } from "@/lib/robot/commands";
 
 export interface RobotSettings {
   urls: Record<Device, string>;
-  /** steps per camera motor turn (200 for a 1.8° motor without microstepping) */
+  /** camera pan (motor 2): steps per turn (200 for a 1.8° motor without microstepping) */
   stepsPerRev: number;
-  /** degrees per press of a camera arrow */
+  /** camera pan: degrees per press of left / right */
   stepDeg: number;
-  /** camera motor speed (pulses per second) */
+  /** camera pan speed (pulses per second) */
   speedPps: number;
+  /** camera height (motor 1, a vertical axis): steps per press of up / down */
+  liftSteps: number;
+  /** camera height speed: slow, a stepper lifting a load stalls when driven fast */
+  liftSpeedPps: number;
+  /** a camera axis turning the other way round */
+  panInvert: boolean;
+  liftInvert: boolean;
   /** duration of one drive command (ms) */
   driveMs: number;
   /** wheel motor speed (PWM 0..255) */
@@ -39,6 +46,10 @@ export const DEFAULT_SETTINGS: RobotSettings = {
   stepsPerRev: 200,
   stepDeg: 15,
   speedPps: 450,
+  liftSteps: 200,
+  liftSpeedPps: 150,
+  panInvert: false,
+  liftInvert: false,
   driveMs: 800,
   wheelSpeed: 150,
   wheelSide: ["left", "left", "right", "right"],

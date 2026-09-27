@@ -1302,8 +1302,8 @@
       "connecting": "Se conectează la cameră…"
     },
     "camera": {
-      "title": "Camera: sus, jos, stânga, dreapta",
-      "hint": "Câte {deg}° pe apăsare. Poziție estimată: {pan}° orizontal, {tilt}° vertical.",
+      "title": "Camera: stânga, dreapta, sus, jos",
+      "hint": "Stânga / dreapta: {deg}° pe apăsare (motorul 2). Sus / jos: {steps} pași pe apăsare (motorul 1). Poziție: {pan}° orizontal, înălțime {height} pași.",
       "up": "Camera în sus",
       "down": "Camera în jos",
       "left": "Camera la stânga",
@@ -1331,16 +1331,20 @@
         "drive": "Roțile (4 motoare)"
       },
       "badAddress": "Doar o adresă din rețeaua locală, de ex. 192.168.1.50",
-      "stepDeg": "Grade pe apăsare",
-      "stepsPerRev": "Pași pe o rotație",
-      "speedPps": "Viteza motoarelor (pași/s)",
+      "stepDeg": "Stânga/dreapta: grade pe apăsare",
+      "stepsPerRev": "Stânga/dreapta: pași pe rotație",
+      "speedPps": "Stânga/dreapta: viteză (pași/s)",
       "driveMs": "Durata unei mișcări (ms)",
       "wheelSpeed": "Viteza roților (0–255)",
       "wheels": "Roțile: partea fiecărui motor",
       "wheelMotor": "Motor {n}",
       "sideLeft": "Stânga",
       "sideRight": "Dreapta",
-      "invert": "Inversat"
+      "invert": "Inversat",
+      "liftSteps": "Sus/jos: pași pe apăsare",
+      "liftSpeedPps": "Sus/jos: viteză (pași/s)",
+      "panInvert": "Stânga/dreapta inversat",
+      "liftInvert": "Sus/jos inversat"
     },
     "gallery": {
       "title": "Poze ({n})",
@@ -1348,7 +1352,7 @@
       "download": "Descarcă",
       "downloadAll": "Descarcă toate",
       "remove": "Șterge",
-      "angles": "{pan}° / {tilt}°"
+      "angles": "{pan}° · înălțime {height}"
     },
     "status": {
       "cameraMoving": "{dir}…",

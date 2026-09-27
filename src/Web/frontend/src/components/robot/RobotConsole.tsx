@@ -28,12 +28,13 @@ import { useCameraFrames } from "./useCameraFrames";
 const DRIVE_OF: Record<Arrow, DriveMove> = { up: "forward", down: "back", left: "left", right: "right" };
 /** how often the distance sensor is read (ms) */
 const DISTANCE_EVERY_MS = 1000;
-/** camera arrows → stepper and direction: motor 1 pans (0 = right), motor 2 tilts (0 = up) */
-const CAMERA_OF: Record<Arrow, { motor: 1 | 2; dir: 0 | 1; axis: "pan" | "tilt"; sign: 1 | -1 }> = {
-  right: { motor: 1, dir: 0, axis: "pan", sign: 1 },
-  left: { motor: 1, dir: 1, axis: "pan", sign: -1 },
-  up: { motor: 2, dir: 0, axis: "tilt", sign: 1 },
-  down: { motor: 2, dir: 1, axis: "tilt", sign: -1 },
+/** camera arrows → stepper: motor 2 turns the camera (left / right), motor 1 raises and lowers it (checked on the
+ *  robot, 27.09.2026); dir 0 = right / up unless the axis is set as reversed */
+const CAMERA_OF: Record<Arrow, { motor: 1 | 2; axis: "pan" | "height"; sign: 1 | -1 }> = {
+  right: { motor: 2, axis: "pan", sign: 1 },
+  left: { motor: 2, axis: "pan", sign: -1 },
+  up: { motor: 1, axis: "height", sign: 1 },
+  down: { motor: 1, axis: "height", sign: -1 },
 };
 const KEYS: Record<string, { kind: "camera" | "drive"; arrow: Arrow }> = {
   ArrowUp: { kind: "camera", arrow: "up" },
@@ -59,7 +60,8 @@ export function RobotConsole() {
   const frames = useCameraFrames(cam, streamOn);
   const [busy, setBusy] = useState<"camera" | "drive" | "photo" | null>(null);
   const [status, setStatus] = useState<Status>(null);
-  const [angles, setAngles] = useState({ pan: 0, tilt: 0 });
+  // estimated camera position: pan in degrees, height in steps, from the zeroed position
+  const [pose, setPose] = useState({ pan: 0, height: 0 });
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [distance, setDistance] = useState<string | null>(null);
   // the object URLs of the photos are released when the page goes away
@@ -78,13 +80,16 @@ export function RobotConsole() {
     async (a: Arrow) => {
       if (!motors || busy) return;
       const m = CAMERA_OF[a];
-      const steps = Math.max(1, Math.round((settings.stepDeg / 360) * settings.stepsPerRev));
+      const pan = m.axis === "pan";
+      const steps = pan ? Math.max(1, Math.round((settings.stepDeg / 360) * settings.stepsPerRev)) : settings.liftSteps;
+      const reversed = pan ? settings.panInvert : settings.liftInvert;
+      const dir = (m.sign > 0) !== reversed ? 0 : 1;
       setBusy("camera");
       setStatus({ severity: "info", text: t("status.cameraMoving", { dir: t(`camera.${a}`) }) });
       try {
-        await callRobot("motors", motors, { cmd: "move", motor: m.motor, dir: m.dir, speed: settings.speedPps, steps });
-        const deg = (steps * 360) / settings.stepsPerRev;
-        setAngles((s) => ({ ...s, [m.axis]: s[m.axis] + m.sign * deg }));
+        await callRobot("motors", motors, { cmd: "move", motor: m.motor, dir, speed: pan ? settings.speedPps : settings.liftSpeedPps, steps });
+        const change = pan ? (steps * 360) / settings.stepsPerRev : steps;
+        setPose((s) => ({ ...s, [m.axis]: s[m.axis] + m.sign * change }));
         setStatus({ severity: "success", text: t("status.cameraDone") });
       } catch (e) {
         fail(e);
@@ -151,7 +156,7 @@ export function RobotConsole() {
       // the frame on screen when the live picture runs, otherwise a fresh one from the camera
       const blob = streamOn && frames.blob && !frames.down ? frames.blob : await (await callRobot("cam", cam, { cmd: "capture" })).blob();
       if (!blob.type.startsWith("image/")) throw new RobotCallError("failed");
-      const photo: Photo = { id: crypto.randomUUID(), url: URL.createObjectURL(blob), takenAt: new Date(), panDeg: angles.pan, tiltDeg: angles.tilt };
+      const photo: Photo = { id: crypto.randomUUID(), url: URL.createObjectURL(blob), takenAt: new Date(), panDeg: pose.pan, heightSteps: pose.height };
       setPhotos((ps) => [photo, ...ps]);
       setStatus({ severity: "success", text: t("status.captured") });
     } catch (e) {
@@ -159,7 +164,7 @@ export function RobotConsole() {
     } finally {
       setBusy(null);
     }
-  }, [cam, busy, angles, streamOn, frames, t, fail]);
+  }, [cam, busy, pose, streamOn, frames, t, fail]);
 
   // between two frames the camera is free: the flash goes through while the live picture runs
   const flash = useCallback(async () => {
@@ -256,7 +261,7 @@ export function RobotConsole() {
               {t("camera.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {t("camera.hint", { deg: settings.stepDeg, pan: Math.round(angles.pan), tilt: Math.round(angles.tilt) })}
+              {t("camera.hint", { deg: settings.stepDeg, steps: settings.liftSteps, pan: Math.round(pose.pan), height: pose.height })}
             </Typography>
             {motors && (
               <Typography variant="subtitle2" sx={{ mb: 2 }} data-testid="robot-distance">
@@ -271,7 +276,7 @@ export function RobotConsole() {
               onPress={moveCamera}
               centre={
                 <Tooltip title={t("camera.zero")}>
-                  <IconButton onClick={() => setAngles({ pan: 0, tilt: 0 })} aria-label={t("camera.zero")}>
+                  <IconButton onClick={() => setPose({ pan: 0, height: 0 })} aria-label={t("camera.zero")}>
                     <CenterFocusStrongOutlined />
                   </IconButton>
                 </Tooltip>

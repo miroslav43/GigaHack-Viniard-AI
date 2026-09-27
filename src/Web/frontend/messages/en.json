@@ -1302,8 +1302,8 @@
       "connecting": "Connecting to the camera…"
     },
     "camera": {
-      "title": "Camera: up, down, left, right",
-      "hint": "{deg}° per press. Estimated position: {pan}° across, {tilt}° up.",
+      "title": "Camera: left, right, up, down",
+      "hint": "Left / right: {deg}° per press (motor 2). Up / down: {steps} steps per press (motor 1). Position: {pan}° across, height {height} steps.",
       "up": "Camera up",
       "down": "Camera down",
       "left": "Camera left",
@@ -1331,16 +1331,20 @@
         "drive": "Wheels (4 motors)"
       },
       "badAddress": "A local network address only, e.g. 192.168.1.50",
-      "stepDeg": "Degrees per press",
-      "stepsPerRev": "Steps per turn",
-      "speedPps": "Motor speed (steps/s)",
+      "stepDeg": "Left/right: degrees per press",
+      "stepsPerRev": "Left/right: steps per turn",
+      "speedPps": "Left/right: speed (steps/s)",
       "driveMs": "One move (ms)",
       "wheelSpeed": "Wheel speed (0–255)",
       "wheels": "Wheels: side of each motor",
       "wheelMotor": "Motor {n}",
       "sideLeft": "Left",
       "sideRight": "Right",
-      "invert": "Reversed"
+      "invert": "Reversed",
+      "liftSteps": "Up/down: steps per press",
+      "liftSpeedPps": "Up/down: speed (steps/s)",
+      "panInvert": "Left/right reversed",
+      "liftInvert": "Up/down reversed"
     },
     "gallery": {
       "title": "Photos ({n})",
@@ -1348,7 +1352,7 @@
       "download": "Download",
       "downloadAll": "Download all",
       "remove": "Delete",
-      "angles": "{pan}° / {tilt}°"
+      "angles": "{pan}° · height {height}"
     },
     "status": {
       "cameraMoving": "{dir}…",
