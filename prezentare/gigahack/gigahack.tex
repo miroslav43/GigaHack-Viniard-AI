@@ -140,6 +140,34 @@
 \end{gslide}
 \end{frame}
 
+% ---------------------------------------------------------------- TOP-5 additional features (bonus, up to +10 %)
+\bg{4}
+\begin{frame}[plain]
+\begin{gslide}
+  \gtitle{TOP-5 additional features}
+  \gbox{6.6}{19.8}{27.6}{58.2}{gGreen}
+  \gnum{9.0}{22.8}{1}
+  \gtxt{9.0}{31.8}{23.4}{16}{\bfseries Field robot, Street View per row}
+  \gtxt{9.0}{42.6}{23.4}{13}{A working ESP32 robot driven from the web app: live camera, pan / tilt, panoramas in one press, a 20\,cm obstacle stop. Grapes, leaves and waste are boxed on its photos. Built to drive our route.}
+  \gbox{36.4}{19.8}{27.6}{58.2}{gBorder}
+  \gnum{38.8}{22.8}{2}
+  \gtxt{38.8}{31.8}{23.4}{16}{\bfseries Cadastre and farm registry}
+  \gtxt{38.8}{42.6}{23.4}{13}{Every block linked to its official AGCC cadastre parcels (codes, land use); 44 blocks grouped into 27 farms; public vs internal roads. Ready for vine-registry and AIPA subsidy checks.}
+  \gbox{66.1}{19.8}{27.6}{58.2}{gBorder}
+  \gnum{68.5}{22.8}{3}
+  \gtxt{68.5}{31.8}{23.4}{16}{\bfseries Inspector route and tasks}
+  \gtxt{68.5}{42.6}{23.4}{13}{Pick a farm and a start: the closed walk is solved in the browser in 1.5\,s (F09: 9.7\,km, $-$65\,\%) and exported as GPX. The municipality assigns a target or a whole farm to an inspector.}
+  \gbox{95.9}{19.8}{27.6}{58.2}{gBorder}
+  \gnum{98.3}{22.8}{4}
+  \gtxt{98.3}{31.8}{23.4}{16}{\bfseries Plant-health reports}
+  \gtxt{98.3}{42.6}{23.4}{13}{929 missing plants, 228 gaps (8.6\,km), 85 missing plants/ha, 22\,\% disrupted rows, targets by type and priority, per farm, block and row; CSV export; RO / EN / RU.}
+  \gbox{125.6}{19.8}{27.6}{58.2}{gBorder}
+  \gnum{128.0}{22.8}{5}
+  \gtxt{128.0}{31.8}{23.4}{16}{\bfseries Live tile analysis}
+  \gtxt{128.0}{42.6}{23.4}{13}{Upload a GeoTIFF tile in the browser: the real pipeline runs on it and shows the rows, canopies and waste masks live. A re-run on demand for the jury or a new region.}
+\end{gslide}
+\end{frame}
+
 % ---------------------------------------------------------------- 5 · how it works (0:45)
 \bg{6}
 \begin{frame}[plain]
@@ -161,7 +189,7 @@
   \gtxt{10.2}{60}{64.8}{16}{The full flow on all 311 real tiles in $\approx$\,17 min on one laptop CPU, no paid API. On the 2 labelled tiles: row F1 1.00, canopy 0.876, inter-row IoU 0.96.}
   \gbox{81.4}{52.2}{72}{25.8}{gBorder}
   \glab{85}{54.6}{60}{gOrange}{WHAT'S STILL MOCKED}
-  \gtxt{85}{60}{64.8}{16}{A human still checks every tile in Marcaj. The robot is a prototype on sample panoramas. Registry / AIPA export is not built. Deployment hours are estimates.}
+  \gtxt{85}{60}{64.8}{16}{A human still checks every tile in Marcaj. The robot is a working prototype; disease detection is not trained yet. Registry / AIPA export is not built. Deployment hours are estimates.}
 \end{gslide}
 \end{frame}
 
