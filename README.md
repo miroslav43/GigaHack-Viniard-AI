@@ -184,7 +184,7 @@ All commands run from `src/AI` with `unset PROJ_DATA PROJ_LIB GDAL_DATA` done on
 ### Step 1: pre-annotation (AI model, 311 tiles)
 
 ```bash
-uv run --no-sync vineyard nn fetch --url https://github.com/miroslav43/GigaHack-Viniard-AI/releases/download/vine-unet-v1/weights.pt --sha256 8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19
+uv run --no-sync vineyard nn fetch --url https://github.com/miroslav43/Solemtrix_Hardware_Software__Vineyard_AI_Field_Challenge/releases/download/vine-unet-v1/weights.pt --sha256 8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19
 uv run --no-sync vineyard nn infer                              # U-Net canopy probability (MPS/CPU, ~1-2 min for 311 tiles)
 uv run --no-sync vineyard run --until qa_previews --workers 8   # perception → AnnSet(model), link runs/LATEST_MODEL
 uv run --no-sync vineyard export-cvat --annset LATEST_MODEL     # 5 validated upload ZIPs
@@ -286,10 +286,10 @@ Weights live under `src/AI/models/` (git-ignored):
 | **waste-probe v1** (logistic regression on CLIP embeddings) | `src/AI/models/waste-probe/v1/{probe.npz, model_card.json}` (12 KB) | waste ranking | reproduce from UAVVaste (below) |
 | ResNet-18 ImageNet encoder init | Hugging Face cache (`smp-hub/resnet18.imagenet`) | U-Net training only | downloaded automatically by segmentation-models-pytorch |
 
-**Install vine-unet v1** from the [GitHub release `vine-unet-v1`](https://github.com/miroslav43/GigaHack-Viniard-AI/releases/tag/vine-unet-v1) of this repository. `nn fetch` downloads two files: `weights.pt` and its `model_card.json` (the sibling URL). It installs them only if the sha256 of `weights.pt` and the sha256 recorded in the card both equal `--sha256`:
+**Install vine-unet v1** from the [GitHub release `vine-unet-v1`](https://github.com/miroslav43/Solemtrix_Hardware_Software__Vineyard_AI_Field_Challenge/releases/tag/vine-unet-v1) of this repository. `nn fetch` downloads two files: `weights.pt` and its `model_card.json` (the sibling URL). It installs them only if the sha256 of `weights.pt` and the sha256 recorded in the card both equal `--sha256`:
 
 ```bash
-uv run --no-sync vineyard nn fetch --url https://github.com/miroslav43/GigaHack-Viniard-AI/releases/download/vine-unet-v1/weights.pt \
+uv run --no-sync vineyard nn fetch --url https://github.com/miroslav43/Solemtrix_Hardware_Software__Vineyard_AI_Field_Challenge/releases/download/vine-unet-v1/weights.pt \
   --sha256 8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19 --version v1
 ```
 
