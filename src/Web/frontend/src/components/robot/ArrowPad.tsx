@@ -1,6 +1,7 @@
 "use client";
 
-// A cross of four arrow buttons with an optional centre button (stop / photo), used for the wheels and the camera.
+// A cross of four hold-to-move arrow buttons with an optional centre button, used for the wheels and the camera: the
+// move runs while the button is held (pointer captured, so a release outside the button still ends it).
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -24,16 +25,18 @@ const AREA: Record<Arrow, string> = { up: "1 / 2", left: "2 / 1", right: "2 / 3"
 export function ArrowPad({
   labels,
   disabled,
-  busy,
-  onPress,
+  active,
+  onHold,
+  onRelease,
   centre,
   testId,
 }: {
   labels: Record<Arrow, string>;
   disabled: boolean;
-  /** a command is running: the arrows wait */
-  busy: boolean;
-  onPress: (a: Arrow) => void;
+  /** the arrow being held (drawn pressed) */
+  active: Arrow | null;
+  onHold: (a: Arrow) => void;
+  onRelease: () => void;
   centre?: ReactNode;
   testId: string;
 }) {
@@ -45,9 +48,22 @@ export function ArrowPad({
             <span>
               <IconButton
                 aria-label={labels[a]}
-                disabled={disabled || busy}
-                onClick={() => onPress(a)}
-                sx={{ width: 64, height: 64, bgcolor: "action.hover", borderRadius: 2 }}
+                aria-pressed={active === a}
+                disabled={disabled}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  onHold(a);
+                }}
+                onPointerUp={onRelease}
+                onPointerCancel={onRelease}
+                onLostPointerCapture={onRelease}
+                onContextMenu={(e) => e.preventDefault()}
+                sx={{
+                  width: 64, height: 64, borderRadius: 2, touchAction: "none", userSelect: "none",
+                  bgcolor: active === a ? "primary.main" : "action.hover",
+                  color: active === a ? "primary.contrastText" : undefined,
+                  "&:hover": { bgcolor: active === a ? "primary.dark" : undefined },
+                }}
               >
                 {ICON[a]}
               </IconButton>

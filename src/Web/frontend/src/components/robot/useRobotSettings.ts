@@ -5,37 +5,40 @@
 // NEXT_PUBLIC_ROBOT_*_URL. Without storage (private window, blocked) they live in memory for the visit.
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Device } from "@/lib/robot/commands";
+import { DEFAULT_WHEEL_MOVES, wheelMovesOr, type WheelMoves } from "@/lib/robot/wheels";
 
 export interface RobotSettings {
   urls: Record<Device, string>;
   /** camera pan (motor 2): steps per turn (200 for a 1.8° motor without microstepping) */
   stepsPerRev: number;
-  /** camera pan: degrees per press of left / right */
-  stepDeg: number;
   /** camera pan speed (pulses per second) */
   speedPps: number;
-  /** camera height (motor 1, a vertical axis): steps per press of up / down */
-  liftSteps: number;
-  /** camera height speed: slow, a stepper lifting a load stalls when driven fast */
+  /** camera height speed: fast (the driver microsteps; 3000 steps/s is what lifts it, checked on the robot) */
   liftSpeedPps: number;
+  /** the camera is mounted upside down: flip its picture */
+  flipV: boolean;
+  flipH: boolean;
   /** a camera axis turning the other way round */
   panInvert: boolean;
   liftInvert: boolean;
-  /** duration of one drive command (ms) */
-  driveMs: number;
+  /** record mode: stations, the distance between two, and how long the wheels run to cover it (calibration) */
+  recordStations: number;
+  recordStepCm: number;
+  recordStepMs: number;
   /** wheel motor speed (PWM 0..255) */
   wheelSpeed: number;
-  /** side of each wheel motor 1..4 */
-  wheelSide: WheelSide[];
-  /** wheel motors wired the other way round */
-  wheelInvert: boolean[];
+  /** what each wheel motor 1..4 does in each drive move (the user sets it: which motor is where, how it turns) */
+  wheelMoves: WheelMoves;
 }
 
-export type WheelSide = "left" | "right";
 
 export type SettingsPatch = Partial<Omit<RobotSettings, "urls">> & { urls?: Partial<Record<Device, string>> };
 
 const KEY = "solemtrix.robot.settings";
+/** bumped when a default changes meaning: older saved values of those keys are dropped (2: the height speed that
+ *  actually lifts the camera, 3000 steps/s, replaces the 150 saved before) */
+const VERSION = 2;
+const RESET_IN: Record<number, (keyof RobotSettings)[]> = { 2: ["liftSpeedPps"] };
 
 export const DEFAULT_SETTINGS: RobotSettings = {
   urls: {
@@ -44,16 +47,17 @@ export const DEFAULT_SETTINGS: RobotSettings = {
     drive: process.env.NEXT_PUBLIC_ROBOT_DRIVE_URL ?? "",
   },
   stepsPerRev: 200,
-  stepDeg: 15,
   speedPps: 450,
-  liftSteps: 200,
-  liftSpeedPps: 150,
+  liftSpeedPps: 3000,
+  flipV: true,
+  flipH: false,
   panInvert: false,
   liftInvert: false,
-  driveMs: 800,
+  recordStations: 5,
+  recordStepCm: 50,
+  recordStepMs: 1500,
   wheelSpeed: 150,
-  wheelSide: ["left", "left", "right", "right"],
-  wheelInvert: [false, false, false, false],
+  wheelMoves: DEFAULT_WHEEL_MOVES,
 };
 
 // the store: the saved JSON (or the in-memory copy when storage is unavailable) and who listens to it
@@ -80,8 +84,10 @@ function subscribe(listener: () => void) {
 function parse(raw: string): RobotSettings {
   if (!raw) return DEFAULT_SETTINGS;
   try {
-    const saved = JSON.parse(raw) as Partial<RobotSettings>;
-    return { ...DEFAULT_SETTINGS, ...saved, urls: { ...DEFAULT_SETTINGS.urls, ...(saved.urls ?? {}) } };
+    const { version = 1, ...saved } = JSON.parse(raw) as Partial<RobotSettings> & { version?: number };
+    const stale = Object.entries(RESET_IN).flatMap(([v, keys]) => (version < Number(v) ? keys : []));
+    const kept = Object.fromEntries(Object.entries(saved).filter(([k]) => !stale.includes(k as keyof RobotSettings)));
+    return { ...DEFAULT_SETTINGS, ...kept, urls: { ...DEFAULT_SETTINGS.urls, ...(saved.urls ?? {}) }, wheelMoves: wheelMovesOr(saved.wheelMoves) };
   } catch {
     return DEFAULT_SETTINGS; // a broken value: the defaults
   }
@@ -95,7 +101,7 @@ export function useRobotSettings() {
     (patch: SettingsPatch) => {
       const latest = parse(read());
       const next = { ...latest, ...patch, urls: { ...latest.urls, ...(patch.urls ?? {}) } };
-      memory = JSON.stringify(next);
+      memory = JSON.stringify({ ...next, version: VERSION });
       try {
         window.localStorage.setItem(KEY, memory);
       } catch {

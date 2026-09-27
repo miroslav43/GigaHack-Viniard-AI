@@ -1319,7 +1319,7 @@
     },
     "camera": {
       "title": "Camera: stânga, dreapta, sus, jos",
-      "hint": "Stânga / dreapta: {deg}° pe apăsare (motorul 2). Sus / jos: {steps} pași pe apăsare (motorul 1). Poziție: {pan}° orizontal, înălțime {height} pași.",
+      "hint": "Ține apăsat: stânga / dreapta rotește camera (motorul 2), sus / jos o ridică sau o coboară (motorul 1). Poziție: {pan}° orizontal, înălțime {height} pași.",
       "up": "Camera în sus",
       "down": "Camera în jos",
       "left": "Camera la stânga",
@@ -1330,7 +1330,7 @@
     },
     "drive": {
       "title": "Deplasare",
-      "hint": "Fiecare apăsare mișcă robotul {ms} ms, la viteza {speed}/255; la final roțile se opresc singure.",
+      "hint": "Ține apăsat: robotul merge cât ții butonul (viteza {speed}/255) și se oprește când îl eliberezi.",
       "forward": "Înainte",
       "back": "Înapoi",
       "left": "Stânga",
@@ -1340,27 +1340,45 @@
     },
     "settings": {
       "title": "Setări",
-      "hint": "Adresele plăcilor pe Wi-Fi (le afișează fiecare placă pe Serial la pornire). Se țin minte în acest browser. Dacă la „Înainte” o roată merge înapoi, bifează „Inversat” la motorul ei.",
+      "hint": "Modifici valorile, apoi apeși „Salvează” (se țin minte în acest browser). Adresele le afișează fiecare placă pe Serial la pornire.",
       "url": {
         "cam": "Camera (ESP32-CAM)",
         "motors": "Motoarele camerei (pan / tilt)",
         "drive": "Roțile (4 motoare)"
       },
       "badAddress": "Doar o adresă din rețeaua locală, de ex. 192.168.1.50",
-      "stepDeg": "Stânga/dreapta: grade pe apăsare",
       "stepsPerRev": "Stânga/dreapta: pași pe rotație",
       "speedPps": "Stânga/dreapta: viteză (pași/s)",
-      "driveMs": "Durata unei mișcări (ms)",
       "wheelSpeed": "Viteza roților (0–255)",
-      "wheels": "Roțile: partea fiecărui motor",
-      "wheelMotor": "Motor {n}",
-      "sideLeft": "Stânga",
-      "sideRight": "Dreapta",
-      "invert": "Inversat",
-      "liftSteps": "Sus/jos: pași pe apăsare",
+      "wheels": "Roțile",
+      "wheelMotor": "M{n}",
       "liftSpeedPps": "Sus/jos: viteză (pași/s)",
       "panInvert": "Stânga/dreapta inversat",
-      "liftInvert": "Sus/jos inversat"
+      "liftInvert": "Sus/jos inversat",
+      "record": "Mod înregistrare",
+      "recordStations": "Stații",
+      "recordStepCm": "Distanța între stații (cm)",
+      "recordStepMs": "Timp de mers pentru ea (ms)",
+      "recordHint": "Calibrare: pornește o înregistrare cu 2 stații, măsoară cât a mers robotul și ajustează timpul până parcurge exact {cm} cm.",
+      "flipV": "Întoarce imaginea pe verticală",
+      "flipH": "Oglindește imaginea pe orizontală",
+      "camera": "Camera",
+      "wheelsHint": "Ce face fiecare motor la fiecare mișcare. Pentru viraj, de exemplu, o roată în față și una în spate pe diagonală, în sensuri opuse; restul „Oprit”.",
+      "move": {
+        "forward": "Înainte",
+        "back": "Înapoi",
+        "left": "Stânga",
+        "right": "Dreapta"
+      },
+      "dirForward": "Înainte",
+      "dirBack": "Înapoi",
+      "dirStill": "Oprit",
+      "moveNeedsWheel": "Fiecare mișcare are nevoie de cel puțin un motor care nu e „Oprit”.",
+      "range": "Între {min} și {max}",
+      "save": "Salvează",
+      "discard": "Renunță",
+      "unsaved": "Ai modificări nesalvate.",
+      "savedNote": "Setările au fost salvate."
     },
     "gallery": {
       "title": "Poze ({n})",
@@ -1389,6 +1407,23 @@
       "timeout": "Placa nu a răspuns la timp.",
       "failed": "Comanda nu a reușit."
     },
-    "keys": "Taste: săgețile mișcă camera, W A S D mută robotul, X sau Esc oprește roțile, spațiu face poză."
+    "keys": "Taste: ține apăsat săgețile (camera) sau W A S D (robotul); X sau Esc oprește tot; spațiu face poză.",
+    "record": {
+      "title": "Mod înregistrare (panoramă)",
+      "hint": "{stations} stații la câte {cm} cm ({total} cm în total). La fiecare stație camera face poze la 0°, 90° și 180°, iar cele trei devin o panoramă în galerie. Direcția 0° e poziția camerei când ai apăsat „Poziția curentă devine 0°”.",
+      "start": "Pornește înregistrarea",
+      "stop": "Oprește",
+      "phasePhoto": "Stația {station} din {of}: poza la {deg}°…",
+      "phaseDrive": "Stația {station} din {of}: merge {cm} cm înainte…",
+      "needsBoards": "Are nevoie de toate cele trei plăci (Setări)."
+    },
+    "panoramas": {
+      "title": "Panorame ({n})",
+      "caption": "Stația {station} · {cm} cm de la start · {time}",
+      "download": "Descarcă panorama",
+      "downloadFrames": "Cele 3 poze",
+      "downloadAll": "Descarcă toate panoramele",
+      "remove": "Șterge"
+    }
   }
 }

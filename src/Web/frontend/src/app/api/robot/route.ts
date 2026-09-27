@@ -1,11 +1,12 @@
 // GET /api/robot?device=cam|motors|drive&base=<board address>&cmd=…: relays one whitelisted command to a robot board
 // on the local Wi-Fi (src/lib/robot/commands.ts) and passes its answer back (a JPEG for a capture, text or JSON
-// otherwise). The ESP32s send no CORS headers, so the page cannot read their answers directly. The live MJPEG
-// stream is not relayed: the page shows it straight from the camera. A drive move is a sequence run here, ending
-// with a stop that is sent even when a step failed.
+// otherwise). The ESP32s send no CORS headers, so the page cannot read their answers directly.
+// A timed drive move (`run`) is a sequence run here, ending with a stop that is sent even when a step failed; a held
+// one (`go`) starts the wheels and arms a watchdog that stops them unless the page renews it (`keep`).
 // Errors: 401 sign_in · 400 bad_request | bad_address · 502 unreachable · 504 timeout.
 import { mayAnalyse } from "@/lib/analiza/access";
 import { parseBoardUrl, parseCommand, stepTimeoutMs, upstreamPlan } from "@/lib/robot/commands";
+import { arm, disarm, renew } from "@/lib/robot/watchdog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,14 +31,25 @@ export async function GET(request: Request) {
 
   const plan = upstreamPlan(command);
   const timeout = stepTimeoutMs(command);
+  const stopWheels = () => void get(`${base}/stop?m=all`, timeout).catch((e) => console.error("[robot] watchdog stop failed:", e));
+  if (command.device === "drive" && command.cmd === "keep") {
+    return json(200, { ok: renew(base, stopWheels) });
+  }
+  if (command.device === "drive" && (command.cmd === "stop" || command.cmd === "go")) disarm(base);
   try {
     let last: Response | null = null;
     for (const step of plan.steps) last = await get(`${base}${step}`, timeout);
     if (plan.holdMs) await sleep(plan.holdMs);
     if (plan.always) return json(200, { ok: true });
+    // the wheels now run until a stop, or until the page stops renewing the watchdog
+    if (command.device === "drive" && command.cmd === "go") {
+      arm(base, stopWheels);
+      return json(200, { ok: true });
+    }
     const type = last!.headers.get("content-type") ?? "text/plain; charset=utf-8";
     return new Response(await last!.arrayBuffer(), { headers: { "Content-Type": type, "Cache-Control": "no-store" } });
   } catch (e) {
+    if (command.device === "drive" && command.cmd === "go") stopWheels();
     const timedOut = e instanceof Error && e.name === "TimeoutError";
     console.error(`[robot] ${command.device}/${command.cmd} → ${base}:`, e instanceof Error ? e.message : e);
     return json(timedOut ? 504 : 502, { error: timedOut ? "timeout" : "unreachable" });

@@ -51,10 +51,11 @@ const COMMON = `
   (model only, no manual corrections; usually under a minute, one analysis at a time), then shows the vegetation mask,
   canopies, row axes, inter-rows and waste candidates («analiza.map.unvalidated») over the image, with layer switches,
   attributes on click and the figures (counts, areas, row length, time per stage). «analiza.upload.another» starts over.
-- [«nav.robot»](/robot) — «robot.title»: the live camera of the field robot, «robot.live.capture» (photos in «robot.gallery.downloadAll»
-  / per-photo download, with the camera angles in the file name), the camera pad (up / down / left / right, stepper motors)
-  and the driving pad (forward / back / left / right / stop). The boards' Wi-Fi addresses go in «robot.settings.title»; the
-  laptop must be on the same Wi-Fi. Keys: arrows = camera, W A S D = driving, space = photo.
+- [«nav.robot»](/robot) — «robot.title»: the field robot's live camera, «robot.live.capture» (photos, downloadable), the camera
+  pad and the driving pad — hold a button to move, let go to stop (camera: left / right turns it, up / down raises it;
+  keys: hold the arrows or W A S D, X / Esc stops). «robot.record.title»: «robot.record.start» drives forward station by
+  station and takes photos at 0°, 90° and 180° at each, saved as panoramas («robot.panoramas.downloadAll»). The boards'
+  Wi-Fi addresses and the calibration go in «robot.settings.title»; the laptop must be on the same Wi-Fi.
 - [«nav.architecture»](/arhitectura) — how the AI pipeline works (from drone tiles to measurements).
 - «notifications.title»: the bell in the menu (desktop: next to the logo; mobile: top bar). It shows «notifications.taskAssigned»
   when a task is assigned to you; clicking it opens the task on /sarcini?sarcina=<id>. «notifications.markAll» clears the count.

@@ -4,8 +4,9 @@
 // - motors: ESP32 with two stepper drivers, the camera's pan (motor 1) and tilt (motor 2), and an HC-SR04 —
 //   /move?motor&dir&speed&steps (answers when the motor has stopped), /toggle_en?motor, /distance;
 // - drive: the wheels' board, four DC motors — /dir?m=<1..4>&val=±1, /speed?m=&val=<0..255>, /start?m=<k|all>,
-//   /stop?m=<k|all>, /status. A drive move is a sequence (directions, speeds, start, wait, stop): the proxy runs it
-//   and always sends the stop at the end, whatever happened in between.
+//   /stop?m=<k|all>, /status. Two ways to drive: `run` (a timed move: the proxy sets the wheels, starts them, waits
+//   and always sends the stop at the end) and `go` (hold to drive: the wheels start and keep going while the page
+//   sends `keep` every few hundred ms; a server watchdog stops them when that stops, e.g. a dropped connection).
 // Only private IPv4 addresses are accepted, so the proxy cannot be pointed at the internet or at this server.
 
 export type Device = "cam" | "motors" | "drive";
@@ -28,7 +29,8 @@ export type Command =
   | { device: "motors"; cmd: "toggle_en"; motor: 1 | 2 }
   | { device: "motors"; cmd: "distance" }
   | { device: "drive"; cmd: "run"; dirs: WheelDir[]; speed: number; ms: number }
-  | { device: "drive"; cmd: "stop" | "status" };
+  | { device: "drive"; cmd: "go"; dirs: WheelDir[]; speed: number }
+  | { device: "drive"; cmd: "stop" | "status" | "keep" };
 
 /** What the proxy sends for a command: these requests in order, then (for a drive move) a wait and a stop that is
  *  sent even when a step failed. */
@@ -70,12 +72,15 @@ export function parseCommand(q: URLSearchParams): Command | null {
     return { device, cmd, motor, dir, speed, steps };
   }
   if (device === "drive") {
-    if (cmd === "stop" || cmd === "status") return { device, cmd };
-    if (cmd !== "run") return null;
+    if (cmd === "stop" || cmd === "status" || cmd === "keep") return { device, cmd };
+    if (cmd !== "run" && cmd !== "go") return null;
     const dirs = (q.get("dirs") ?? "").split(",").map(int);
-    const speed = int(q.get("speed")), ms = int(q.get("ms"));
+    const speed = int(q.get("speed"));
     if (dirs.length !== WHEELS || dirs.some((d) => d !== -1 && d !== 0 && d !== 1) || dirs.every((d) => d === 0)) return null;
-    if (!inRange(speed, LIMITS.wheelSpeed) || !inRange(ms, LIMITS.driveMs)) return null;
+    if (!inRange(speed, LIMITS.wheelSpeed)) return null;
+    if (cmd === "go") return { device, cmd, dirs: dirs as WheelDir[], speed };
+    const ms = int(q.get("ms"));
+    if (!inRange(ms, LIMITS.driveMs)) return null;
     return { device, cmd, dirs: dirs as WheelDir[], speed, ms };
   }
   return null;
@@ -91,7 +96,7 @@ export function upstreamPlan(c: Command): UpstreamPlan {
       if (c.cmd === "toggle_en") return { steps: [`/toggle_en?motor=${c.motor}`] };
       return { steps: [`/move?motor=${c.motor}&dir=${c.dir}&speed=${c.speed}&steps=${c.steps}`] };
     case "drive": {
-      if (c.cmd !== "run") return { steps: [c.cmd === "stop" ? "/stop?m=all" : "/status"] };
+      if (!("dirs" in c)) return { steps: c.cmd === "keep" ? [] : [c.cmd === "stop" ? "/stop?m=all" : "/status"] };
       const moving = c.dirs.flatMap((d, i) => (d === 0 ? [] : [{ m: i + 1, d }]));
       const all = moving.length === WHEELS;
       const sameDir = all && moving.every(({ d }) => d === moving[0].d);
@@ -104,8 +109,7 @@ export function upstreamPlan(c: Command): UpstreamPlan {
           // all four at once when they all turn, so the robot does not start crooked
           ...(all ? ["/start?m=all"] : moving.map(({ m }) => `/start?m=${m}`)),
         ],
-        holdMs: c.ms,
-        always: "/stop?m=all",
+        ...(c.cmd === "run" ? { holdMs: c.ms, always: "/stop?m=all" } : {}),
       };
     }
   }

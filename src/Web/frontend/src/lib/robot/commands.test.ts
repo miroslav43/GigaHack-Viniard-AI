@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseBoardUrl, parseCommand, stepTimeoutMs, upstreamPlan } from "./commands.ts";
-import { wheelDirs } from "./wheels.ts";
+import { DEFAULT_WHEEL_MOVES, validMove, wheelMovesOr } from "./wheels.ts";
 
 test("only plain http addresses on the private IPv4 ranges are accepted", () => {
   assert.equal(parseBoardUrl("192.168.1.42"), "http://192.168.1.42");
@@ -54,15 +54,26 @@ test("a drive move sets each wheel, starts them, waits, and always ends with a s
   assert.equal(p.always, "/stop?m=all");
 });
 
-test("wheel directions follow the side of each motor and its inversion", () => {
-  const sides = ["left", "left", "right", "right"] as const;
-  assert.deepEqual(wheelDirs("forward", sides, [false, false, false, false]), [1, 1, 1, 1]);
-  assert.deepEqual(wheelDirs("back", sides, [false, false, false, false]), [-1, -1, -1, -1]);
-  assert.deepEqual(wheelDirs("left", sides, [false, false, false, false]), [-1, -1, 1, 1]);
-  assert.deepEqual(wheelDirs("right", sides, [false, false, true, false]), [1, 1, 1, -1]);
+test("wheel moves: saved ones are used when valid, the default otherwise", () => {
+  const diagonal = { forward: [1, 1, 1, 1], back: [-1, -1, -1, -1], left: [1, 0, 0, -1], right: [-1, 0, 0, 1] };
+  assert.deepEqual(wheelMovesOr(diagonal), diagonal);
+  assert.deepEqual(wheelMovesOr({ ...diagonal, left: [0, 0, 0, 0] }).left, DEFAULT_WHEEL_MOVES.left);
+  assert.deepEqual(wheelMovesOr({ ...diagonal, right: [2, 0, 0, 1] }).right, DEFAULT_WHEEL_MOVES.right);
+  assert.deepEqual(wheelMovesOr(undefined), DEFAULT_WHEEL_MOVES);
+  assert.equal(validMove([0, 0, 0, 0]), false);
+  assert.equal(validMove([1, -1, 0, 0]), true);
 });
 
 test("a long camera move gets a timeout long enough for the motor to finish", () => {
   const c = parseCommand(new URLSearchParams("device=motors&cmd=move&motor=1&dir=0&speed=100&steps=1000"))!;
   assert.ok(stepTimeoutMs(c) > 10_000);
+});
+
+test("hold to drive: go sets and starts the wheels with no stop; keep sends nothing to the board", () => {
+  const go = upstreamPlan(parseCommand(new URLSearchParams("device=drive&cmd=go&dirs=1,1,1,1&speed=150"))!);
+  assert.deepEqual(go.steps, ["/stop?m=all", "/speed?m=all&val=150", "/dir?m=all&val=1", "/start?m=all"]);
+  assert.equal(go.always, undefined);
+  assert.equal(go.holdMs, undefined);
+  assert.deepEqual(upstreamPlan(parseCommand(new URLSearchParams("device=drive&cmd=keep"))!).steps, []);
+  assert.equal(parseCommand(new URLSearchParams("device=drive&cmd=go&dirs=1,1,1,1&speed=999")), null);
 });
