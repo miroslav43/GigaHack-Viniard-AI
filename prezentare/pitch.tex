@@ -13,7 +13,7 @@
 % Visible placeholder for what the team still has to fill in.
 \newcommand{\TODO}[1]{{\setlength{\fboxsep}{1pt}\colorbox{red!12}{\color{red!70!black}\bfseries TODO: #1}}}
 
-\title[From 311 drone tiles to a 14 km walk]{From 311 drone tiles\\to a 14 km inspection walk}
+\title[From 311 drone tiles to a 25 km walk]{From 311 drone tiles\\to a 25 km inspection walk}
 \subtitle{AI vineyard inventory and inspection routes from one drone flight}
 \author[Solemtrix Hardware \& Software]{%
   Team \textbf{Solemtrix Hardware \& Software}\\[2mm]
@@ -165,9 +165,9 @@
       \end{columns}
       \vspace{2.5mm}
       \begin{block}{Whole survey: the official route.geojson}
-        \sxm{14.0 km}{vs 68.2\,km serpentine ($-$79\,\%)}\hfill
-        \sxm{147/147}{reachable must-visit targets}\hfill
-        \sxm{1.28\,\%}{outside the allowed area (limit 2\,\%); closed at START}
+        \sxm{25.2 km}{vs 68.2\,km serpentine ($-$63\,\%)}\hfill
+        \sxm{147/147}{reachable must-visit targets, +643 optional (790 on the walk)}\hfill
+        \sxm{1.23\,\%}{outside the allowed area (limit 2\,\%); closed at START}
       \end{block}
       \vspace{1.5mm}
       {\tiny\color{sxMuted} On the organisers' 2 example tiles: row F1 1.00 (51/51), canopy score 0.876, inter-row IoU 0.96, counts score 0.973.\par}
@@ -203,7 +203,7 @@
       \vspace{0.5mm}
       \begin{sxcard}{Pre-test point: 47.1225\,N, 28.7095\,E}
         Farm F09, block V13, inter-row V13-I020 (\emph{mixed}), next to row V13-R020
-        (\emph{disrupted}, 228.9\,m, 70 plants). The route passes 1.8\,m away: visited.
+        (\emph{disrupted}, 228.9\,m, 70 plants). The route passes 0.34\,m away: visited.
       \end{sxcard}
     \end{column}
   \end{columns}
@@ -212,15 +212,15 @@
 \section{Impact}
 
 % ================================================================== 8 · impact: economics + deployment time
-\begin{frame}{Impact: 13.5 h saved per inspection, 11--20 h to deploy}
+\begin{frame}{Impact: 10.7 h saved per inspection, 11--20 h to deploy}
   \begin{columns}[T]
     \begin{column}{0.40\textwidth}
       {\scriptsize\bfseries\color{sxNight} Economic effect, Sireț3 (81.5 ha), walking at 4\,km/h\par}
       \vspace{1.5mm}
-      \sxstat{3.5 h vs 17 h}{one full inspection walk: 14.0\,km instead of a 68.2\,km serpentine}
+      \sxstat{6.3 h vs 17 h}{one full inspection walk: 25.2\,km through 790 targets instead of a 68.2\,km serpentine}
       \vspace{2mm}
 
-      \sxstat{$\approx$\,13.5 h}{inspector time saved per survey ($-$79\,\%); farm F09 alone: 2\,h\,26 instead of 6\,h\,52}
+      \sxstat{$\approx$\,10.7 h}{inspector time saved per survey ($-$63\,\%); farm F09 alone: 2\,h\,26 instead of 6\,h\,52}
       \vspace{2mm}
 
       \sxstat{$\approx$\,0 lei}{marginal compute: 17 min on a laptop CPU, no paid API, no GPU, open weights}
@@ -283,7 +283,7 @@
   \begin{columns}[T]
     \begin{column}{0.235\textwidth}\begin{sxcard}{Efficient}\sxstat{17 min}{tiles to deliverables, one laptop, CPU only}\end{sxcard}\end{column}
     \begin{column}{0.235\textwidth}\begin{sxcard}{Accurate}\sxstat{1.00}{row F1; canopy 0.876, inter-row IoU 0.96 (organisers' 2 example tiles)}\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Short routes}\sxstat{$-$79\,\%}{whole survey vs serpentine: $\approx$\,13.5\,h saved per walk}\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{Short routes}\sxstat{$-$63\,\%}{whole survey vs serpentine: $\approx$\,10.7\,h saved per walk}\end{sxcard}\end{column}
     \begin{column}{0.235\textwidth}\begin{sxcard}{Deployable}\sxstat{11--20 h}{from zero to the first inspected region (estimate)}\end{sxcard}\end{column}
   \end{columns}
   \vspace{8mm}
