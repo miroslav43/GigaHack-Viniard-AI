@@ -12,3 +12,12 @@ siret3_r022_c016,205.0,1685.0,495.0,1910.0,add,debris,claude-review,large pile o
 siret3_r023_c016,1195.0,270.0,1420.0,460.0,add,debris,claude-review,"pile of broken boards, rubble and scattered construction debris beside the farm "
 siret3_r026_c019,800.0,450.0,1040.0,670.0,add,heap,claude-review,large pile of broken stone/concrete rubble with scattered wooden boards/pallets 
 siret3_r027_c027,1300.0,1380.0,1760.0,2048.0,add,heap,claude-review,"Large construction/demolition debris heap (broken concrete slabs, bricks, red-br"
+siret3_r008_c002,584.2,52.2,608.8,78.8,add,bag,claude-review,inside vineyard: crumpled plastic bag in the grass (was near_axis)
+siret3_r008_c003,616.6,613.3,634.4,636.7,add,unknown,claude-review,inside vineyard: jagged white plastic/paper scrap on soil (was kept)
+siret3_r009_c000,1798.6,42.5,1816.4,61.5,add,unknown,claude-review,inside vineyard: flat whitish plastic scrap on soil (was near_axis)
+siret3_r010_c002,855.8,1225.3,890.2,1248.7,add,unknown,claude-review,inside vineyard: bent white plastic piece at the vine row (was near_axis)
+siret3_r020_c011,1246.3,1500.3,1269.7,1523.7,add,unknown,claude-review,inside vineyard: crumpled white plastic scrap on soil (was kept)
+siret3_r022_c013,877.4,232.6,898.6,249.4,add,bag,claude-review,inside vineyard: crumpled plastic bag caught at the vine base (was near_axis)
+siret3_r022_c013,639.2,323.7,663.8,360.3,add,bag,claude-review,inside vineyard: white bag or sack beside a stake at the vine row (was kept)
+siret3_r023_c015,2035.6,84.6,2048.0,102.4,add,unknown,claude-review,inside vineyard: blue plastic object at the tile edge (was kept)
+siret3_r024_c017,972.2,1873.8,998.8,1908.2,add,bag,claude-review,inside vineyard: crumpled white bag/paper in the vegetation (was kept)

@@ -306,13 +306,15 @@ REF = "20260926T0100-marcaj-aaaaaa"
 
 
 @pytest.fixture
-def stage_ctx(tmp_path, monkeypatch):
+def stage_ctx(tmp_path, monkeypatch, request):
     runner = types.ModuleType("vineyard.pipeline.runner")
     runner.StageResult = _FakeStageResult  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "vineyard.pipeline.runner", runner)
     spec = load_stage("targets")
     monkeypatch.setattr(sys.modules[spec.run.__module__], "make_gap_fn", lambda ctx: reference_gap_fn)
-    cfg = load_config(environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
+    sets = getattr(request, "param", ("targets.confirmed_waste=false",))
+    cfg = load_config(overrides=tuple(s.format(tmp=tmp_path) for s in sets),
+                      environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
     ann = make_annset(BlockSpec(gaps=((2, 20.0, 30.0),)), prov=Prov(Source.MARCAJ, REF, "m"),
                       waste=[("siret3_r018_c011", tuple(BlockSpec().point(1, 10.0, -1.25)), 0.5, "V01")])
     write_annset(ann, cfg.paths.work_dir / "runs" / REF / "annset")
@@ -377,3 +379,19 @@ def test_model_source_ids_validate_strictly():
     result = build_targets(_inputs(ann), _settings(), prov, reference_gap_fn)
     validate_layer(result.targets, "targets")
     assert set(result.targets["source"]) == {"model"}
+
+
+CONFIRMED_CSV = "tile_id,xtl,ytl,xbr,ybr,decision,category,reviewer,note\nsiret3_r018_c011,100,100,140,140,add,bag,t,x\n"
+
+
+@pytest.mark.parametrize("stage_ctx", [("targets.confirmed_waste=true", "paths.waste_confirmed={tmp}/waste_confirmed.csv")],
+                         indirect=True)
+def test_stage_routes_confirmed_waste_missing_from_the_annset(stage_ctx, tmp_path):
+    spec, ctx, _ = stage_ctx
+    path = Path(ctx.cfg.paths.waste_confirmed)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(CONFIRMED_CSV, encoding="utf-8")
+    spec.run(ctx)
+    targets = read_layer(ctx.paths.layers_dir / "targets.parquet", "targets")
+    waste = targets[targets["kind"] == "waste"]
+    assert sorted(waste["waste_id"]) == ["W0001", "W9001"]

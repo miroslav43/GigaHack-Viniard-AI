@@ -53,6 +53,7 @@ class TargetsConfig(Section):
     end_short_min_m: PosFloat
     missing_row_spacing_factor: PosFloat
     include_waste: bool
+    confirmed_waste: bool = True  # also route the paths.waste_confirmed boxes the AnnSet lacks
     priority_long_gap_m: PosFloat
     dedupe_m: NonNegFloat
     must_kinds: Annotated[tuple[TargetKindName, ...], AfterValidator(_unique)]

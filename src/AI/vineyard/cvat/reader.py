@@ -212,8 +212,11 @@ def read_cvat_file(path: Path, *, accept_masks: bool = True) -> tuple[CvatDocume
     return parse_xml(load_annotation_bytes(path), source_name=str(path), accept_masks=accept_masks)
 
 
-def _merge(parsed: Sequence[tuple[str, CvatDocument]],
-           policy: DuplicatePolicy) -> tuple[CvatDocument, tuple[QaIssue, ...]]:
+def merge_documents(parsed: Sequence[tuple[str, CvatDocument]],
+                    policy: DuplicatePolicy) -> tuple[CvatDocument, tuple[QaIssue, ...]]:
+    """Merge (source_name, document) pairs by `image_key`: a repeated image is a warning and the last copy
+    wins (`last_wins`) or raises (`error`); ids are renumbered 0..n-1 by key unless one clean file is given.
+    """
     winners: dict[str, CvatImage] = {}
     issues: list[QaIssue] = []
     duplicates: list[str] = []
@@ -246,5 +249,5 @@ def read_cvat_files(paths: Sequence[Path], *, duplicate_policy: DuplicatePolicy 
         doc, file_issues = read_cvat_file(Path(path), accept_masks=accept_masks)
         parsed.append((str(path), doc))
         issues.extend(file_issues)
-    merged, merge_issues = _merge(parsed, duplicate_policy)
+    merged, merge_issues = merge_documents(parsed, duplicate_policy)
     return merged, (*issues, *merge_issues)

@@ -10,8 +10,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
+import geopandas as gpd
+
+from vineyard.geo.tiling import existing_tile_ids, tile_ref
 from vineyard.geo.vector_io import read_layer, write_layer
 from vineyard.logging_setup import get_logger, log_event
+from vineyard.perception.waste.confirm import read_confirmations
 from vineyard.pipeline.atomic import atomic_write_json
 from vineyard.pipeline.registry import StageSpec
 from vineyard.pipeline.stages._cross_paths_io import strips_union
@@ -25,6 +29,7 @@ from vineyard.pipeline.stages._post_io import (
     walking_domain,
     write_issues,
 )
+from vineyard.route.extra_waste import extra_waste, with_extra_waste
 from vineyard.route.target_gaps import GapFn, engine_gap_fn
 from vineyard.route.targets import (
     TargetInputs,
@@ -40,12 +45,15 @@ if TYPE_CHECKING:
 
 STAGE_NAME: Final = "targets"
 # 3: the stretches of row gaps inside a cross-path strip (passable's cross_paths layer) are no targets
-STAGE_VERSION: Final = "3"
-CFG_KEYS: Final = ("targets", "canopy.corridor_half_m", "route.candidate_radius_m", "row_structure", "cross_paths")
+# 4: confirmed waste (paths.waste_confirmed) not already in the AnnSet is added as waste targets
+STAGE_VERSION: Final = "4"
+CFG_KEYS: Final = ("targets", "canopy.corridor_half_m", "route.candidate_radius_m", "row_structure", "cross_paths",
+                   "paths.waste_confirmed", "grid.gsd_m")
 ROWS_LAYER: Final = "rows"
 QA_NAME: Final = "issues_targets.parquet"
 METRICS_NAME: Final = "targets.json"
 EVENT_WRITTEN: Final = "targets.written"
+EVENT_EXTRA_WASTE: Final = "targets.confirmed_waste"
 
 _log = get_logger("pipeline.stages.targets")
 
@@ -54,12 +62,23 @@ def make_gap_fn(ctx: RunContext) -> GapFn:
     return engine_gap_fn(ctx.cfg.row_structure, ctx.cfg.canopy.corridor_half_m)
 
 
+def route_waste(ctx: RunContext, annset: AnnSet) -> gpd.GeoDataFrame:
+    """AnnSet waste plus the confirmed boxes it lacks (targets.confirmed_waste; ids from W9001)."""
+    if not ctx.cfg.targets.confirmed_waste:
+        return annset.waste
+    refs = {t: tile_ref(t) for t in existing_tile_ids()}
+    confs = read_confirmations(ctx.cfg.paths.waste_confirmed, frozenset(refs))
+    extra = extra_waste(annset.waste, confs, refs, ctx.cfg.grid.gsd_m, ctx.cfg.targets.dedupe_m)
+    log_event(_log, EVENT_EXTRA_WASTE, stage=STAGE_NAME, n_confirmed=len(confs), n_added=len(extra))
+    return with_extra_waste(annset.waste, extra)
+
+
 def _inputs(ctx: RunContext, annset: AnnSet, paths: RunPaths) -> tuple[TargetInputs, bool]:
     covered, from_tile_valid = coverage(ctx, sorted(annset.tile_ids()))
     domain = walking_domain(paths, ctx)
     cross = ctx.cfg.cross_paths
     inputs = TargetInputs(rows=read_layer(layer_path(paths, ROWS_LAYER), ROWS_LAYER), canopies=annset.canopies,
-                          waste=annset.waste, coverage=covered,
+                          waste=route_waste(ctx, annset), coverage=covered,
                           reach_domain=None if domain is None else domain.inner,
                           forbidden=static_geometry(ctx, "in_forbidden"),
                           cross_paths=strips_union(paths) if cross.enabled and cross.drop_targets else None)

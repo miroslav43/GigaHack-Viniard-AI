@@ -545,6 +545,9 @@ targets:
   end_short_min_m: 5.0
   missing_row_spacing_factor: 1.8
   include_waste: true
+  # Confirmed waste (paths.waste_confirmed) farther than dedupe_m from every AnnSet waste box is routed too
+  # (waste found after the Marcaj upload); the AnnSet stays the only annotated / measured waste.
+  confirmed_waste: true
   priority_long_gap_m: 10.0
   dedupe_m: 1.0
   # route_role: these kinds are must-visit, every other kind is optional (routed only when cheap,
