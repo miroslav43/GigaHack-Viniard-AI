@@ -19,7 +19,8 @@ TILE = "siret3_r018_c011"
 
 
 def _settings(*overrides: str) -> TargetSettings:
-    return TargetSettings.from_config(load_config(overrides=overrides, environ={}))
+    # waste targets are off in default.yaml for now; these tests cover the waste rules
+    return TargetSettings.from_config(load_config(overrides=("targets.include_waste=true", *overrides), environ={}))
 
 
 def _run(ann, *overrides: str, rows: gpd.GeoDataFrame | None = None, coverage=None):

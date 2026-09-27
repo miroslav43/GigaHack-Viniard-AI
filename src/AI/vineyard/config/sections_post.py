@@ -242,3 +242,7 @@ class WebConfig(Section):
     # human review list (tile_id,status,note; status missed | partial | verify), null = none.
     mask_px: PosInt
     tile_review: Path | None = None
+    # Waste detections on the map only (not annotated, measured or routed): every waste candidate of this
+    # model run (run id | LATEST_MODEL) with a box of at least (short, long) px and its centre in a block.
+    detected_waste_run: str | None = None
+    detected_waste_min_px: tuple[PosInt, PosInt] = (10, 15)

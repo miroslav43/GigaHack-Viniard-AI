@@ -36,9 +36,11 @@ from vineyard.measure.csv_format import (
 from vineyard.measure.measurements import MeasureInputs, compute_measurements
 from vineyard.perception.block_overlap import BlockOverlapParams, remove_block_overlap
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json, atomic_write_text
+from vineyard.web.detected_waste import DetectedWasteParams, detected_waste
 from vineyard.web.manifest import SurveyInfo, build_manifest, manifest_stage, survey_info
 from vineyard.web.masks_export import MASK_EXT, MASKS_DIRNAME, mask_manifest, mask_pngs
 from vineyard.web.objects_export import (
+    WASTE_COLUMNS,
     RouteInfo,
     canopy_features,
     interrow_features,
@@ -99,6 +101,7 @@ class WebParams:
     block_buffer_m: float
     tz: str
     mask_px: int
+    detected: DetectedWasteParams | None = None  # web.detected_waste_min_px; None = no detections on the map
 
 
 def decimals_of(step: float, key: str) -> int:
@@ -119,6 +122,7 @@ def web_params(cfg: AppConfig) -> WebParams:
         speed_kmh=cfg.route.walking_speed_kmh,
         row_link_tol_m=ROW_LINK_TOL_M, waste_block_max_m=WASTE_BLOCK_MAX_M,
         block_buffer_m=cfg.blocks.outline_buffer_m, tz=cfg.logging.tz, mask_px=cfg.web.mask_px,
+        detected=None if cfg.web.detected_waste_run is None else DetectedWasteParams(*cfg.web.detected_waste_min_px),
     )
 
 
@@ -142,6 +146,7 @@ class WebInputs:
     farms: gpd.GeoDataFrame | None = None  # stage `farms`: groups of neighbouring blocks
     roads: gpd.GeoDataFrame | None = None  # stage `farms`: public / field / internal roads
     farm_blocks: gpd.GeoDataFrame | None = None  # stage `farms`: block -> farm + cadastral parcels
+    waste_candidates: gpd.GeoDataFrame | None = None  # web.detected_waste_run's layers/waste_candidates
 
 
 @dataclass(frozen=True)
@@ -200,6 +205,18 @@ def block_features(inputs: WebInputs, buffer_m: float) -> gpd.GeoDataFrame:
     return features_frame(records, geoms, BLOCK_COLUMNS)
 
 
+def with_detected_waste(waste: gpd.GeoDataFrame, inputs: WebInputs, blocks: gpd.GeoDataFrame,
+                        params: WebParams) -> gpd.GeoDataFrame:
+    """The annotated waste plus the detections inside the blocks (web only; ids D00001...)."""
+    cands = inputs.waste_candidates
+    if params.detected is None or cands is None or cands.empty:
+        return waste
+    det = detected_waste(cands.to_crs(waste.crs), blocks, inputs.annset.waste.to_crs(waste.crs), params.detected)
+    records = det.drop(columns="geometry").to_dict("records")
+    extra = features_frame(records, list(det.geometry), WASTE_COLUMNS)
+    return gpd.GeoDataFrame(pd.concat([waste, extra], ignore_index=True), geometry="geometry", crs=waste.crs)
+
+
 def _ids(frame: gpd.GeoDataFrame, column: str) -> frozenset[str]:
     return frozenset(str(v) for v in frame[column])
 
@@ -208,7 +225,9 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
     """Every bundle layer in file order; `route` is None without a route."""
     ann = inputs.annset
     rows = physical_rows(ann.row_pieces, ann.canopies, rows=inputs.rows)
-    waste = waste_features(ann.waste, max_block_dist_m=params.waste_block_max_m)
+    blocks = block_features(inputs, params.block_buffer_m)
+    waste = with_detected_waste(waste_features(ann.waste, max_block_dist_m=params.waste_block_max_m),
+                                inputs, blocks, params)
     linked = inputs.interrows
     pieces = linked if linked is not None and not linked.empty else ann.interrow_pieces
     targets = target_features(inputs.targets, route=inputs.route, visit_radius_m=params.visit_radius_m,
@@ -216,7 +235,7 @@ def build_layers(inputs: WebInputs, params: WebParams) -> dict[str, gpd.GeoDataF
                               known_waste=_ids(waste, "waste_id"))
     route = None if inputs.route is None else route_features(inputs.route, speed_kmh=params.speed_kmh,
                                                              decimals=params.utm_decimals)
-    return {"blocks": block_features(inputs, params.block_buffer_m), "rows": rows,
+    return {"blocks": blocks, "rows": rows,
             "canopies": canopy_features(ann.canopies),
             "interrows": interrow_features(pieces, ann.row_pieces, link_tol_m=params.row_link_tol_m),
             "waste": waste, "targets": targets, "route": route,

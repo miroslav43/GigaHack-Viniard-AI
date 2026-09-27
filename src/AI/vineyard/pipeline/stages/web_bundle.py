@@ -10,6 +10,7 @@ the AnnSet run's layers/tile_status.parquet (model runs only), the tile_prep cac
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
@@ -42,7 +43,8 @@ STAGE_NAME: Final = "web_bundle"
 # 5: + cross_paths.geojson (passable's tracks across the rows) + its manifest count
 # 6: + farms.geojson / roads.geojson (stage farms) + blocks.geojson farm_id
 # 7: + cadastral parcels (n_parcels, cadastral_codes, landuse_counts) on farms / blocks, roads `cadastral`
-STAGE_VERSION: Final = "7"
+# 8: waste detections inside the blocks (web.detected_waste_run) join waste.geojson
+STAGE_VERSION: Final = "8"
 CFG_KEYS: Final = ("web", "measure", "publish.sum_check_tol_m", "publish.sum_check_tol_m2",
                    "route.visit_radius_m", "route.walking_speed_kmh", "blocks.outline_buffer_m", "grid.gsd_m",
                    "grid.expected_tiles", "project.crs", "logging.tz", "derive.interrow_overlap_min_m2",
@@ -62,6 +64,7 @@ ROUTE_EXPORT: Final = "route.geojson"
 MEASUREMENTS_EXPORT: Final = "measurements.csv"
 EXPORT_FILES: Final = (ROUTE_EXPORT, MEASUREMENTS_EXPORT)
 TILE_STATUS_FILE: Final = "tile_status.parquet"
+WASTE_CANDIDATES_FILE: Final = "waste_candidates.parquet"
 TILE_STATUS_COLUMNS: Final = ("tile_id", "veg_frac", "review_priority")
 LAYERS_DIRNAME: Final = "layers"
 EXPORTS_DIRNAME: Final = "exports"
@@ -152,6 +155,22 @@ def read_tile_status(run_dir: Path) -> pd.DataFrame | None:
     return frame[list(TILE_STATUS_COLUMNS)]
 
 
+def read_waste_candidates(ctx: RunContext) -> gpd.GeoDataFrame | None:
+    """web.detected_waste_run's layers/waste_candidates (None when off or when that run has none)."""
+    ref = ctx.cfg.web.detected_waste_run
+    if ref is None:
+        return None
+    try:
+        path = resolve_run_dir(ctx.paths.work_dir, ref) / LAYERS_DIRNAME / WASTE_CANDIDATES_FILE
+    except StageError as exc:  # the detections are an extra map layer: never fail the bundle for them
+        log_event(_log, "web_bundle.no_waste_candidates", level=logging.WARNING, ref=ref, error=str(exc))
+        return None
+    if not path.is_file():
+        log_event(_log, "web_bundle.no_waste_candidates", level=logging.WARNING, path=str(path))
+        return None
+    return gpd.read_parquet(path)
+
+
 def load_web_inputs(ctx: RunContext, layers_run: Path) -> WebInputs:
     if not ctx.annset_ref:
         raise StageError("web_bundle needs --annset (the AnnSet the post run was built from)", stage=STAGE_NAME)
@@ -164,7 +183,8 @@ def load_web_inputs(ctx: RunContext, layers_run: Path) -> WebInputs:
     return WebInputs(annset=annset, route=read_route_export(exports / ROUTE_EXPORT),
                      measurements_csv=csv_path.read_bytes() if csv_path.is_file() else None,
                      tile_status=read_tile_status(annset_run), cache_dir=ctx.paths.cache_dir,
-                     tile_review=read_tile_review(ctx.cfg.web.tile_review), **layers)
+                     tile_review=read_tile_review(ctx.cfg.web.tile_review),
+                     waste_candidates=read_waste_candidates(ctx), **layers)
 
 
 # ------------------------------------------------------------------ run

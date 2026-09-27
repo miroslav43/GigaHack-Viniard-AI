@@ -39,7 +39,8 @@ PROV = TargetProvenance(Source.REFERENCE, "20260926T1200-post-abcdef", "referenc
 
 
 def _settings(*overrides: str) -> TargetSettings:
-    return TargetSettings.from_config(load_config(overrides=overrides, environ={}))
+    # waste targets are off in default.yaml for now; these tests cover the waste rules
+    return TargetSettings.from_config(load_config(overrides=("targets.include_waste=true", *overrides), environ={}))
 
 
 def _inputs(ann, **extra) -> TargetInputs:
@@ -312,7 +313,7 @@ def stage_ctx(tmp_path, monkeypatch, request):
     monkeypatch.setitem(sys.modules, "vineyard.pipeline.runner", runner)
     spec = load_stage("targets")
     monkeypatch.setattr(sys.modules[spec.run.__module__], "make_gap_fn", lambda ctx: reference_gap_fn)
-    sets = getattr(request, "param", ("targets.confirmed_waste=false",))
+    sets = ("targets.include_waste=true", *getattr(request, "param", ("targets.confirmed_waste=false",)))
     cfg = load_config(overrides=tuple(s.format(tmp=tmp_path) for s in sets),
                       environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
     ann = make_annset(BlockSpec(gaps=((2, 20.0, 30.0),)), prov=Prov(Source.MARCAJ, REF, "m"),

@@ -544,10 +544,10 @@ targets:
   sparse_known_min: 0.9
   end_short_min_m: 5.0
   missing_row_spacing_factor: 1.8
-  include_waste: true
+  include_waste: false                     # the route does not visit waste for now (team decision 27.09)
   # Confirmed waste (paths.waste_confirmed) farther than dedupe_m from every AnnSet waste box is routed too
   # (waste found after the Marcaj upload); the AnnSet stays the only annotated / measured waste.
-  confirmed_waste: true
+  confirmed_waste: false
   priority_long_gap_m: 10.0
   dedupe_m: 1.0
   # route_role: these kinds are must-visit, every other kind is optional (routed only when cheap,
@@ -736,6 +736,10 @@ web:
   utm_copies: true
   mask_px: 1024                            # masks/<tile>.png side; must divide grid.tile_px (any-vegetation max-pool)
   tile_review: configs/tile_review.csv     # tiles needing completion in Marcaj (tile_id,status,note); null = none
+  # Waste detections shown on the map inside the vineyard blocks, unfiltered (stones and clods included), next
+  # to the annotated waste: candidates of this model run with a box >= (short, long) px. Not routed or measured.
+  detected_waste_run: LATEST_MODEL
+  detected_waste_min_px: [10, 15]
 
 eval:
   example_tiles: [siret3_r006_c004, siret3_r021_c012]
