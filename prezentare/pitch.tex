@@ -1,14 +1,24 @@
 % Solemtrix · GigaHack 2026 · Vineyard AI Field Challenge (Sireț3) — 5 min pitch + Q&A backup.
+% Main deck follows the organisers' plan: Title · Problem (business) · Solution (architecture + data pipeline)
+% · Demo · Impact (economics + deployment time) · Scaling to industry. Technical detail moved to backup (tech.tex).
 % Build: see README.md (xelatex twice). Every number comes from run rc10f / post run 20260927T0452-post-rc10f,
-% README.md §6 and §10, src/AI/reports/nn_ablation.md and metrics/route_baseline.json.
+% README.md §6 and §10, src/AI/reports/nn_ablation.md and metrics/route_baseline.json. Estimates say so.
 \RequirePackage{fix-cm}
 \documentclass[aspectratio=169, 11pt, t]{beamer}
 \usetheme{solemtrix}
 \graphicspath{{img/}{robot/}}
 
+% No outline slide per section in the 5 min talk: the organisers' plan is the order of the slides.
+\AtBeginSection[]{}
+% Visible placeholder for what the team still has to fill in.
+\newcommand{\TODO}[1]{{\setlength{\fboxsep}{1pt}\colorbox{red!12}{\color{red!70!black}\bfseries TODO: #1}}}
+
 \title[From 311 drone tiles to a 14 km walk]{From 311 drone tiles\\to a 14 km inspection walk}
-\subtitle{Classical computer vision first, deep learning only where it pays}
-\author[Team Solemtrix]{Team Solemtrix}
+\subtitle{AI vineyard inventory and inspection routes from one drone flight}
+\author[Solemtrix Hardware \& Software]{%
+  Team \textbf{Solemtrix Hardware \& Software}\\[2mm]
+  {\small Team lead: \TODO{Nume Prenume (team lead)}}\\[1mm]
+  {\small Miroslav Maletici · Razvan Pervulescu · \TODO{alți membri}}}
 \institute[GigaHack 2026]{GigaHack 2026 · Vineyard AI Field Challenge · Sireț3}
 \date[27.09.2026]{27 September 2026}
 
@@ -19,195 +29,121 @@
   \titlepage
 \end{frame}
 
-\section{Problem and approach}
+\section{The problem}
 
-% ================================================================== 2 · challenge
-\begin{frame}{The challenge: 81.5 ha, one plant at a time}
+% ================================================================== 2 · problem, roles, user stories
+\begin{frame}{The problem: who checks every vine?}
   \begin{columns}[T]
-    \begin{column}{0.33\textwidth}
-      \sximg{\linewidth}{overview.jpg}
-    \end{column}
-    \begin{column}{0.63\textwidth}
-      \footnotesize
-      \textbf{Input.} 311 GeoTIFF tiles at 2.5\,cm/px (385\,MB) over a 2\,km strip of vineyards,
-      orchards, meadows and village yards.
-      \vspace{1mm}
+    \begin{column}{0.30\textwidth}
+      \sxstat{45\,500 ha}{of vineyards in the national vine registry\ldots}
+      \vspace{2mm}
 
-      \textbf{Output, 85\,\% scored on objective metrics:}
-      \begin{itemize}\setlength{\itemsep}{0.3mm}\scriptsize
-        \item canopies, row axes, inter-rows, attributes and waste in Marcaj;
-        \item measurements linked by \texttt{vineyard\_id} / \texttt{row\_id};
-        \item one closed walking route through every problem spot;
-        \item a web map that shows all of it.
-      \end{itemize}
+      \sxstat{66\,400 ha}{\ldots of wine varieties in the official statistics (2024)}
+      \vspace{2mm}
+
+      {\scriptsize\color{sxNight}\bfseries A 20\,900 ha gap between the registry and the statistics.\par}
       \vspace{1.5mm}
-      \begin{sxcard}{The real difficulty}
-        Seeing one vine is easy. Seeing 13\,702 the same way, telling them from young orchards and grass,
-        then walking only to the ones that matter: that is the problem.
-      \end{sxcard}
+      {\tiny\color{sxMuted} Planting subsidies reach up to 300\,000 lei/ha, so every declared hectare needs evidence.\par}
+    \end{column}
+    \begin{column}{0.66\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Roles and user stories\par}
+      \vspace{1.5mm}
+      \sxstep{1}{State inspector (vine registry, subsidy control).}{I want every block and row measured from one drone flight, so that I verify declared areas and plantings without walking every parcel.}
+      \sxstep{2}{Farmer / vineyard owner.}{I want a map of missing plants, gaps and waste per row, so that I replant and clean where it matters, before the harvest.}
+      \sxstep{3}{Agronomist / field inspector.}{I want the shortest closed walk through every problem spot, as GPX on my phone, so that one inspection takes 3.5\,h instead of 17\,h.}
+      \sxstep{4}{Municipality (primăria).}{I want farms, roads, cadastre parcels and dumped waste on one map, so that I plan land use and clean-ups.}
+    \end{column}
+  \end{columns}
+  \sxsource{Sources: agroexpert.md (registry vs statistics, 2024); telegraph.md (native-variety subsidy); maia.gov.md (vine registry). Full list: src/Web/docs/PREZENTARE\_CERCETARE.md.}
+\end{frame}
+
+% ================================================================== 3 · business-case pipeline
+\begin{frame}{The business case: one flight, one map, one walk}
+  \centering
+  \begin{tikzpicture}[
+      st/.style={rounded corners=3pt, minimum height=16mm, align=center, text width=17.5mm, inner sep=1.2mm, fill=sxIndigo50, font=\tiny},
+      key/.style={st, fill=sxIndigo, text=white},
+      human/.style={st, fill=white, draw=sxAmber, dashed},
+      arr/.style={-{Stealth[length=2mm]}, line width=0.9pt, sxIndigo}]
+    \node[st]                      (a) {{\scriptsize\bfseries Drone flight}\\[0.5mm] orthomosaic\\2.5\,cm/px};
+    \node[key, right=3mm of a]    (b) {{\scriptsize\bfseries AI pipeline}\\[0.5mm] rows, plants, gaps,\\waste; 17 min};
+    \node[human, right=3mm of b]  (c) {{\scriptsize\bfseries Human check}\\[0.5mm] Marcaj: accept\\or correct};
+    \node[key, right=3mm of c]    (d) {{\scriptsize\bfseries Map + reports}\\[0.5mm] per farm, block\\and row ID};
+    \node[st, right=3mm of d]     (e) {{\scriptsize\bfseries Walk / robot}\\[0.5mm] shortest route\\GPX};
+    \node[st, right=3mm of e]     (f) {{\scriptsize\bfseries Decision}\\[0.5mm] subsidy check,\\replant, clean up};
+    \foreach \x/\y in {a/b, b/c, c/d, d/e, e/f} \draw[arr] (\x) -- (\y);
+    \draw[arr, dashed, rounded corners=4pt] (f.south) -- ++(0,-4.5mm) -| node[pos=0.25, below, font=\tiny, text=sxMuted] {next season: fly again, compare, re-plan} (a.south);
+  \end{tikzpicture}
+
+  \vspace{8mm}
+  {\scriptsize\bfseries\color{sxNight} Sireț3, the challenge survey, end to end\par}
+  \vspace{1.5mm}
+  \begin{columns}[T]
+    \begin{column}{0.14\textwidth}\sxstatsm{81.5 ha}{311 GeoTIFF tiles}\end{column}
+    \begin{column}{0.14\textwidth}\sxstatsm{27}{farms}\end{column}
+    \begin{column}{0.14\textwidth}\sxstatsm{44}{vineyard blocks}\end{column}
+    \begin{column}{0.14\textwidth}\sxstatsm{674}{rows, 47.7\,km}\end{column}
+    \begin{column}{0.14\textwidth}\sxstatsm{13\,702}{plants}\end{column}
+    \begin{column}{0.14\textwidth}\sxstatsm{1\,226}{inspection targets}\end{column}
+  \end{columns}
+\end{frame}
+
+\section{Solution}
+
+% ================================================================== 4 · architecture: algorithms + rules
+\begin{frame}{Architecture: computer vision first, ML only where it pays}
+  \begin{columns}[T]
+    \begin{column}{0.64\textwidth}
+      \sxstep{1}{Row axes: a 1-D signal.}{Dominant angle, projection on the row normal, autocorrelation gives the spacing; SNR $\geq$ 3 rejects orchards; Huber line fit; union-find links rows across tiles.}
+      \sxstep{2}{Canopies: one polygon per plant.}{Lab a* vegetation threshold, kept only inside the row corridor; connected components. A U-Net runs only where CV is blind (old vines in grass: 88 tiles, 13\,s).}
+      \sxstep{3}{Attributes: explicit rules.}{Gap $\geq$ 5\,m $\Rightarrow$ row \emph{disrupted}; inter-row cover from the vegetation fraction; unclear image $\Rightarrow$ \emph{unassessable}.}
+      \sxstep{4}{Waste: a cascade.}{Colour/shape rules $\rightarrow$ OpenCLIP probe $\rightarrow$ SAM 3 on the top crops $\rightarrow$ a human approves every box.}
+      \sxstep{5}{Blocks, farms, route.}{Cadastre parcels as a prior, road cuts; walking graph on inter-rows + passages; generalised TSP (OR-Tools, 2-opt), closed at START, $\leq$ 2\,\% outside.}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \sxstat{$\approx$\,3 min}{CV on all 311 tiles, laptop CPU (measured)}
+      \vspace{2mm}
+
+      \sxstat{0 labels}{no training set needed; thresholds set on the 2 example tiles}
+      \vspace{2mm}
+
+      \sxstat{$\approx$\,18 h}{SAM 3 on every tile instead (extrapolated)}
+      \vspace{2mm}
+
+      {\tiny\color{sxMuted} On the 2 labelled tiles CV scores 0.816 vs 0.641 for the U-Net alone (canopy).\par}
     \end{column}
   \end{columns}
 \end{frame}
 
-% ================================================================== 3 · architecture
-\begin{frame}{One offline pipeline, every stage timed}
+% ================================================================== 5 · data pipeline
+\begin{frame}{Data pipeline: from GeoTIFF to route and reports}
   \centering
   \begin{tikzpicture}[
       box/.style={draw=sxIndigo200, fill=white, rounded corners=3pt, line width=0.6pt, font=\tiny,
-                  minimum height=17mm, align=center, inner sep=1.2mm, text width=20.5mm},
+                  minimum height=19mm, align=center, inner sep=1.2mm, text width=22mm},
       hot/.style={box, fill=sxIndigo, draw=sxIndigo, text=white},
       human/.style={box, draw=sxAmber, dashed},
       arr/.style={-{Stealth[length=2mm]}, line width=0.9pt, sxIndigo}]
-    \node[box]   (in)  {{\scriptsize\bfseries Tiles}\\[0.8mm] 5 ZIPs, 311 GeoTIFF\\ingest + sha256};
-    \node[hot, right=5mm of in]  (per) {{\scriptsize\bfseries Perception}\\[0.8mm] rows, canopy\\inter-rows, attributes\\waste, QA previews};
-    \node[human, right=5mm of per] (mc) {{\scriptsize\bfseries Marcaj}\\[0.8mm] 5 validated CVAT ZIPs\\human correction\\export};
-    \node[hot, right=5mm of mc]  (post) {{\scriptsize\bfseries Post}\\[0.8mm] targets, walking graph\\GTSP route, measure\\farms, roads};
-    \node[box, right=5mm of post] (out) {{\scriptsize\bfseries Deliverables}\\[0.8mm] route.geojson\\measurements.csv\\targets, web bundle};
+    \node[box]   (in)  {{\scriptsize\bfseries GeoTIFF}\\[0.8mm] 311 tiles, EPSG:32635\\5 ZIPs, 385\,MB\\ingest + sha256: 2.5\,s};
+    \node[hot, right=4mm of in]  (per) {{\scriptsize\bfseries Perception}\\[0.8mm] rows, canopies\\inter-rows, attributes\\waste, QA previews\\384\,s};
+    \node[human, right=4mm of per] (mc) {{\scriptsize\bfseries Marcaj}\\[0.8mm] 5 validated CVAT ZIPs\\human correction\\export};
+    \node[hot, right=4mm of mc]  (post) {{\scriptsize\bfseries Post}\\[0.8mm] targets, walking graph\\route, measurements\\farms, roads\\603\,s};
+    \node[box, right=4mm of post] (out) {{\scriptsize\bfseries Deliverables}\\[0.8mm] route.geojson / GPX\\measurements.csv\\targets.geojson\\web map + reports};
     \foreach \a/\b in {in/per, per/mc, mc/post, post/out} \draw[arr] (\a) -- (\b);
     \node[below=1mm of mc, font=\tiny, text=sxAmber] {human in the loop};
   \end{tikzpicture}
 
-  \vspace{5mm}
+  \vspace{6mm}
   \begin{columns}[T]
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Per tile, parallel}8 CPU workers; tiles never wait for each other.\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{$\approx$ 17 min}Tiles to deliverables on one laptop (M3 Pro), CPU only, 8 workers.\end{sxcard}\end{column}
     \begin{column}{0.235\textwidth}\begin{sxcard}{Cached by config hash}Re-runs reuse per-tile caches; a new config never reads stale ones.\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{One source of truth}Every threshold lives in \texttt{default.yaml}.\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Observable}Each run writes its config, a JSONL log and stage timings.\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{One source of truth}Every threshold lives in \texttt{default.yaml}; every run logs its config and timings.\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{Reproducible}Pinned \texttt{uv.lock}, 2\,378 tests, CI, Docker with \texttt{-{}-network none}. No paid API, no LLM at runtime.\end{sxcard}\end{column}
   \end{columns}
 \end{frame}
 
-\section{Perception: computer vision first}
-
-% ================================================================== 4 · efficiency
-\begin{frame}{Why computer vision first, deep learning second}
-  \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      {\scriptsize\bfseries\color{sxNight} Canopy score on the organisers' 2 example tiles (the only labelled data)\par}
-      \vspace{1.5mm}
-      \begin{tikzpicture}[x=55mm, y=3.0mm]
-        \foreach \lab/\val/\col [count=\i] in {
-            {CV: vegetation $\cap$ row corridor}/0.816/sxIndigo,
-            {CV $\cup$ U-Net}/0.773/sxGreyBar,
-            {CV $\wedge$ U-Net}/0.707/sxGreyBar,
-            {U-Net $\cap$ row corridor}/0.675/sxGreyBar,
-            {U-Net alone}/0.641/sxGreyBar}{
-          \fill[\col, rounded corners=1.5pt] (0,-2*\i) rectangle (\val,-2*\i+0.9);
-          \node[anchor=south west, font=\tiny, text=sxMuted, inner sep=0.5pt] at (0,-2*\i+0.95) {\lab};
-          \node[anchor=west, font=\scriptsize\bfseries, text=sxNight] at (\val,-2*\i+0.45) {\val};
-        }
-      \end{tikzpicture}
-      \vspace{1mm}
-
-      {\tiny\color{sxMuted} On this small sample the U-Net brings no gain, yet it costs training data and a GPU.
-      So it runs only where CV is blind: old vines in grass, 88 tiles, 12.9\,s.\par}
-      \vspace{2.5mm}
-      {\color{sxIndigo}\footnotesize\bfseries Vines are periodic: structure is a stronger prior than pixels, and almost free to compute.\par}
-    \end{column}
-    \begin{column}{0.41\textwidth}
-      \sxstat{$\approx$\,3 min}{all 311 tiles on a laptop CPU (measured)}
-      \vspace{2.5mm}
-
-      \sxstat{0 labels}{no training set; thresholds set on the 2 example tiles}
-      \vspace{2.5mm}
-
-      \sxstat{$\approx$\,18 h}{SAM 3 on every tile (extrapolated)}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% ================================================================== 5 · rows
-\begin{frame}{Rows are a 1-D signal, not a 2-D image\sxscore{Axes}{15}}
-  \begin{columns}[T]
-    \begin{column}{0.3\textwidth}
-      \sximg{0.86\linewidth}{rows_preview.jpg}\par\vspace{0.8mm}
-      {\tiny\color{sxGrey} Tile r006\_c004: row axes and IDs.\par}
-      \vspace{1.5mm}
-      \begin{columns}[T, totalwidth=\linewidth]
-        \begin{column}{0.48\linewidth}\sxstatsm{674}{rows, 47.7\,km of axes (whole survey)}\end{column}
-        \begin{column}{0.48\linewidth}\sxstatsm{44}{blocks, one ID per row across tiles}\end{column}
-      \end{columns}
-    \end{column}
-    \begin{column}{0.66\textwidth}
-      \sxstep{1}{Dominant angle, coarse to fine.}{2°, then 0.5° steps: about 100 evaluations instead of 360.}
-      \sxstep{2}{Project onto the row normal.}{A 1-D profile: autocorrelation gives the spacing (1.8--3.8\,m), and an SNR $\geq$ 3 rejects orchards.}
-      \sxstep{3}{One robust line per peak.}{Huber fit; union-find joins rows across tiles, one ID per row.}
-      \vspace{0.5mm}
-      \begin{sxcard}{4 \quad Find once, propagate}
-        A tile with no confident row is searched again at its neighbours' lattice (angle $\pm$2°, spacing $\pm$15\,\%).
-      \end{sxcard}
-      \par\vspace{1.5mm}
-      \begin{sxexample}
-        \sxm{1.00}{row F1 (51/51 rows)}\hfill
-        \sxm{1.00}{grouping F1}\hfill
-        \sxm{0.05\,\%}{row-length error}
-      \end{sxexample}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% ================================================================== 6 · canopies
-\begin{frame}{One polygon per plant, inside its row\sxscore{Canopies}{25}}
-  \begin{columns}[T]
-    \begin{column}{0.3\textwidth}
-      \sximg{\linewidth}{canopy_zoom.jpg}\par\vspace{0.8mm}
-      {\tiny\color{sxGrey} Green: canopy. Red: row axis. The grass on the left stays out.\par}
-      \vspace{1.5mm}
-      \begin{columns}[T, totalwidth=\linewidth]
-        \begin{column}{0.52\linewidth}\sxstatsm{13\,702}{plants, whole survey}\end{column}
-        \begin{column}{0.44\linewidth}\sxstatsm{149}{disrupted rows}\end{column}
-      \end{columns}
-    \end{column}
-    \begin{column}{0.66\textwidth}
-      \sxstep{1}{One colour channel.}{A threshold on Lab a*: no training, no GPU.}
-      \sxstep{2}{Only inside the row corridor.}{Grass between rows never becomes canopy.}
-      \sxstep{3}{One polygon per plant.}{Connected components: 13\,702 plants, 1.54\,ha of canopy.}
-      \sxstep{4}{Attributes from geometry.}{A gap $\geq$ 5\,m marks a row \emph{disrupted}; inter-row cover comes from the vegetation fraction.}
-      \vspace{1mm}
-      \begin{sxexample}
-        \sxm{0.876}{canopy score (official metric)}\hfill
-        \sxm{0.856}{canopy IoU}\hfill
-        \sxm{0.905}{canopy F1 (0.945 on tile r006\_c004)}\\[1.2mm]
-        \sxm{0.960}{inter-row IoU; inter-row F1 1.00 (49/49)}\hfill
-        \sxm{1.00}{attributes: row structure 51/51, inter-row cover 49/49}\hfill
-        \sxm{585/650}{reference plants matched}
-      \end{sxexample}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% ================================================================== 7 · waste
-\begin{frame}{Waste: from cheap filters to big models\sxscore{Waste}{10}}
-  \centering
-  \begin{tikzpicture}[
-      st/.style={rounded corners=3pt, minimum height=14mm, align=center, text width=20mm, inner sep=1.2mm, font=\tiny},
-      arr/.style={-{Stealth[length=2mm]}, line width=0.9pt, sxIndigo}]
-    \node[st, fill=sxIndigo50]                      (a) {{\small\bfseries 1\,331}\\[0.5mm] rule candidates:\\colour, shape, lattice};
-    \node[st, fill=sxIndigo100, right=4.5mm of a]   (b) {{\scriptsize\bfseries OpenCLIP probe}\\[0.5mm] ranks them; trained\\on 11\,292 crops};
-    \node[st, fill=sxIndigo200, right=4.5mm of b]   (c) {{\scriptsize\bfseries SAM 3}\\[0.5mm] verifies the top crops;\\13\,s each, so few};
-    \node[st, fill=sxIndigoLight, text=white, right=4.5mm of c] (d) {{\scriptsize\bfseries Team}\\[0.5mm] approves every box\\before export};
-    \node[st, fill=sxIndigo, text=white, right=4.5mm of d] (e) {{\small\bfseries 11}\\[0.5mm] waste boxes\\exported};
-    \foreach \x/\y in {a/b, b/c, c/d, d/e} \draw[arr] (\x) -- (\y);
-  \end{tikzpicture}
-
-  \vspace{5mm}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \sximg{19mm}{waste_ok1.jpg}\hspace{1.5mm}\sximg{19mm}{waste_ok2.jpg}\hspace{1.5mm}\sximg{19mm}{waste_rej.jpg}\\[0.8mm]
-      {\tiny\color{sxMuted}\makebox[19mm]{exported}\hspace{1.5mm}\makebox[19mm]{exported}\hspace{1.5mm}\makebox[19mm]{rejected}\par}
-    \end{column}
-    \begin{column}{0.46\textwidth}
-      \footnotesize
-      Each stage is more expensive and sees fewer crops.\\[2mm]
-      \textbf{Precision over recall:} nothing reaches Marcaj without an approval, so false boxes never cost points.
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\section{Route, measurements, engineering}
-
-% ================================================================== 8 · route
-\begin{frame}{A route per farm, inter-rows only\sxscore{Route}{25}}
+% ================================================================== 6 · result: route per farm
+\begin{frame}{Result: a route per farm, inter-rows only\sxscore{Route}{25}}
   \begin{columns}[T]
     \begin{column}{0.44\textwidth}
       \centering\input{fig/map_farm.tex}\par\vspace{0.6mm}
@@ -227,104 +163,128 @@
         \begin{column}{0.48\linewidth}\sxstatsm{455/455}{targets of the farm visited}\end{column}
         \begin{column}{0.48\linewidth}\sxstatsm{2 h 26 min}{at 4\,km/h; solved in 1.5\,s in the browser}\end{column}
       \end{columns}
-      \vspace{1.5mm}
-      {\tiny\color{sxMuted} Lanes run between neighbouring rows, never on them. Each target can be seen from its left or right
-       lane, so the tour is a generalised TSP (nearest neighbour, then 2-opt and Or-opt). GPX export for a phone or the robot.\par}
       \vspace{2.5mm}
       \begin{block}{Whole survey: the official route.geojson}
         \sxm{14.0 km}{vs 68.2\,km serpentine ($-$79\,\%)}\hfill
         \sxm{147/147}{reachable must-visit targets}\hfill
         \sxm{1.28\,\%}{outside the allowed area (limit 2\,\%); closed at START}
       \end{block}
+      \vspace{1.5mm}
+      {\tiny\color{sxMuted} On the organisers' 2 example tiles: row F1 1.00 (51/51), canopy score 0.876, inter-row IoU 0.96, counts score 0.973.\par}
     \end{column}
   \end{columns}
 \end{frame}
 
-% ================================================================== 9 · measures + web
-\begin{frame}{Every number traceable to an ID\sxscore{Measures}{10}}
+\section{Demo}
+
+% ================================================================== 7 · demo
+\begin{frame}{Demo: the web interface}
   \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      {\scriptsize\bfseries\color{sxNight} measurements.csv: survey $\rightarrow$ block $\rightarrow$ row\par}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Screencast}
+        \scriptsize \TODO{link YouTube screencast}
+      \end{block}
+      \vspace{2mm}
+      \begin{sxcard}{Code and run instructions}
+        {\tiny\ttfamily github.com/miroslav43/\\Solemtrix\_Hardware\_Software\_\_Vineyard\_AI\_Field\_Challenge\par}
+        \vspace{1.2mm}
+        Live demo from the team laptop (accepted by the rules):\\[0.5mm]
+        {\tiny\ttfamily cd src/Web/frontend \&\& pnpm start\\$\rightarrow$ http://localhost:3000/harta\par}
+      \end{sxcard}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \IfFileExists{img/web_map.png}{\centering\sximg{0.8\linewidth}{web_map.png}\par\vspace{1.5mm}}{}
+      {\scriptsize\bfseries\color{sxNight} What the screencast shows\par}
+      \vspace{1mm}
+      \sxstep{1}{Map.}{Orthophoto and every layer; click any object for its \texttt{vineyard\_id} / \texttt{row\_id}.}
+      \sxstep{2}{Blocks and rows.}{Counts, row lengths, canopy and inter-row areas (m², ha).}
+      \sxstep{3}{Route.}{Official route, START/FINISH, per-farm routes, GPX and GeoJSON.}
+      \sxstep{4}{Farms, roads, cadastre.}{27 farms, public vs internal roads, live AGCC parcels. RO / EN / RU.}
+      \vspace{0.5mm}
+      \begin{sxcard}{Pre-test point: 47.1225\,N, 28.7095\,E}
+        Farm F09, block V13, inter-row V13-I020 (\emph{mixed}), next to row V13-R020
+        (\emph{disrupted}, 228.9\,m, 70 plants). The route passes 1.8\,m away: visited.
+      \end{sxcard}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Impact}
+
+% ================================================================== 8 · impact: economics + deployment time
+\begin{frame}{Impact: 13.5 h saved per inspection, 11--20 h to deploy}
+  \begin{columns}[T]
+    \begin{column}{0.40\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Economic effect, Sireț3 (81.5 ha), walking at 4\,km/h\par}
+      \vspace{1.5mm}
+      \sxstat{3.5 h vs 17 h}{one full inspection walk: 14.0\,km instead of a 68.2\,km serpentine}
+      \vspace{2mm}
+
+      \sxstat{$\approx$\,13.5 h}{inspector time saved per survey ($-$79\,\%); farm F09 alone: 2\,h\,26 instead of 6\,h\,52}
+      \vspace{2mm}
+
+      \sxstat{$\approx$\,0 lei}{marginal compute: 17 min on a laptop CPU, no paid API, no GPU, open weights}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Deployment time to a ministry or a farm: $\approx$ 11--20 h to the first inspected region\par}
       \vspace{1.5mm}
       {\tiny
-      \begin{tabular}{@{}l r r r r@{}}
+      \begin{tabular}{@{}p{0.70\linewidth} r@{}}
         \toprule
-        \textbf{level / ID} & \textbf{rows} & \textbf{row length} & \textbf{canopy} & \textbf{plants}\\
+        \textbf{One-time setup} & \textbf{hours}\\
         \midrule
-        survey        & 674 & 47\,737.5 m & 15\,427.5 m² & 13\,702\\
-        block V01     & 115 &  9\,955.4 m &  3\,262.9 m² &  2\,346\\
-        block V13     &  77 & 13\,551.2 m &  3\,471.8 m² &  5\,525\\
-        block V41     &  83 &  4\,089.9 m &  1\,469.4 m² &     831\\
-        \multicolumn{5}{@{}l}{\dots\ 44 blocks and 674 rows, each with its own line}\\
+        Server or laptop: Docker / \texttt{uv sync}, \texttt{pnpm install}, model weights from the release & 1--2\\
+        Web app for inspectors: build, hosting, TLS, logins & 2--3\\
+        Calibrate a new region: label 2 reference tiles, check thresholds & 2--4\\
+        Train operators (inspector, agronomist) & 1--2\\
+        \midrule
+        \textbf{Per new survey ($\approx$ 80 ha)} & \\
+        \midrule
+        Ingest + AI pipeline (measured: 2.5\,s + $\approx$ 17 min) & 0.5\\
+        Human check in Marcaj & 4--8\\
+        Final run: route, measurements, reports, publish & 0.5\\
         \bottomrule
       \end{tabular}\par}
-      \vspace{3mm}
-      \begin{columns}[T, totalwidth=\linewidth]
-        \begin{column}{0.3\linewidth}\sxstatsm{44}{blocks}\end{column}
-        \begin{column}{0.3\linewidth}\sxstatsm{27}{farms}\end{column}
-        \begin{column}{0.3\linewidth}\sxstatsm{9.32\,ha}{inter-rows}\end{column}
-      \end{columns}
-    \end{column}
-    \begin{column}{0.46\textwidth}
-      \IfFileExists{img/web_map.png}{\sximg{\linewidth}{web_map.png}\par\vspace{2mm}}{}
-      \begin{sxcard}{Web app (Next.js, RO / EN / RU)}
-        \begin{itemize}\setlength{\itemsep}{0.4mm}
-          \item every layer: canopies, rows, inter-rows, waste, targets;
-          \item official route and per-farm routes; GPX, GeoJSON;
-          \item farms, roads, live AGCC cadastre; click any row for its numbers.
-        \end{itemize}
-      \end{sxcard}
-      \par\vspace{1.5mm}
-      \begin{sxexample}[On the organisers' 2 example tiles]
-        \sxm{0.973}{counts score (official metric)}\hfill
-        \sxm{51/51}{rows counted; blocks 2/2}\hfill
-        \sxm{0.05\,\%}{row-length error}\\[1.2mm]
-        \sxm{1.4\,\%}{canopy-area error (0.3\,\% pooled)}\hfill
-        \sxm{0.5\,\%}{inter-row-area error}\hfill
-        \sxm{49/49}{inter-rows matched}
-      \end{sxexample}
+      \vspace{1.5mm}
+      {\tiny\color{sxGrey} Compute times are measured (README §6). Human and set-up times are team estimates.\par}
     \end{column}
   \end{columns}
 \end{frame}
 
-% ================================================================== 10 · engineering
-\begin{frame}{Built to be re-run, not demoed once\sxscore{Engineering}{15}}\relax
-  {\scriptsize\bfseries\color{sxNight} End to end, tiles $\rightarrow$ deliverables, current pipeline (RC10f), Apple M3 Pro laptop\par}
-  \vspace{2mm}
-  \begin{tikzpicture}[x=0.128mm]
-    % 1024 s total -> 131 mm
-    \fill[sxIndigo200]  (0,0)    rectangle (12.9,0.55);
-    \fill[sxIndigo]     (12.9,0) rectangle (396.9,0.55);
-    \fill[sxIndigo200]  (396.9,0) rectangle (420.9,0.55);
-    \fill[sxIndigoDark] (420.9,0) rectangle (1023.9,0.55);
-    \node[font=\tiny\bfseries, text=white] at (204,0.275) {perception 384\,s};
-    \node[font=\tiny\bfseries, text=white] at (722,0.275) {post: targets, route, measure, farms 603\,s};
-    \node[anchor=north west, font=\tiny, text=sxMuted] at (0,-0.05) {U-Net 13\,s};
-    \node[anchor=north, font=\tiny, text=sxMuted] at (409,-0.05) {export 24\,s};
-    \node[anchor=north east, font=\scriptsize\bfseries, text=sxIndigo] at (1024,-0.05) {$\approx$ 17 min};
-  \end{tikzpicture}
-  \vspace{4mm}
+\section{Scaling to industry}
 
+% ================================================================== 9 · scaling
+\begin{frame}{Scaling to industry}
   \begin{columns}[T]
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Architecture}Typed stage contracts, one CLI command per stage, a torch-free core; ML is an optional extra.\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Robustness}2\,378 tests, CI on every push, an export validator: 311 tiles, 0 errors.\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Scalability}Linear in area, per-tile workers, caches keyed by the config hash.\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Reproducibility}Pinned \texttt{uv.lock}; Docker runs with \texttt{-{}-network none}; free open weights.\end{sxcard}\end{column}
+    \begin{column}{0.30\textwidth}
+      \sxstat{$\approx$\,4.7 s / ha}{perception on one laptop, 8 workers (measured on 81.5\,ha)}
+      \vspace{2mm}
+
+      \sxstat{$\approx$\,130 h}{all $\approx$\,100\,000\,ha of Moldovan vineyards on one laptop; $\approx$\,16\,h on a 64-core server}
+      \vspace{1mm}
+
+      {\tiny\color{sxGrey} Linear extrapolation of a measured run. Tiles are independent, so it parallelises.\par}
+    \end{column}
+    \begin{column}{0.66\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Features we want to offer the industry\par}
+      \vspace{1.5mm}
+      \sxstep{1}{Ground robot, Street View for every row.}{It drives our route (14\,km instead of $\geq$\,41\,km), side cameras image two rows per pass, on-board ML flags disease symptoms, each image tied to its \texttt{row\_id}.}
+      \sxstep{2}{Season-to-season change.}{Fly again, compare: new gaps, replanting, abandoned plots, per row.}
+      \sxstep{3}{Registry and subsidy integration.}{Export per parcel to the vine registry (ONVV) and to AIPA field checks; cadastre (AGCC) parcels already on the map.}
+      \sxstep{4}{Reports and routes per farm.}{Per-farm route and GPX for phones and robots; CSV reports by block and row.}
+      \sxstep{5}{On government infrastructure.}{Offline Docker image, no external API; multi-user web app in RO / EN / RU. Other row crops (orchards, berries) reuse the same 1-D row model.}
+    \end{column}
   \end{columns}
-  \vspace{3mm}
-  {\color{sxIndigo}\footnotesize\bfseries No paid API and no LLM at runtime. CPU only; the GPU is optional.\par}
 \end{frame}
 
-\input{robot.tex}
-
-% ================================================================== closing
+% ================================================================== 10 · closing
 \begin{frame}{Summary}
   \vspace{3mm}
   \begin{columns}[T]
     \begin{column}{0.235\textwidth}\begin{sxcard}{Efficient}\sxstat{17 min}{tiles to deliverables, one laptop, CPU only}\end{sxcard}\end{column}
     \begin{column}{0.235\textwidth}\begin{sxcard}{Accurate}\sxstat{1.00}{row F1; canopy 0.876, inter-row IoU 0.96 (organisers' 2 example tiles)}\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Short routes}\sxstat{$-$79\,\%}{whole survey vs serpentine; farm F09 $-$65\,\%}\end{sxcard}\end{column}
-    \begin{column}{0.235\textwidth}\begin{sxcard}{Validated}\sxstat{0 errors}{export validator over all 311 tiles}\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{Short routes}\sxstat{$-$79\,\%}{whole survey vs serpentine: $\approx$\,13.5\,h saved per walk}\end{sxcard}\end{column}
+    \begin{column}{0.235\textwidth}\begin{sxcard}{Deployable}\sxstat{11--20 h}{from zero to the first inspected region (estimate)}\end{sxcard}\end{column}
   \end{columns}
   \vspace{8mm}
   \centering
@@ -335,6 +295,8 @@
 
 \sxmainend
 \appendix
+\input{tech.tex}
+\input{robot.tex}
 \input{backup.tex}
 
 \end{document}

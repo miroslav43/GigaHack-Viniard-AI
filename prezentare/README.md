@@ -7,9 +7,12 @@ section outline at the start of every section. The colours come from the web the
 
 | File | Content |
 |---|---|
-| `pitch.tex` | main deck: title, sections 1–3, summary |
-| `robot.tex` | section 4: the 3 robot slides (15–17) |
-| `backup.tex` | Q&A backup slides (19–28), numbered "backup N" in the footline |
+| `pitch.tex` | main deck (10 slides), in the organisers' order: title (team), problem (roles, user stories), business case, architecture, data pipeline, route result, demo, impact (economics, deployment time), scaling, summary |
+| `tech.tex` | technical detail moved to backup (slides 11–17): challenge, CV first, rows, canopies, waste, measures, engineering |
+| `CONTINUT_TEMPLATE.md` | slide-by-slide text to paste into the organisers' mandatory template |
+| `export/slide-NN.png` | the 10 main slides at 200 dpi, for pasting diagrams into the template |
+| `robot.tex` | the 3 robot slides, now backup (18–20) |
+| `backup.tex` | Q&A backup slides (21–30), numbered "backup N" in the footline |
 | `beamerthemesolemtrix.sty` | theme: `rounded` inner + `infolines` outer, colours, fonts, blocks, stats, steps, score chips |
 | `scripts/make_figures.py` | builds `img/*.jpg` (overview, row preview, canopy zoom, waste crops) from the RC10f QA run |
 | `scripts/make_farm_map.py` | builds `img/farm_ortho.jpg` and `fig/map_farm.tex`: farm F09's orthophoto with its route (needs rasterio, run it in `src/AI`) |
@@ -30,7 +33,7 @@ xelatex -output-directory=build pitch.tex && xelatex -output-directory=build pit
 cp build/pitch.pdf pitch.pdf
 ```
 
-The second run places the scoring chips (TikZ `remember picture`) and the "N / 18" page total, which
+The second run places the scoring chips (TikZ `remember picture`) and the "N / 10" page total, which
 `\sxmainend` (just before `\appendix`) writes to the aux file.
 
 ## Adding the robot photos and the web screenshot
