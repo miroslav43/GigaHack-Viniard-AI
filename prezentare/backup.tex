@@ -1,0 +1,264 @@
+% Backup slides for the 5 min Q&A, one likely jury question per slide. Shown only when asked.
+
+\begin{frame}[c]
+  \centering
+  \begin{beamercolorbox}[sep=5mm, center, rounded=true, shadow=true]{title}
+    {\LARGE\bfseries Backup: questions \& answers\par}
+  \end{beamercolorbox}
+  \vspace{4mm}
+  {\footnotesize\color{sxMuted} Validation · deep learning · scale · hard cases · route · reproducibility · time · data · users\par}
+\end{frame}
+
+% ------------------------------------------------------------------ Q1 validation
+\begin{frame}{How do we know the output is right?}
+  \begin{columns}[T]
+    \begin{column}{0.57\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Tested on the organisers' 2 example tiles (\texttt{vineyard eval-examples -{}-gates}, run rc10f)\par}
+      \vspace{1mm}
+      {\tiny
+      \begin{tabular}{@{}l c c c l@{}}
+        \toprule
+        \textbf{metric} & \textbf{r006\_c004} & \textbf{r021\_c012} & \textbf{mean} & \textbf{gate}\\
+        \midrule
+        canopy score (official) & 0.905 & 0.846 & \textbf{0.876} & $\geq$ 0.80 \textcolor{sxTeal}{pass}\\
+        canopy IoU              & 0.878 & 0.834 & 0.856 & \\
+        canopy F1               & 0.945 & 0.864 & 0.905 & \\
+        rows F1                 & 1.00 & 1.00 & \textbf{1.00} & $\geq$ 0.95 per tile \textcolor{sxTeal}{pass}\\
+        inter-row IoU           & 0.963 & 0.957 & \textbf{0.960} & $\geq$ 0.95 \textcolor{sxTeal}{pass}\\
+        inter-row F1            & 1.00 & 1.00 & 1.00 & \\
+        attributes              & 1.00 & 1.00 & \textbf{1.00} & $\geq$ 0.90 \textcolor{sxTeal}{pass}\\
+        \quad row structure     & 26/26 & 25/25 & 51/51 & \\
+        \quad inter-row cover   & 25/25 & 24/24 & 49/49 & \\
+        grouping F1             & 1.00 & 1.00 & 1.00 & \\
+        counts score            & 0.973 & 0.974 & 0.973 & \\
+        \bottomrule
+      \end{tabular}\par}
+      \vspace{1mm}
+      {\tiny\color{sxGrey} The example tiles contain no waste, so waste is checked by review, not by this table.\par}
+    \end{column}
+    \begin{column}{0.39\textwidth}
+      \begin{sxcard}{And over the whole survey}
+        \begin{itemize}\setlength{\itemsep}{0.6mm}
+          \item a preview and a review priority for each of the 311 tiles;
+          \item every row checked against its block's lattice (spacing, angle);
+          \item rows follow the AGCC cadastral strips: median angle difference 0.3--0.6° (RC7);
+          \item export validator: 311 tiles, 0 errors;
+          \item route validator: closed at START, 1.28\,\% outside;
+          \item manual correction in Marcaj before the final export.
+        \end{itemize}
+      \end{sxcard}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q2 deep learning
+\begin{frame}{Why not an end-to-end deep network?}\relax
+  {\scriptsize\bfseries\color{sxNight} Canopy ablation on the organisers' 2 example tiles (IoU / F1 / official score)\par}
+  \vspace{2mm}
+  {\scriptsize
+  \begin{tabular}{@{}l l c c c@{}}
+    \toprule
+    & \textbf{mask} & \textbf{tile r006\_c004} & \textbf{tile r021\_c012} & \textbf{mean}\\
+    \midrule
+    \textcolor{sxIndigo}{\textbf{A}} & \textcolor{sxIndigo}{\textbf{vegetation $\cap$ corridor (CV)}} & 0.834 / 0.887 / \textbf{0.855} & 0.762 / 0.799 / \textbf{0.777} & \textcolor{sxIndigo}{\textbf{0.816}}\\
+    B & U-Net $\cap$ corridor           & 0.547 / 0.822 / 0.657 & 0.718 / 0.655 / 0.692 & 0.675\\
+    C & vegetation $\wedge$ U-Net       & 0.547 / 0.822 / 0.657 & 0.743 / 0.779 / 0.758 & 0.707\\
+    D & vegetation $\vee$ U-Net         & 0.830 / 0.887 / 0.853 & 0.730 / 0.638 / 0.693 & 0.773\\
+    E & U-Net alone                     & 0.539 / 0.806 / 0.646 & 0.657 / 0.607 / 0.637 & 0.641\\
+    \bottomrule
+  \end{tabular}\par}
+  \vspace{4mm}
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}\begin{sxcard}{Labels}Only 2 annotated tiles exist. A network would learn from our own CV pseudo-labels and inherit their errors.\end{sxcard}\end{column}
+    \begin{column}{0.31\textwidth}\begin{sxcard}{Cost}U-Net: 0.30\,s/tile, but needs training and a GPU. SAM 3: 13\,s per crop.\end{sxcard}\end{column}
+    \begin{column}{0.31\textwidth}\begin{sxcard}{Where it helps}Old vines in grass: the U-Net probability drives the cadastral completion on 88 tiles.\end{sxcard}\end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q3 scale
+\begin{frame}{What happens at the scale of a country?}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \sxstat{$\approx$\,4.7 s / ha}{perception on this laptop, 8 workers (384\,s for 81.5\,ha, RC10f)}
+      \vspace{2.5mm}
+
+      \sxstat{$\approx$\,130 h}{for Moldova's $\approx$\,100\,000\,ha of vineyards, on one laptop}
+      \vspace{2.5mm}
+
+      \sxstat{$\approx$\,16 h}{on one 64-core server}
+      \vspace{1.5mm}
+
+      {\tiny\color{sxGrey} Linear extrapolation of a measured run; not measured at that scale.\par}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{1.2mm}
+        \item \textbf{Tiles are independent:} perception parallelises across tiles with no shared state.
+        \item \textbf{Global stages work on vectors:} row linking 3\,s, blocks 1\,s.
+        \item \textbf{The route is bounded:} each OR-Tools solve has a time limit (30\,s, 60\,s for the final).
+        \item \textbf{Re-runs are incremental:} caches are keyed by the config hash.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q4 hard cases
+\begin{frame}{Shadows, grass, old vines, orchards?}
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}
+      \begin{sxcard}{Orchards, meadows}Rejected by periodicity: spectral SNR $<$ 3, or a row wider than 1.2\,m (p80).\end{sxcard}
+      \par\vspace{2.5mm}
+      \begin{sxcard}{Shadows}An inter-row more than 50\,\% in shadow is marked \emph{unassessable}, not guessed.\end{sxcard}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \begin{sxcard}{Old vines in grass}A relaxed guided pass accepts rows up to 2.2\,m wide; the cadastral completion searches on the U-Net probability.\end{sxcard}
+      \par\vspace{2.5mm}
+      \begin{sxcard}{Curved rows}Curved-row tracking follows the axis instead of forcing a straight line.\end{sxcard}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \begin{sxcard}{Roads through vines}Rows are cut where an OpenStreetMap road crosses a vine-free stretch, so the road separates blocks.\end{sxcard}
+      \par\vspace{2.5mm}
+      \begin{sxcard}{Left to people}41 tiles flagged for Marcaj. A missed row costs less than a false one.\end{sxcard}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q5 route
+\begin{frame}{How is the route built and checked?}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \sxstep{1}{Domain.}{Inter-rows $\cup$ authorised passages $-$ forbidden zones $-$ canopies. Inter-rows, never rows.}
+      \sxstep{2}{Graph.}{Inter-row centrelines plus passage skeletons, joined at the headlands.}
+      \sxstep{3}{Targets.}{Gaps, missing rows and plants, waste: 1\,226, of which 246 must-visit. Each is a set of nodes it can be seen from.}
+      \sxstep{4}{Solve.}{Generalised TSP with OR-Tools (python-tsp fallback); several outside-share policies, the best valid one wins.}
+      \sxstep{5}{Validate.}{Closed at START, length, share outside the allowed area.}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      {\scriptsize\bfseries\color{sxNight} Baselines on the same graph\par}
+      \vspace{1.5mm}
+      {\scriptsize
+      \begin{tabular}{@{}l r r@{}}
+        \toprule
+        \textbf{walk} & \textbf{length} & \textbf{saved}\\
+        \midrule
+        serpentine, every inter-row (est.) & 68.2 km & 79.4\,\%\\
+        every inter-row once (bound)       & 41.2 km & 65.9\,\%\\
+        targets in ID order                & 36.0 km & 61.0\,\%\\
+        \textcolor{sxIndigo}{\textbf{ours}} & \textcolor{sxIndigo}{\textbf{14.0 km}} & \\
+        \bottomrule
+      \end{tabular}\par}
+      \vspace{2mm}
+      {\tiny\color{sxMuted} 211 min at 4\,km/h. The serpentine estimate joins inter-rows with straight hops, which flatters the baseline.\par}
+      \vspace{2mm}
+      {\tiny\color{sxMuted} The route reaches all 147 reachable must-visit targets. The other 99 are farther than the visit radius from any allowed path (23) or in parts no authorised passage connects to START (76).\par}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q6 reproducibility
+\begin{frame}[fragile]{Can someone else reproduce it?}
+  \begin{columns}[T]
+    \begin{column}{0.54\textwidth}
+\begin{semiverbatim}\scriptsize
+\textcolor{sxGrey}{# pinned environment}
+cd src/AI && uv sync -{}-locked -{}-all-extras
+uv run vineyard doctor
+
+\textcolor{sxGrey}{# tiles -> Marcaj ZIPs}
+uv run vineyard all -{}-workers 8
+
+\textcolor{sxGrey}{# Marcaj export -> route + measurements}
+uv run vineyard final <marcaj_export>.zip
+
+\textcolor{sxGrey}{# or fully offline}
+docker run -{}-network none ... vineyard all
+\end{semiverbatim}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{1.2mm}
+        \item Python 3.12, exact versions in \texttt{uv.lock}; macOS arm64 and Linux.
+        \item Weights are free and open (Hugging Face, Zenodo); nothing is downloaded at run time.
+        \item Each run keeps its config, log and timings under \texttt{work/runs/<id>/}.
+        \item CI: ruff and pytest (AI); lint, typecheck, build and Playwright end-to-end tests (web).
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q7 time
+\begin{frame}{Where does the time go?}\relax
+  {\scriptsize\bfseries\color{sxNight} Stage wall times, 311 tiles, 8 workers, M3 Pro (run \texttt{full-v2}, rule-based waste)\par}
+  \vspace{2mm}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      {\tiny\color{sxMuted} Perception: 157\,s\par}
+      \vspace{1mm}
+      \begin{tikzpicture}[x=0.62mm, y=3.6mm]
+        \foreach \lab/\val [count=\i] in {rows\_detect/66.0, waste (rules)/35.4, canopy/16.2, assemble/11.5,
+                                          row\_attrs/8.2, interrow/7.1, qa\_previews/5.8, rows\_link/3.1, blocks/1.1}{
+          \node[anchor=east, font=\tiny, text=sxMuted] at (-1,-\i+0.3) {\lab};
+          \fill[sxIndigo, rounded corners=1pt] (0,-\i) rectangle (\val,-\i+0.6);
+          \node[anchor=west, font=\tiny\bfseries, text=sxNight] at (\val,-\i+0.3) {\val\,s};
+        }
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      {\tiny\color{sxMuted} Post chain: 655\,s\par}
+      \vspace{1mm}
+      \begin{tikzpicture}[x=0.085mm, y=3.6mm]
+        \foreach \lab/\val [count=\i] in {route/508.7, passable/79.6, targets/31.9, derive/28.9, measure/4.0, web\_bundle/1.7}{
+          \node[anchor=east, font=\tiny, text=sxMuted] at (-7,-\i+0.3) {\lab};
+          \fill[sxIndigoDark, rounded corners=1pt] (0,-\i) rectangle (\val,-\i+0.6);
+          \node[anchor=west, font=\tiny\bfseries, text=sxNight] at (\val,-\i+0.3) {\val\,s};
+        }
+      \end{tikzpicture}
+      \vspace{2mm}
+
+      {\tiny\color{sxMuted} The route dominates by design: we spend the time budget on the solver, where it saves kilometres.\par}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q8 farms, roads, cadastre
+\begin{frame}{Farms, roads and the cadastre}
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}
+      \sxstat{27 farms}{blocks $\leq$ 10\,m apart that no public road separates}
+      \vspace{3mm}
+
+      \sxstat{31.6 km}{public roads, plus 56.3\,km of field tracks}
+    \end{column}
+    \begin{column}{0.64\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{1.2mm}
+        \item \textbf{AGCC cadastre} (public GeoServer): rows follow the cadastral strips, with a median angle difference of 0.3--0.6°.
+        \item Parcel edges sit about 2.3\,m (median) from ours, far above the 0.4\,m row tolerance, so the cadastre is a \textbf{soft prior and a QA signal}, never a clipping mask.
+        \item Parcels that already hold $\geq$ 3 rows are completed at their own angle and spacing.
+        \item No owner data is stored, and nothing is taken from behind a login.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------ Q9 users
+\begin{frame}{Who would use it?}
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}
+      \sxstat{45\,500 ha}{in the national vine registry\ldots}
+      \vspace{3mm}
+
+      \sxstat{66\,400 ha}{\ldots of wine varieties according to the statistics bureau (April 2024)}
+    \end{column}
+    \begin{column}{0.64\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{1.2mm}
+        \item \textbf{Municipalities:} yearly land cadastre, abandoned land, illegal dumping, all on one map.
+        \item \textbf{ONVV vine registry:} an independent, per-parcel check where registry and statistics disagree.
+        \item \textbf{AIPA subsidies:} planting support up to 300\,000\,lei/ha for native varieties; targeted field checks with per-row evidence.
+        \item \textbf{Why not satellites?} At 10\,m a satellite sees the parcel; at 2.5\,cm we see each plant, each gap and each piece of waste.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \sxsource{Sources: agroexpert.md (registry vs statistics, 2024); telegraph.md (native-variety subsidy); maia.gov.md (vine registry). Full list: src/Web/docs/PREZENTARE\_CERCETARE.md.}
+\end{frame}

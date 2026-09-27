@@ -1,0 +1,88 @@
+% Robot slides (3). Photos: drop robot/robot.jpg and robot/detection.jpg next to this file and they
+% replace the drawings automatically. Keep claims to what the robot really does; add the model name,
+% the disease classes and measured numbers here once the team confirms them.
+
+% Top-down drawing of one inter-row: two vine rows, the robot between them, one camera per side.
+\newcommand{\sxinterrow}{%
+  \begin{tikzpicture}[x=1mm, y=1mm]
+    \fill[sxIndigo50, rounded corners=3pt] (-4,-3) rectangle (60,33);
+    \foreach \y in {2, 28} {
+      \draw[sxRowLine, line width=0.6pt] (0,\y) -- (56,\y);
+      \foreach \x in {3, 9, ..., 55} \fill[sxTeal!70] (\x,\y) circle (1.6);
+    }
+    \fill[sxIndigo!18] (24,15) -- (14,3.5) -- (34,3.5) -- cycle;
+    \fill[sxIndigo!18] (24,15) -- (14,26.5) -- (34,26.5) -- cycle;
+    \fill[sxNight, rounded corners=1.5pt] (19,11.5) rectangle (29,18.5);
+    \fill[sxIndigo] (24,11.5) circle (1.1);
+    \fill[sxIndigo] (24,18.5) circle (1.1);
+    \draw[-{Stealth[length=2mm]}, sxIndigo, line width=0.9pt, dashed] (31,15) -- (50,15);
+    \node[font=\tiny\bfseries, text=sxTeal, anchor=south west, inner sep=0.5pt] at (0,4) {row A};
+    \node[font=\tiny\bfseries, text=sxTeal, anchor=north west, inner sep=0.5pt] at (0,26) {row B};
+    \node[font=\tiny\bfseries, text=sxIndigo, anchor=south] at (42,15.5) {inter-row};
+  \end{tikzpicture}}
+
+\section{Beyond the drone: the robot}
+
+% ================================================================== 11 · vision
+\begin{frame}{Next: Street View for every vine row}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \footnotesize
+      The drone map shows \textbf{where} something is wrong: a gap, a missing plant, waste.
+      It cannot show \textbf{what} is wrong with a vine that is still standing.
+      \vspace{2.5mm}
+
+      Our ground robot drives the vineyard like a Street View car:
+      \begin{itemize}\setlength{\itemsep}{0.5mm}\scriptsize
+        \item it follows the inter-rows of our route, never the rows;
+        \item its cameras record geotagged images of both neighbouring rows;
+        \item every image is linked to a \texttt{vineyard\_id} / \texttt{row\_id} from our map;
+        \item the web map gets a street-level view of any row.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \IfFileExists{robot/robot.jpg}{\sximg{\linewidth}{robot.jpg}}{\centering\sxinterrow\\[2mm]
+        {\tiny\color{sxGrey} One inter-row pass, top view.\par}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ================================================================== 12 · perception on board
+\begin{frame}{Disease detection on board}
+  \begin{columns}[T]
+    \begin{column}{0.44\textwidth}
+      \IfFileExists{robot/detection.jpg}{\sximg{\linewidth}{detection.jpg}}{\centering\sxinterrow\\[2mm]
+        {\tiny\color{sxGrey} Left and right cameras: two rows per pass.\par}}
+    \end{column}
+    \begin{column}{0.52\textwidth}
+      \sxstep{1}{Camera based.}{Side-facing cameras see leaves and bunches, a scale the drone cannot reach.}
+      \sxstep{2}{Machine learning on the robot.}{A detector flags disease symptoms per image, on the device.}
+      \sxstep{3}{Same IDs as the drone map.}{Each detection carries its position, row and block, so it lands on the web map next to the gaps.}
+      \sxstep{4}{Two rows per pass.}{One camera per side: driving every second inter-row images every row, half the distance of a full sweep.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ================================================================== 13 · the loop
+\begin{frame}{The drone finds where, the robot finds what}
+  \centering
+  \begin{tikzpicture}[
+      st/.style={rounded corners=3pt, minimum height=15mm, align=center, text width=20mm, inner sep=1.2mm, fill=sxIndigo50, font=\tiny},
+      key/.style={st, fill=sxIndigo, text=white},
+      arr/.style={-{Stealth[length=2mm]}, line width=0.9pt, sxIndigo}]
+    \node[st]                     (a) {{\scriptsize\bfseries Drone flight}\\[0.5mm] 81.5\,ha, one survey\\2.5\,cm/px};
+    \node[key, right=4.5mm of a]   (b) {{\scriptsize\bfseries CV pipeline}\\[0.5mm] 17 min on a laptop\\rows, plants, gaps};
+    \node[key, right=4.5mm of b]   (c) {{\scriptsize\bfseries Targets + routes}\\[0.5mm] 1\,226 targets\\per-farm GPX};
+    \node[st, right=4.5mm of c]    (d) {{\scriptsize\bfseries Robot}\\[0.5mm] drives the route\\images the rows};
+    \node[st, right=4.5mm of d]    (e) {{\scriptsize\bfseries Web map}\\[0.5mm] disease layer\\per row\_id};
+    \foreach \x/\y in {a/b, b/c, c/d, d/e} \draw[arr] (\x) -- (\y);
+    \draw[arr, dashed, rounded corners=4pt] (e.south) -- ++(0,-5mm) -| node[pos=0.25, below, font=\tiny, text=sxMuted] {next season: compare, re-plan} (a.south);
+  \end{tikzpicture}
+
+  \vspace{7mm}
+  \begin{columns}[T]
+    \begin{column}{0.3\textwidth}\sxstat{14.0 km}{targeted route the robot drives}\end{column}
+    \begin{column}{0.3\textwidth}\sxstat{$\geq$ 41.2 km}{to cover every inter-row once}\end{column}
+    \begin{column}{0.3\textwidth}\sxstat{$-$66\,\%}{distance, so battery and time, per inspection}\end{column}
+  \end{columns}
+\end{frame}

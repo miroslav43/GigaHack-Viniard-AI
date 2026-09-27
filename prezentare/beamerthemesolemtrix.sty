@@ -1,0 +1,184 @@
+% Solemtrix beamer theme: classic Madrid-style structure (title bar, 3-part footline, ball items,
+% rounded blocks, section outlines) in the Solemtrix indigo.
+% Colours mirror src/Web/frontend/src/theme/tokens.ts (primary indigo #4F46E5, brandNight #12103A).
+% Compile with XeLaTeX (fontspec).
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemesolemtrix}[2026/09/27 Solemtrix pitch theme]
+
+\RequirePackage{fontspec}
+\RequirePackage{tikz}
+\RequirePackage{booktabs}
+\RequirePackage{etoolbox}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+% ---------------------------------------------------------------- colours
+\definecolor{sxIndigo}{HTML}{4F46E5}
+\definecolor{sxIndigoDark}{HTML}{4338CA}
+\definecolor{sxIndigoLight}{HTML}{6366F1}
+\definecolor{sxIndigo50}{HTML}{EEF2FF}
+\definecolor{sxIndigo100}{HTML}{E0E7FF}
+\definecolor{sxIndigo200}{HTML}{C7D2FE}
+\definecolor{sxRowLine}{HTML}{A5B4FC}
+\definecolor{sxNight}{HTML}{12103A}
+\definecolor{sxNightSoft}{HTML}{2A2766}
+\definecolor{sxViolet}{HTML}{9333EA}
+\definecolor{sxText}{HTML}{202020}
+\definecolor{sxMuted}{HTML}{575757}
+\definecolor{sxGrey}{HTML}{929292}
+\definecolor{sxGreyLight}{HTML}{EAEAEA}
+\definecolor{sxGreyBar}{HTML}{D2D2D2}
+\definecolor{sxAmber}{HTML}{D97706}
+\definecolor{sxTeal}{HTML}{0D9488}
+
+% ---------------------------------------------------------------- fonts (system fonts on macOS, fallbacks elsewhere)
+\IfFontExistsTF{Avenir Next}{%
+  \setsansfont{Avenir Next}[BoldFont={Avenir Next Demi Bold}, ItalicFont={Avenir Next Italic},
+                            BoldItalicFont={Avenir Next Demi Bold Italic}]%
+}{\IfFontExistsTF{Helvetica Neue}{\setsansfont{Helvetica Neue}}{}}
+\IfFontExistsTF{Menlo}{\setmonofont{Menlo}[Scale=0.85]}{}
+
+% ---------------------------------------------------------------- layout: classic Madrid structure
+% rounded inner theme (ball items, rounded blocks with shadow, boxed title) + infolines footline,
+% no headline, no navigation symbols, full-width frame-title bar.
+\useinnertheme[shadow]{rounded}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=10mm, text margin right=10mm}
+
+\setbeamercolor{normal text}{fg=sxText, bg=white}
+\setbeamercolor{structure}{fg=sxIndigo}
+\setbeamercolor{alerted text}{fg=sxIndigo}
+\setbeamercolor{palette primary}{fg=white, bg=sxIndigo}
+\setbeamercolor{palette secondary}{fg=white, bg=sxIndigoDark}
+\setbeamercolor{palette tertiary}{fg=white, bg=sxNight}
+\setbeamercolor{palette quaternary}{fg=white, bg=sxNight}
+\setbeamercolor{frametitle}{fg=white, bg=sxIndigo}
+\setbeamercolor{title}{fg=white, bg=sxIndigo}
+\setbeamercolor{subtitle}{fg=sxIndigo100}
+\setbeamercolor{author in head/foot}{fg=white, bg=sxNight}
+\setbeamercolor{title in head/foot}{fg=white, bg=sxIndigoDark}
+\setbeamercolor{date in head/foot}{fg=white, bg=sxIndigo}
+\setbeamercolor{block title}{fg=white, bg=sxIndigo}
+\setbeamercolor{block body}{fg=sxText, bg=sxIndigo50}
+\setbeamercolor{item projected}{fg=white, bg=sxIndigo}
+\setbeamercolor{section in toc}{fg=sxIndigo}
+\setbeamercolor{section number projected}{fg=white, bg=sxIndigo}
+
+\setbeamerfont{frametitle}{size=\Large, series=\bfseries}
+\setbeamerfont{title}{size=\LARGE, series=\bfseries}
+\setbeamerfont{subtitle}{size=\normalsize, series=\mdseries}
+\setbeamerfont{block title}{size=\small, series=\bfseries}
+\setbeamerfont{section in toc}{size=\large}
+\setbeamerfont{author in head/foot}{size=\tiny}
+\setbeamerfont{title in head/foot}{size=\tiny}
+\setbeamerfont{date in head/foot}{size=\tiny}
+
+% Full-width frame-title bar (the score chip, if any, is drawn inside it on the right)
+\newlength{\sxbarht}\setlength{\sxbarht}{6.6mm}
+\newlength{\sxbardp}\setlength{\sxbardp}{3.2mm}
+\makeatletter
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  \@tempdima=\textwidth
+  \advance\@tempdima by\beamer@leftmargin
+  \advance\@tempdima by\beamer@rightmargin
+  \begin{beamercolorbox}[wd=\the\@tempdima, ht=\sxbarht, dp=\sxbardp, leftskip=\beamer@leftmargin,
+                         rightskip=\beamer@rightmargin plus 1fill]{frametitle}
+    \usebeamerfont{frametitle}\insertframetitle
+  \end{beamercolorbox}%
+  \vspace{3mm}%
+}
+
+% Footline: author (institute) | title | date, page / pages of the main deck ("backup" after \sxmainend)
+\newif\ifsx@backup
+\providecommand\sxmaintotal{\inserttotalframenumber}
+\newcommand{\sxmainend}{%
+  \immediate\write\@auxout{\string\gdef\string\sxmaintotal{\the\c@framenumber}}%
+  \global\sx@backuptrue}
+\setbeamertemplate{footline}{%
+  \leavevmode\hbox{%
+    \begin{beamercolorbox}[wd=.3333\paperwidth, ht=2.4ex, dp=1ex, center]{author in head/foot}%
+      \usebeamerfont{author in head/foot}\insertshortauthor~~(\insertshortinstitute)%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.3334\paperwidth, ht=2.4ex, dp=1ex, center]{title in head/foot}%
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.3333\paperwidth, ht=2.4ex, dp=1ex, right]{date in head/foot}%
+      \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}%
+      \ifsx@backup backup \insertframenumber\else\insertframenumber{} / \sxmaintotal\fi\hspace*{2ex}%
+    \end{beamercolorbox}}%
+  \vskip0pt}
+
+% Section outline at the start of every section, current section highlighted
+\AtBeginSection[]{%
+  \ifsx@backup\else
+    \begin{frame}[c]{Outline}
+      \tableofcontents[currentsection]
+    \end{frame}
+  \fi}
+\makeatother
+
+% ---------------------------------------------------------------- lists
+\setlength{\leftmargini}{1.4em}
+\AtBeginEnvironment{column}{\raggedright}
+\AtBeginEnvironment{itemize}{\raggedright}
+
+% ---------------------------------------------------------------- components
+% Scoring chip on the right of the title bar; put it inside the title: \begin{frame}{Title\sxscore{Route}{25}}
+\newcommand{\sxscore}[2]{\texorpdfstring{\sxscorechip{#1}{#2}}{}}
+\newcommand{\sxscorechip}[2]{%
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[anchor=east, fill=white, text=sxIndigoDark, rounded corners=2.5pt,
+          inner xsep=5pt, inner ysep=2.5pt, font=\fontsize{6.5}{7}\selectfont\bfseries]
+      at ([xshift=-10mm, yshift=-0.5\sxbarht-0.5\sxbardp]current page.north east)
+      {\addfontfeature{LetterSpace=6}\MakeUppercase{Scoring \textperiodcentered{} #1 #2\%}};
+  \end{tikzpicture}}
+
+% Big number with a label underneath: \sxstat{14.0 km}{route length}
+\newcommand{\sxstat}[2]{%
+  \begin{minipage}[t]{\linewidth}\raggedright
+    {\color{sxIndigo}\fontsize{20}{22}\selectfont\bfseries #1\par}
+    \vspace{0.4mm}{\color{sxMuted}\scriptsize #2\par}
+  \end{minipage}}
+
+% Compact variant for a row of stats: \sxstatsm{674}{rows}
+\newcommand{\sxstatsm}[2]{%
+  \begin{minipage}[t]{\linewidth}\raggedright
+    {\color{sxIndigo}\fontsize{14}{16}\selectfont\bfseries #1\par}
+    \vspace{0.3mm}{\color{sxMuted}\tiny #2\par}
+  \end{minipage}}
+
+% Card = a classic beamer block (rounded, shadow): \begin{sxcard}{Title} body \end{sxcard}
+\newenvironment{sxcard}[2][\linewidth]{%
+  \begin{minipage}[t]{#1}\begin{block}{#2}\scriptsize\raggedright}%
+  {\end{block}\end{minipage}}
+
+% Metrics measured on the organisers' example tiles: a block of \sxm cells, three per line
+%   \begin{sxexample} \sxm{1.00}{row F1}\hfill\sxm{...}{...}\hfill\sxm{...}{...} \end{sxexample}
+\newenvironment{sxexample}[1][Tested on the organisers' 2 example tiles]{\begin{sxcard}{#1}}{\end{sxcard}}
+\newcommand{\sxm}[2]{%
+  \begin{minipage}[t]{0.32\linewidth}\raggedright
+    {\color{sxIndigo}\fontsize{13}{15}\selectfont\bfseries #1\par}
+    {\color{sxMuted}\fontsize{5.5}{6.5}\selectfont #2\par}
+  \end{minipage}}
+
+% Inline pill: \sxpill{text}
+\newcommand{\sxpill}[1]{\tikz[baseline=(p.base)]\node(p)[fill=sxIndigo100, text=sxIndigoDark, rounded corners=2pt,
+  inner xsep=3pt, inner ysep=1.5pt, font=\tiny\bfseries]{#1};}
+
+% Numbered step: \sxstep{1}{Bold lead.}{rest}
+\newcommand{\sxstep}[3]{%
+  {\scriptsize\raggedright\par\noindent\hangindent=5mm\hangafter=1
+   \makebox[5mm][l]{\tikz[baseline=(n.base)]\node(n)[circle, fill=sxIndigo, text=white, inner sep=0pt,
+     minimum size=3.4mm, font=\tiny\bfseries]{#1};}%
+   {\bfseries\color{sxNight}#2} {\color{sxMuted}#3}\par}\vspace{1.6mm}}
+
+% Rounded image: \sximg{width}{file}  (the node path clips its own picture)
+\newcommand{\sximg}[2]{%
+  \tikz[baseline=(i.north)]\node(i)[inner sep=0pt, rounded corners=4pt,
+    path picture={\node at (path picture bounding box.center){\includegraphics[width=#1]{#2}};}]
+    {\phantom{\includegraphics[width=#1]{#2}}};}
+
+% Muted source line at the bottom of a slide
+\newcommand{\sxsource}[1]{\par\vfill{\color{sxGrey}\fontsize{5.5}{6.5}\selectfont #1\par}}
