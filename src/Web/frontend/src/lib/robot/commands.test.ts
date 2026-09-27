@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseBoardUrl, parseCommand, stepTimeoutMs, upstreamPlan } from "./commands.ts";
-import { DEFAULT_WHEEL_MOVES, validMove, wheelMovesOr } from "./wheels.ts";
+import { applyInvert, DEFAULT_WHEEL_MOVES, validMove, wheelInvertOr, wheelMovesOr } from "./wheels.ts";
 
 test("only plain http addresses on the private IPv4 ranges are accepted", () => {
   assert.equal(parseBoardUrl("192.168.1.42"), "http://192.168.1.42");
@@ -62,6 +62,14 @@ test("wheel moves: saved ones are used when valid, the default otherwise", () =>
   assert.deepEqual(wheelMovesOr(undefined), DEFAULT_WHEEL_MOVES);
   assert.equal(validMove([0, 0, 0, 0]), false);
   assert.equal(validMove([1, -1, 0, 0]), true);
+});
+
+test("a motor wired the other way round is reversed in every move", () => {
+  assert.deepEqual(applyInvert([1, 1, 1, 1], [false, true, false, false]), [1, -1, 1, 1]);
+  assert.deepEqual(applyInvert([-1, 0, 1, 1], [false, true, false, false]), [-1, 0, 1, 1]);
+  assert.deepEqual(wheelInvertOr(undefined), [false, true, false, false]);
+  assert.deepEqual(wheelInvertOr([true, false, false, false]), [true, false, false, false]);
+  assert.deepEqual(wheelInvertOr([1, 2]), [false, true, false, false]);
 });
 
 test("a long camera move gets a timeout long enough for the motor to finish", () => {

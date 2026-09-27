@@ -22,3 +22,13 @@ export function wheelMovesOr(saved: unknown): WheelMoves {
   const s = (saved ?? {}) as Partial<Record<DriveMove, number[]>>;
   return Object.fromEntries(DRIVE_MOVES.map((m) => [m, validMove(s[m] ?? []) ? (s[m] as WheelDir[]) : DEFAULT_WHEEL_MOVES[m]])) as WheelMoves;
 }
+
+/** Motors wired the other way round turn the opposite of what the table says. Checked on the robot: motor 2. */
+export const DEFAULT_WHEEL_INVERT: readonly boolean[] = [false, true, false, false];
+
+export const applyInvert = (dirs: readonly WheelDir[], invert: readonly boolean[]): WheelDir[] =>
+  dirs.map((d, i) => (invert[i] ? (-d as WheelDir) : d)).map((d) => (d === 0 ? 0 : d)) as WheelDir[];
+
+/** Saved inversions, or the default when missing / broken. */
+export const wheelInvertOr = (saved: unknown): boolean[] =>
+  Array.isArray(saved) && saved.length === 4 && saved.every((v) => typeof v === "boolean") ? [...saved] : [...DEFAULT_WHEEL_INVERT];

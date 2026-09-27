@@ -4,7 +4,7 @@
 // held the camera gets short moves one after the other and the wheels run (`go`, renewed by `keep` every 300 ms so the
 // server's watchdog lets them run); the release stops both. Also the timed moves the record mode builds on.
 import { useCallback, useRef, useState } from "react";
-import type { DriveMove } from "@/lib/robot/wheels";
+import { applyInvert, type DriveMove } from "@/lib/robot/wheels";
 import type { Arrow } from "./ArrowPad";
 import { callRobot } from "./robotApi";
 import type { RobotSettings } from "./useRobotSettings";
@@ -99,7 +99,7 @@ export function useRobotMotion({
       if (!drive || token.current % 2 === 1) return;
       token.current++;
       setHolding({ kind: "drive", arrow: a });
-      const dirs = settings.wheelMoves[DRIVE_OF[a]].join(",");
+      const dirs = applyInvert(settings.wheelMoves[DRIVE_OF[a]], settings.wheelInvert).join(",");
       const go = callRobot("drive", drive, { cmd: "go", dirs, speed: settings.wheelSpeed }).catch(onError);
       const keep = setInterval(() => void callRobot("drive", drive, { cmd: "keep" }).catch(() => undefined), KEEP_EVERY_MS);
       driveHold.current = { go, keep };
@@ -134,7 +134,7 @@ export function useRobotMotion({
   const forwardFor = useCallback(
     async (ms: number) => {
       if (!drive) return;
-      const dirs = settings.wheelMoves.forward.join(",");
+      const dirs = applyInvert(settings.wheelMoves.forward, settings.wheelInvert).join(",");
       await callRobot("drive", drive, { cmd: "run", dirs, speed: settings.wheelSpeed, ms });
     },
     [drive, settings],

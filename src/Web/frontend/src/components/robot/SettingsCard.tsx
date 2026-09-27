@@ -38,6 +38,7 @@ interface Draft {
   nums: Record<NumKey, string>;
   flags: Record<FlagKey, boolean>;
   wheelMoves: WheelMoves;
+  wheelInvert: boolean[];
 }
 
 const draftOf = (s: RobotSettings): Draft => ({
@@ -45,6 +46,7 @@ const draftOf = (s: RobotSettings): Draft => ({
   nums: Object.fromEntries(NUM_KEYS.map((k) => [k, String(s[k])])) as Record<NumKey, string>,
   flags: { flipV: s.flipV, flipH: s.flipH, panInvert: s.panInvert, liftInvert: s.liftInvert },
   wheelMoves: s.wheelMoves,
+  wheelInvert: [...s.wheelInvert],
 });
 
 const numberIn = (raw: string, [lo, hi]: readonly [number, number]) => {
@@ -80,6 +82,7 @@ export function SettingsCard({ settings, onChange }: { settings: RobotSettings; 
       ...(Object.fromEntries(NUM_KEYS.map((k) => [k, numberIn(draft.nums[k], RANGES[k])!])) as Record<NumKey, number>),
       ...draft.flags,
       wheelMoves: draft.wheelMoves,
+      wheelInvert: draft.wheelInvert,
     });
     setSaved(true);
   };
@@ -150,6 +153,20 @@ export function SettingsCard({ settings, onChange }: { settings: RobotSettings; 
             <Typography key={n} variant="caption" sx={{ textAlign: "center", fontWeight: 600 }}>
               {t("wheelMotor", { n })}
             </Typography>
+          ))}
+          {/* wiring: a motor turning the other way round is reversed in every move */}
+          <Typography variant="body2" color="text.secondary">
+            {t("invert")}
+          </Typography>
+          {draft.wheelInvert.map((v, i) => (
+            <Box key={i} sx={{ display: "flex", justifyContent: "center" }}>
+              <Checkbox
+                size="small"
+                checked={v}
+                onChange={(e) => edit({ ...draft, wheelInvert: draft.wheelInvert.map((x, k) => (k === i ? e.target.checked : x)) })}
+                slotProps={{ input: { "aria-label": `${t("invert")} · ${t("wheelMotor", { n: i + 1 })}` } }}
+              />
+            </Box>
           ))}
           {DRIVE_MOVES.map((m) => (
             <Box key={m} sx={{ display: "contents" }}>

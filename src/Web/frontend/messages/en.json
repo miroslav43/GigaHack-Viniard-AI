@@ -1365,7 +1365,7 @@
       "flipV": "Flip the picture vertically",
       "flipH": "Mirror the picture horizontally",
       "camera": "Camera",
-      "wheelsHint": "What each motor does in each move. To turn, for instance, one wheel in front and one at the back on a diagonal, in opposite directions; the others “Still”.",
+      "wheelsHint": "What each motor does in each move. To turn, for instance, one wheel in front and one at the back on a diagonal, in opposite directions; the others “Still”. “Reversed” (M2 ticked: it is wired the other way round) turns a motor the other way in every move.",
       "move": {
         "forward": "Forward",
         "back": "Back",
@@ -1381,7 +1381,8 @@
       "discard": "Discard",
       "unsaved": "You have unsaved changes.",
       "savedNote": "The settings were saved.",
-      "safeStopCm": "Stop at an obstacle (cm, 0 = off)"
+      "safeStopCm": "Stop at an obstacle (cm, 0 = off)",
+      "invert": "Reversed"
     },
     "gallery": {
       "title": "Photos ({n})",

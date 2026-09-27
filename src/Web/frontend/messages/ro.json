@@ -1365,7 +1365,7 @@
       "flipV": "Întoarce imaginea pe verticală",
       "flipH": "Oglindește imaginea pe orizontală",
       "camera": "Camera",
-      "wheelsHint": "Ce face fiecare motor la fiecare mișcare. Pentru viraj, de exemplu, o roată în față și una în spate pe diagonală, în sensuri opuse; restul „Oprit”.",
+      "wheelsHint": "Ce face fiecare motor la fiecare mișcare. Pentru viraj, de exemplu, o roată în față și una în spate pe diagonală, în sensuri opuse; restul „Oprit”. „Inversat” (M2 bifat: e cablat invers) întoarce un motor la toate mișcările.",
       "move": {
         "forward": "Înainte",
         "back": "Înapoi",
@@ -1381,7 +1381,8 @@
       "discard": "Renunță",
       "unsaved": "Ai modificări nesalvate.",
       "savedNote": "Setările au fost salvate.",
-      "safeStopCm": "Oprire la obstacol (cm, 0 = oprit)"
+      "safeStopCm": "Oprire la obstacol (cm, 0 = oprit)",
+      "invert": "Inversat"
     },
     "gallery": {
       "title": "Poze ({n})",

@@ -5,7 +5,7 @@
 // NEXT_PUBLIC_ROBOT_*_URL. Without storage (private window, blocked) they live in memory for the visit.
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Device } from "@/lib/robot/commands";
-import { DEFAULT_WHEEL_MOVES, wheelMovesOr, type WheelMoves } from "@/lib/robot/wheels";
+import { DEFAULT_WHEEL_INVERT, DEFAULT_WHEEL_MOVES, wheelInvertOr, wheelMovesOr, type WheelMoves } from "@/lib/robot/wheels";
 
 export interface RobotSettings {
   urls: Record<Device, string>;
@@ -30,6 +30,8 @@ export interface RobotSettings {
   wheelSpeed: number;
   /** what each wheel motor 1..4 does in each drive move (the user sets it: which motor is where, how it turns) */
   wheelMoves: WheelMoves;
+  /** wheel motors wired the other way round (reversed in every move) */
+  wheelInvert: boolean[];
 }
 
 
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: RobotSettings = {
   recordStepMs: 1500,
   wheelSpeed: 150,
   wheelMoves: DEFAULT_WHEEL_MOVES,
+  wheelInvert: [...DEFAULT_WHEEL_INVERT],
 };
 
 // the store: the saved JSON (or the in-memory copy when storage is unavailable) and who listens to it
@@ -89,7 +92,7 @@ function parse(raw: string): RobotSettings {
     const { version = 1, ...saved } = JSON.parse(raw) as Partial<RobotSettings> & { version?: number };
     const stale = Object.entries(RESET_IN).flatMap(([v, keys]) => (version < Number(v) ? keys : []));
     const kept = Object.fromEntries(Object.entries(saved).filter(([k]) => !stale.includes(k as keyof RobotSettings)));
-    return { ...DEFAULT_SETTINGS, ...kept, urls: { ...DEFAULT_SETTINGS.urls, ...(saved.urls ?? {}) }, wheelMoves: wheelMovesOr(saved.wheelMoves) };
+    return { ...DEFAULT_SETTINGS, ...kept, urls: { ...DEFAULT_SETTINGS.urls, ...(saved.urls ?? {}) }, wheelMoves: wheelMovesOr(saved.wheelMoves), wheelInvert: wheelInvertOr(saved.wheelInvert) };
   } catch {
     return DEFAULT_SETTINGS; // a broken value: the defaults
   }
