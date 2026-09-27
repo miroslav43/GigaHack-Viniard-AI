@@ -303,31 +303,43 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - unelte (function calling) care execută acțiuni: asistentul doar explică și trimite la pagină; acțiunile rămân în UI, sub RLS.
 - **Consecințe:** fără `GEMINI_API_KEY` panoul spune că nu e configurat. Întrebările, rolul, numele primăriei și cifrele agregate ale zborului ajung la Google (Gemini API); nu se trimit emailuri, parole sau date personale ale altor utilizatori. O funcție nouă în aplicație trebuie descrisă și în `prompt.ts`.
 
-### ADR-028 — Traseu prin fermă calculat în browser, cu punct de plecare ales pe hartă
-- **Context:** pe teren, inspectorul lucrează fermă cu fermă și nu pleacă mereu de la START-ul oficial. Vrea să aleagă punctul de plecare (= sosire) și să primească cel mai scurt traseu închis prin toate țintele unei ferme, **mergând doar prin ferma respectivă**. Ruta oficială (`route.geojson`) e una singură, precalculată de pipeline pentru tot survey-ul.
-- **Decizie:**
-  - **UI:** buton propriu pe hartă, „Traseu fermă” (dreapta jos, deasupra riglei), care deschide un ghid în 3 pași:
-    1. **Ferma:** click pe o fermă de pe hartă sau alegerea ei din listă (doar fermele cu ținte). Harta face zoom pe fermă, exteriorul e estompat, iar conturul fermei e evidențiat;
-    2. **Start:** click în fermă. Un click în afara fermei se mută pe cel mai apropiat punct al conturului, iar cardul spune cât s-a mutat;
-    3. **Traseu:** lungime, durată, GPX, „Alt punct de plecare”, „Altă fermă”.
-
-    Panoul fermei are o scurtătură care sare direct la pasul 2. Cât timp unealta e activă, linia și numerele rutei oficiale se ascund, iar rigla se ascunde și ea (cele două unelte se exclud). Pe telefon, cardul stă sus, cu înălțime limitată, ca harta să rămână clickabilă;
-  - **calcul în browser,** într-un Web Worker (`src/lib/farmRoute/`, TypeScript pur, fără dependențe noi):
-    - **doar în fermă** (`area.ts`, `plan.ts`): rândurile fermei, plus drumurile (toate clasele) tăiate la conturul fermei cu o marjă de 10 m (`FARM_MARGIN_M`, densificate la 2 m). Rămân drumurile interne și cele de pe margine; un drum public din afară nu mai e o scurtătură;
-    - **graf de mers** (`graph.ts`): liniile se unesc unde se ating (grilă de 0,5 m). Conectori scurți: capăt de rând → capetele rândurilor vecine (≤ 8 m, întoarcerea pe la capăt), capăt de rând → cel mai apropiat drum (≤ 120 m), capăt de drum → drumul de lângă (≤ 5 m). Rândurile se traversează doar pe la capete;
-    - **terminale:** startul și țintele sunt inserate pe segmentul cel mai apropiat (ținta, întâi pe rândul ei). Bucățile deconectate ale fermei (de exemplu, blocuri la ≤ 10 m unul de altul) se leagă prin cel mai scurt segment drept, raportat separat („din care X m în linie dreaptă prin fermă”);
-    - **distanțe:** Dijkstra (`dijkstra.ts`);
-    - **tur:** exact (Held–Karp) până la 10 ținte; peste, nearest neighbour + 2-opt + Or-opt, cu buget de 1,5 s (`tour.ts`);
-  - calcul plan în UTM 35N cu proj4, ca unealta de măsurare (ADR-010). Rezultatul e **orientativ**: nu e o cifră oficială și nu înlocuiește ruta pipeline-ului;
-  - **afișare:** linie violet (`map.farmRoute`) cu săgeți, opriri numerotate (toate până la 40, altfel doar în cadru, de la zoom 18), marker S/F, GPX (track + waypoint-uri în ordinea vizitei).
-- **Performanță** (siret3, 21 de ferme cu ținte, Node, M3 Pro): 2–419 ms pe fermă; cea mai mare are 451 de ținte (419 ms, 13,2 km).
+### ADR-028 — Trasee proprii calculate în browser: prin o fermă sau prin toate fermele, doar pe culoarele dintre rânduri
+- **Context:** inspectorul vrea să aleagă punctul de plecare (= sosire) și să primească cel mai scurt traseu închis prin țintele unei ferme (mergând doar prin ea) sau ale tuturor fermelor, și să vadă cât câștigă față de varianta normală. Regulamentul: *„Use passable inter-row areas and authorised passages, not paths through canopies, fences or forbidden areas.”* Ruta oficială (`route.geojson`) e una singură, precalculată de pipeline, și vizitează doar țintele obligatorii plus opționalele care merită ocolul (492 din 1.199 pe siret3).
+- **Decizie — UI:** două butoane pe hartă, dreapta jos, deasupra riglei:
+  - **„Traseu fermă”**, în 3 pași: 1) ferma, cu click pe hartă sau din listă; harta face zoom pe ea, iar restul se estompează; 2) startul, cu click în fermă (un click în afară se mută pe conturul fermei); 3) traseul. Panoul fermei are o scurtătură la pasul 2;
+  - **„Toate fermele”**, în 2 pași: 1) startul, cu click sau „Din START-ul oficial”; 2) un singur tur prin toate țintele tuturor fermelor;
+  - **la final,** ambele arată lungimea, durata (4 km/h), GPX-ul și **cu cât % e mai scurt decât varianta normală**;
+  - cât timp o unealtă e activă, linia și numerele rutei oficiale se ascund, iar rigla se ascunde și ea. Pe telefon, cardul stă sus, cu înălțime limitată.
+- **Decizie — calcul** (browser, Web Worker, `src/lib/farmRoute/`, TypeScript pur, fără dependențe noi):
+  - **culoare, niciodată rânduri** (`lanes.ts`):
+    - se merge pe axa culoarului dintre două rânduri vecine (media axelor lor, ca `centerlines.py` din pipeline) și pe câte un culoar la jumătate de interval în afara rândurilor de margine;
+    - vecinul se caută punct cu punct, doar printre rândurile care merg alături în acel loc, deci rândurile aflate unul în continuarea altuia nu se împerechează;
+    - culoarele se prelungesc 1,5 m după capătul rândurilor;
+    - axele rândurilor nu intră în graf; sunt obstacole;
+  - **graf** (`graph.ts`):
+    - legăturile (capăt de culoar → alt culoar ≤ 8 m, adică întoarcerea pe la capăt; → drum ≤ 60 m; startul → rețea) nu au voie să traverseze axa unui rând (`SegmentGrid.crossedBy`);
+    - un drum care taie un culoar devine nod, adică o trecere autorizată prin rânduri;
+    - nodurile se unesc pe o grilă de 0,5 m;
+  - **ținte cu doi candidați:** o țintă dintr-un rând poate fi văzută din culoarul din stânga sau din dreapta ei, iar turul alege (GTSP, ca `solve_gtsp`/`candidates.py`). Deșeurile au un singur candidat, pe cea mai apropiată linie;
+  - **o fermă:** doar culoarele fermei și drumurile tăiate la conturul ei, cu o marjă de 10 m (`area.ts`);
+  - **toate fermele:** culoarele tuturor fermelor și drumurile într-un bbox cu marjă de 300 m, inclusiv cele publice dintre ferme (`allFarms.ts`);
+  - **tur** (`compress.ts`, `solve.ts`, `tour.ts`):
+    - graful se comprimă (lanțurile de noduri de trecere devin o singură muchie; siret3: 41k → 10k noduri), apoi rulează un Dijkstra pe nod distinct, cu matrice float32;
+    - pentru grupuri: nearest neighbour, apoi 2-opt, Or-opt și realegerea candidatului, în treceri pe loc, până nu mai apare nicio îmbunătățire sau se termină bugetul (1,5 s pentru o fermă, 4 s pentru toate);
+    - Held–Karp exact până la 10 ținte cu câte un singur candidat;
+  - **varianta normală** (`baseline.ts`): serpentina prin toate culoarele dintre două rânduri, bloc cu bloc, cel mai apropiat bloc întâi, de la același start și înapoi (ca `serpentine_est_m` din pipeline). Salturile sunt socotite în linie dreaptă, ceea ce favorizează referința, deci economia afișată e prudentă.
+- **Rezultate pe siret3** (M3 Pro, Node):
+  - **toate fermele:** 1.194 de ținte, 26,7 km față de 77,5 km, adică **cu 66% mai scurt**; în browser, aproximativ 15 s. Serpentina pipeline-ului, pentru comparație: 69,2 km;
+  - **pe fermă:** F01 7,3 km (−70%), F07 0,57 km (−54%); 2 ms–1,6 s pe fermă;
+  - **pe axa unui rând** (sub 0,5 m): 1–2,5% din lungime, aproape numai traversări perpendiculare prin treceri; de-a lungul rândurilor, 2–27 m din câțiva kilometri.
 - **Respins:**
-  - endpoint în Python cu solver-ul pipeline-ului (`src/AI/vineyard/route/`, OR-Tools): API-ul nu există încă, iar site-ul trebuie să meargă static și offline;
-  - graful de mers al pipeline-ului (`walk_nodes/edges.parquet`): nu e exportat în web și e construit pentru START-ul oficial;
-  - drumurile pe o rază fixă în jurul fermei (prima versiune, 500 m): traseul ieșea din fermă pe drumuri publice;
-  - turf / graphology: pentru grafuri de câteva mii de noduri, câteva sute de linii ajung.
+  - **mersul pe axa rândului** (prima versiune): trece peste coroane, contrar regulamentului;
+  - **culoarele doar după ordinea laterală:** împerechea rânduri aflate unul în continuarea altuia, iar legăturile tăiau rândurile;
+  - **toate fermele ca tururi închise, fermă după fermă:** 34 km, pentru că fiecare fermă se închidea la poarta ei;
+  - **endpoint Python cu solver-ul pipeline-ului:** API-ul nu există, iar site-ul trebuie să meargă static și offline;
+  - **turf / graphology:** câteva sute de linii ajung.
 - **Consecințe:**
-  - fără `farms.geojson` + `roads.geojson` (mock-ul), butonul nu apare;
+  - fără `farms.geojson` + `roads.geojson` (mock-ul), butoanele nu apar;
   - `forbidden.geojson` nu e încă ocolit;
-  - testele unitare (`src/lib/farmRoute/farmRoute.test.ts`, din `pnpm test:scripts`) rulează cu `node --test` direct pe TypeScript (Node ≥ 22.18), deci `tsconfig` are `allowImportingTsExtensions`, iar modulele din `src/lib/farmRoute/` se importă între ele cu extensia `.ts`;
-  - e2e: `e2e/farm-route.spec.ts`.
+  - calcul plan în UTM 35N (ADR-010), orientativ;
+  - teste: unitare în `src/lib/farmRoute/farmRoute.test.ts`, din `pnpm test:scripts` (Node ≥ 22.18 elimină tipurile, deci `tsconfig` are `allowImportingTsExtensions`, iar modulele se importă cu extensia `.ts`, fără parameter properties); e2e în `e2e/farm-route.spec.ts`.

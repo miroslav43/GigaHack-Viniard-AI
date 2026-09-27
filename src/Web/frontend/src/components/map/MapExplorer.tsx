@@ -603,6 +603,7 @@ export function MapExplorer({
             route={farmRoute}
             farms={summary.farms ?? []}
             stops={farmRouteStops}
+            officialStart={start}
             onChooseFarm={startFarmRoute}
           />
         )}

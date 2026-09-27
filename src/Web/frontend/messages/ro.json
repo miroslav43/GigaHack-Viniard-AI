@@ -321,7 +321,7 @@
       "newStart": "Alt punct de plecare",
       "error": "Traseul nu a putut fi calculat: {detail}",
       "noTargets": "Ferma nu are ținte de inspecție.",
-      "note": "Doar prin fermă: pe rânduri, pe drumurile ei interne și pe marginea ei; rândurile se traversează doar pe la capete. Calcul plan în UTM 35N, orientativ (ruta oficială e în pagina Rută).",
+      "note": "Doar prin fermă: pe culoarele dintre rânduri (niciodată pe rând, peste coroane), pe drumurile ei interne și pe marginea ei; rândurile se ocolesc pe la capete. Calcul plan în UTM 35N, orientativ (ruta oficială e în pagina Rută).",
       "tool": "Traseu fermă",
       "close": "Închide traseul",
       "step1": "Ferma",
@@ -331,7 +331,18 @@
       "farmSelect": "Alege ferma",
       "farmLine": "Ferma {id} · {n, plural, one {# țintă} few {# ținte} other {# de ținte}}",
       "otherFarm": "Altă fermă",
-      "startMoved": "Punctul ales era în afara fermei: startul a fost mutat pe marginea ei ({length} mai încolo)."
+      "startMoved": "Punctul ales era în afara fermei: startul a fost mutat pe marginea ei ({length} mai încolo).",
+      "toolAll": "Toate fermele",
+      "titleAll": "Traseu prin toate fermele",
+      "allLine": "{farms, plural, one {# fermă} few {# ferme} other {# de ferme}} · {n, plural, one {# țintă} few {# ținte} other {# de ținte}}",
+      "pickHintAll": "Click pe hartă unde vrei să pornești, sau pornește din START-ul oficial. Traseul trece prin toate țintele tuturor fermelor, pe culoarele dintre rânduri și pe drumuri, și se întoarce în același punct.",
+      "officialStart": "Din START-ul oficial",
+      "computingAll": "Se calculează traseul prin {n, plural, one {# țintă} few {# ținte} other {# de ținte}}… (câteva secunde)",
+      "farmsVisited": "Ferme vizitate",
+      "saving": "Cu {pct} mai scurt decât varianta normală",
+      "noSaving": "Nu e mai scurt decât varianta normală",
+      "savingDetail": "Varianta normală: parcurgerea tuturor culoarelor dintre rânduri, bloc cu bloc ({baseline}). Economie: {minutes} de mers. Estimare prudentă (salturile dintre culoare sunt socotite în linie dreaptă).",
+      "noteAll": "Pe culoarele dintre rânduri (niciodată pe rând, peste coroane) și pe drumuri, inclusiv cele publice dintre ferme; o țintă din rând e văzută din culoarul din stânga sau din dreapta ei. Calcul plan în UTM 35N, orientativ."
     }
   },
   "blocks": {

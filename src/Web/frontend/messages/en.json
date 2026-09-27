@@ -321,7 +321,7 @@
       "newStart": "Another start point",
       "error": "The route could not be planned: {detail}",
       "noTargets": "This farm has no inspection targets.",
-      "note": "Inside the farm only: along rows, its internal roads and its edge; rows are crossed only at their ends. Planar computation in UTM 35N, indicative (the official route is on the Route page).",
+      "note": "Inside the farm only: along the inter-rows (never on a row, over the canopies), its internal roads and its edge; rows are passed round their ends. Planar computation in UTM 35N, indicative (the official route is on the Route page).",
       "tool": "Farm route",
       "close": "Close the route",
       "step1": "Farm",
@@ -331,7 +331,18 @@
       "farmSelect": "Choose the farm",
       "farmLine": "Farm {id} · {n, plural, one {# target} other {# targets}}",
       "otherFarm": "Another farm",
-      "startMoved": "The point you chose was outside the farm: the start moved onto its edge ({length} away)."
+      "startMoved": "The point you chose was outside the farm: the start moved onto its edge ({length} away).",
+      "toolAll": "All farms",
+      "titleAll": "Route through all farms",
+      "allLine": "{farms, plural, one {# farm} other {# farms}} · {n, plural, one {# target} other {# targets}}",
+      "pickHintAll": "Click the map where you want to start, or start from the official START. The route visits every target of every farm, along the inter-rows and the roads, and returns to the same point.",
+      "officialStart": "From the official START",
+      "computingAll": "Planning the route through {n, plural, one {# target} other {# targets}}… (a few seconds)",
+      "farmsVisited": "Farms visited",
+      "saving": "{pct} shorter than the normal walk",
+      "noSaving": "Not shorter than the normal walk",
+      "savingDetail": "The normal walk: every inter-row swept, block by block ({baseline}). Saved: {minutes} of walking. A prudent estimate (hops between inter-rows are counted as straight lines).",
+      "noteAll": "Along the inter-rows (never on a row, over the canopies) and the roads, public ones between farms included; a row target is seen from the inter-row on its left or right. Planar computation in UTM 35N, indicative."
     }
   },
   "blocks": {

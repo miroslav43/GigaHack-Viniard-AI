@@ -30,13 +30,16 @@ const COMMON = `
   «map.layerReference», «map.layerTiles», «map.layerVegMask») and the legend. Click any object to see its attributes
   (length, plants, gaps, areas). Bottom right: the ruler button «map.measure» (distance / area). Top right:
   «map.relief.oblique» (3D) and «map.relief.top».
-  Own route through one farm (real survey only): bottom right, above the ruler, the button «map.farmRoute.tool» opens a
-  3-step guide: 1 «map.farmRoute.step1» — click a farm on the map (outline or its label F01…) or pick it in the list
-  «map.farmRoute.farmSelect»; 2 «map.farmRoute.step2» — click inside the farm where you want to start (a click outside
-  moves onto the farm edge); 3 «map.farmRoute.step3» — the shortest round trip through every target of that farm, only
-  inside the farm (rows, its internal roads and its edge; rows crossed only at their ends), violet with numbered stops,
-  with length, duration, GPX, «map.farmRoute.newStart» and «map.farmRoute.otherFarm». A farm's panel also has a button
-  that jumps straight to step 2. Indicative; the official route stays on the route page.
+  Own routes (real survey only), two buttons bottom right, above the ruler. Both walk only the inter-rows (the ground
+  between two rows, never on a row over the canopies), turn round the row ends, use roads and passages, and end with
+  length, duration, GPX and how much shorter they are than the normal walk (every inter-row swept, block by block):
+  - «map.farmRoute.tool» — 3 steps: 1 «map.farmRoute.step1» (click a farm, outline or label F01…, or pick it in the list
+    «map.farmRoute.farmSelect»), 2 «map.farmRoute.step2» (click inside the farm; a click outside moves onto its edge),
+    3 «map.farmRoute.step3»: the shortest round trip through every target of that farm, only inside the farm. A farm's
+    panel also has a button that jumps to step 2. Then «map.farmRoute.newStart» or «map.farmRoute.otherFarm».
+  - «map.farmRoute.toolAll» — click the map for the start or «map.farmRoute.officialStart»; one round trip through every
+    target of every farm (takes a few seconds).
+  Indicative; the official route (only the must-visit targets and worthwhile optional ones) stays on the route page.
   Deep links: /harta?bloc=V01 (zoom to a block), /harta?rand=V02-R16 (a row), /harta?tinta=T003 (an inspection target).
 - [«nav.blocks»](/blocuri) — work list of rows (sorted by largest gap) and blocks; tabs «blocks.tabRows» / «blocks.tabBlocks»,
   filters «blocks.filterBlock» and «blocks.filterStructure», button «blocks.export» (CSV).

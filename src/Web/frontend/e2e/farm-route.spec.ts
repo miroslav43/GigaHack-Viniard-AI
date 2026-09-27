@@ -90,3 +90,24 @@ test("a farm's panel jumps straight to step 2 of the tool", async ({ page, reque
   await expect(card.getByTestId("farm-route-pick")).toBeVisible();
   await expect(card.getByText(new RegExp(`^Ferma ${farmId} ·`))).toBeVisible();
 });
+
+test("the route through all farms from the official START shows how much shorter it is than the normal walk", async ({ page, request }) => {
+  test.skip(!(await shipsFarmsAndRoads(request)), `${SURVEY_ID} ships no farms.geojson / roads.geojson`);
+  test.setTimeout(180_000);
+  const summary = (await (await request.get(`${DATA}/summary.json`)).json()) as SurveySummary;
+  const total = summary.farms!.reduce((s, f) => s + f.target_count, 0);
+
+  await page.goto("/harta");
+  await expect(page.getByText("Se încarcă harta…")).toHaveCount(0);
+  await expect(page.getByTestId("farm-route-all")).toBeEnabled();
+  await page.getByTestId("farm-route-all").click();
+  const card = page.getByTestId("farm-route-card");
+  await expect(card.getByText("Traseu prin toate fermele")).toBeVisible();
+  await card.getByTestId("farm-route-official-start").click();
+
+  const result = card.getByTestId("farm-route-result");
+  await expect(result).toBeVisible({ timeout: 120_000 });
+  const field = (name: string) => result.getByText(name, { exact: true }).locator("xpath=following-sibling::*[1]");
+  await expect(field("Ținte vizitate")).toHaveText(new Intl.NumberFormat("ro").format(total));
+  await expect(card.getByTestId("farm-route-saving")).toContainText(/Cu \d+ % mai scurt decât varianta normală/);
+});

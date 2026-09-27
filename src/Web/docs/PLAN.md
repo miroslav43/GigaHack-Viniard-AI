@@ -411,7 +411,7 @@ Coloana „Prio” spune ce e obligatoriu pentru juriu (J), ce e stratul UAT (U)
 | Rută (`/[locale]/…`) | Componente | Prio |
 |---|---|---|
 | `login` | `AuthSplitLayout`, `LoginForm`, `DemoButton` („Demo fără cont” → mod static), `LanguageSelect` | U (demo J) |
-| `map` | `MapView`, `LayerPanel`, `Legend`, `KpiStrip`, `AttributePanel`, `SearchBox`, `GeofenceLayer`/`GeofenceMask`, `RouteLayer`, `MeasureTool` (T), `FarmRouteTool` (traseu prin fermă: fermă → start → traseu, ADR-028; T), `Attribution` | **J** |
+| `map` | `MapView`, `LayerPanel`, `Legend`, `KpiStrip`, `AttributePanel`, `SearchBox`, `GeofenceLayer`/`GeofenceMask`, `RouteLayer`, `MeasureTool` (T), `FarmRouteTool` (traseu prin fermă sau prin toate fermele, pe culoare, cu economia față de varianta normală, ADR-028; T), `Attribution` | **J** |
 | `dashboard` | `KpiGrid`, `KpiCard`, `BlocksTable` (top 10), `CoverDonut`, `StructureBar`, `SurveyBadge`, `SavingsCard`, `UatCoverageCard` | **J** (KPI) + U |
 | `blocks` | `BlocksGrid` / `RowsGrid` (DataGrid), `StructureChip`, `ExportMenu` | **J** |
 | `routes` | `RouteSummary`, `TargetList`, `TargetStatusChip`, `ExportMenu`, mini-hartă | **J** (lungime) + U (stare) |

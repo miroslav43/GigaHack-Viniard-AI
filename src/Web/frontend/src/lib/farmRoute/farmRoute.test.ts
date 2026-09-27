@@ -2,50 +2,87 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildWalkGraph, type WalkLine } from "./graph.ts";
+import { interRowLanes, rowSegments, type RowAxis } from "./lanes.ts";
 import { pathTo, shortestPaths } from "./dijkstra.ts";
 import { solveTour, tourLength, TOUR_LIMITS } from "./tour.ts";
 import { FARM_MARGIN_M, planFarmRoute, START_ID } from "./plan.ts";
 import { withinFarm } from "./area.ts";
 import { projectUtm, unprojectUtm } from "../utm.ts";
 
-// two parallel 100 m rows 3 m apart (headland at both ends) and a road 10 m below their west ends
-const rows: WalkLine[] = [
-  { kind: "row", rowId: "R1", points: [[0, 0], [100, 0]] },
-  { kind: "row", rowId: "R2", points: [[0, 3], [100, 3]] },
+// two parallel 100 m rows 3 m apart; their lanes run at y = -1.5 (outer), 1.5 (between) and 4.5 (outer)
+const rowAxes: RowAxis[] = [
+  { rowId: "R1", blockId: "V1", parts: [[[0, 0], [100, 0]]] },
+  { rowId: "R2", blockId: "V1", parts: [[[0, 3], [100, 3]]] },
 ];
-const road: WalkLine = { kind: "road", rowId: null, points: [[-10, -50], [-10, 50]] };
+const laneLinesOf = (axes: RowAxis[]): WalkLine[] => interRowLanes(axes).map((l) => ({ kind: "lane" as const, rowIds: l.rowIds, points: l.points }));
+const obstacles = rowSegments(rowAxes);
+const road: WalkLine = { kind: "road", rowIds: [], points: [[-10, -50], [-10, 50]] };
 
-test("targets on the same row are chained along it, not via the row ends", () => {
-  const g = buildWalkGraph([...rows, road], [
-    { id: "a", point: [30, 0], rowId: "R1" },
-    { id: "b", point: [60, 0], rowId: "R1" },
-  ]);
-  const sp = shortestPaths(g, g.terminalNode.get("a")!);
-  assert.ok(Math.abs(sp.dist[g.terminalNode.get("b")!] - 30) < 1e-6);
+test("lanes run between the rows and outside the edge rows, past the row ends, never on a row", () => {
+  const lanes = interRowLanes(rowAxes);
+  const ys = lanes.map((l) => l.points[0][1]).sort((a, b) => a - b);
+  assert.deepEqual(ys.map((y) => Math.round(y * 10) / 10), [-1.5, 1.5, 4.5]);
+  for (const l of lanes) {
+    const xs = l.points.map((p) => p[0]);
+    assert.ok(Math.min(...xs) < 0 && Math.max(...xs) > 100, "lanes run past the row ends");
+  }
+  assert.deepEqual(lanes.find((l) => Math.abs(l.points[0][1] - 1.5) < 0.01)!.rowIds.sort(), ["R1", "R2"]);
 });
 
-test("the headland joins neighbouring rows and row ends reach the road", () => {
-  const g = buildWalkGraph([...rows, road], [
-    { id: "a", point: [90, 0], rowId: "R1" },
-    { id: "b", point: [90, 3], rowId: "R2" },
-    { id: "s", point: [-10, 0] },
-  ]);
+test("rows one after another on the same line are never paired, and no join crosses a longer row", () => {
+  // A (0..40) and B (50..100) on y = 0, C (0..100) on y = 3: A and B each pair with C, never with each other
+  const axes: RowAxis[] = [
+    { rowId: "A", blockId: "V1", parts: [[[0, 0], [40, 0]]] },
+    { rowId: "B", blockId: "V1", parts: [[[50, 0], [100, 0]]] },
+    { rowId: "C", blockId: "V1", parts: [[[0, 3], [100, 3]]] },
+  ];
+  for (const l of interRowLanes(axes)) assert.ok(!(l.rowIds.includes("A") && l.rowIds.includes("B")), `lane pairs A and B: ${l.rowIds}`);
+  const g = buildWalkGraph(interRowLanes(axes).map((l) => ({ kind: "lane" as const, rowIds: l.rowIds, points: l.points })), [
+    { id: "a", point: [20, 2.8], rowId: "C", seenFromLine: true }, // between A and C
+    { id: "b", point: [20, 3.2], rowId: "C", seenFromLine: true }, // outside C
+  ], rowSegments(axes));
   const sp = shortestPaths(g, g.terminalNode.get("a")!);
-  // 10 m to the east end, 3 m across, 10 m back
-  assert.ok(Math.abs(sp.dist[g.terminalNode.get("b")!] - 23) < 1e-6);
-  const toStart = sp.dist[g.terminalNode.get("s")!];
-  assert.ok(Math.abs(toStart - 100) < 1e-6, `got ${toStart}`);
-  assert.ok(pathTo(sp, g.terminalNode.get("s")!).length > 2);
+  for (const n of pathTo(sp, g.terminalNode.get("b")!)) {
+    const [x, y] = g.coords[n];
+    assert.ok(x < 0 || x > 100 || Math.abs(y - 3) >= 0.5, `on row C at ${x},${y}`);
+  }
+});
+
+test("targets beside the same lane are chained along it; a target is seen from the lane, not stepped onto", () => {
+  const g = buildWalkGraph(laneLinesOf(rowAxes), [
+    { id: "a", point: [30, 0.2], rowId: "R1", seenFromLine: true },
+    { id: "b", point: [60, 0.2], rowId: "R1", seenFromLine: true },
+  ], obstacles);
+  const sp = shortestPaths(g, g.terminalNode.get("a")!);
+  // ± the 0.5 m node grid (a snap point merges into a lane vertex that close)
+  assert.ok(Math.abs(sp.dist[g.terminalNode.get("b")!] - 30) < 0.5, `got ${sp.dist[g.terminalNode.get("b")!]}`);
+  assert.ok(Math.abs(g.coords[g.terminalNode.get("a")!][1] - 1.5) < 1e-9); // on the lane between the rows
+});
+
+test("moving to the next lane goes round the row end over the headland", () => {
+  const g = buildWalkGraph(laneLinesOf(rowAxes), [
+    { id: "a", point: [90, 2.8], rowId: "R2", seenFromLine: true }, // lane 1.5
+    { id: "b", point: [90, 3.2], rowId: "R2", seenFromLine: true }, // lane 4.5, across row R2
+  ], obstacles);
+  const sp = shortestPaths(g, g.terminalNode.get("a")!);
+  // 11.5 m to the lane end past x = 100, 3 m across, 11.5 m back
+  assert.ok(Math.abs(sp.dist[g.terminalNode.get("b")!] - 26) < 1e-6, `got ${sp.dist[g.terminalNode.get("b")!]}`);
+  for (const n of pathTo(sp, g.terminalNode.get("b")!)) {
+    const [x, y] = g.coords[n];
+    assert.ok(x > 100 || Math.abs(y - 3) >= 1, `on row R2 at ${x},${y}`);
+  }
 });
 
 test("a start far from every line is bridged in, and the bridge is marked off-network", () => {
-  const g = buildWalkGraph([...rows], [
+  const g = buildWalkGraph(laneLinesOf(rowAxes), [
     { id: "s", point: [0, -400] },
-    { id: "a", point: [50, 0], rowId: "R1" },
-  ]);
+    { id: "a", point: [50, 0.2], rowId: "R1", seenFromLine: true },
+  ], obstacles);
   const sp = shortestPaths(g, g.terminalNode.get("s")!);
   assert.ok(Number.isFinite(sp.dist[g.terminalNode.get("a")!]));
   assert.ok(g.offNetwork.size >= 1);
+  assert.ok(pathTo(sp, g.terminalNode.get("a")!).length > 2);
+  void road;
 });
 
 const randomMatrix = (n: number, seed: number) => {
@@ -93,27 +130,31 @@ const box = (x0: number, y0: number, x1: number, y1: number) => ({
   coordinates: [[ll(x0, y0), ll(x1, y0), ll(x1, y1), ll(x0, y1), ll(x0, y0)]],
 });
 
-test("planFarmRoute closes the loop at the start and orders every target", () => {
+test("planFarmRoute closes the loop at the start, orders every target and never walks on a row", () => {
+  const rowsGeo = [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")].map((f) => ({ ...f, properties: { ...f.properties, vineyard_id: "V1" } }));
   const r = planFarmRoute({
     start: ll(-10, 0),
     farm: box(-12, -2, 102, 5),
     roads: [line([[-10, -50], [-10, 50]], null)],
-    rows: [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")],
+    rows: rowsGeo,
     targets: [
-      { type: "Feature", properties: { target_id: "T1", row_id: "R1" }, geometry: { type: "Point", coordinates: ll(80, 0) } },
-      { type: "Feature", properties: { target_id: "T2", row_id: "R2" }, geometry: { type: "Point", coordinates: ll(80, 3) } },
+      { type: "Feature", properties: { target_id: "T1", row_id: "R1" }, geometry: { type: "Point", coordinates: ll(80, 0.2) } },
+      { type: "Feature", properties: { target_id: "T2", row_id: "R2" }, geometry: { type: "Point", coordinates: ll(80, 2.8) } },
     ],
   });
   assert.deepEqual([...r.order].sort(), ["T1", "T2"]);
   assert.ok(!r.order.includes(START_ID));
   assert.deepEqual(r.line[0].map((v) => v.toFixed(6)), r.line[r.line.length - 1].map((v) => v.toFixed(6)));
-  // rows are crossed only at their ends: 10 to R1, 80 + 20 to its east end, 3 across, 20 + 80 back along R2,
-  // 10 to the road and 3 down to the start = 226 (±0.5 m of projection error)
-  assert.ok(Math.abs(r.lengthM - 226) < 0.5, `got ${r.lengthM}`);
+  // both targets are seen from the lane between the rows: 1.5 up the road, 8.5 to the lane, 81.5 in, and back = 183
+  assert.ok(Math.abs(r.lengthM - 183) < 0.5, `got ${r.lengthM}`);
+  for (const p of r.line) {
+    const [x, y] = local(p);
+    if (x > 0.5 && x < 99.5) assert.ok(Math.abs(y) >= 1 && Math.abs(y - 3) >= 1, `on a row at ${x.toFixed(1)},${y.toFixed(1)}`);
+  }
 });
 
 test("the walk stays inside the farm and a start clicked outside moves onto its edge", () => {
-  const rows = [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")];
+  const rows = [line([[0, 0], [100, 0]], "R1"), line([[0, 3], [100, 3]], "R2")].map((f) => ({ ...f, properties: { ...f.properties, vineyard_id: "V1" } }));
   const r = planFarmRoute({
     start: ll(50, 60),
     farm: box(-2, -2, 102, 5),
@@ -121,8 +162,8 @@ test("the walk stays inside the farm and a start clicked outside moves onto its 
     roads: [line([[-5, 5], [-5, 40], [105, 40], [105, 5]], null)],
     rows,
     targets: [
-      { type: "Feature", properties: { target_id: "T1", row_id: "R1" }, geometry: { type: "Point", coordinates: ll(20, 0) } },
-      { type: "Feature", properties: { target_id: "T2", row_id: "R2" }, geometry: { type: "Point", coordinates: ll(80, 3) } },
+      { type: "Feature", properties: { target_id: "T1", row_id: "R1" }, geometry: { type: "Point", coordinates: ll(20, 0.2) } },
+      { type: "Feature", properties: { target_id: "T2", row_id: "R2" }, geometry: { type: "Point", coordinates: ll(80, 2.8) } },
     ],
   });
   assert.ok(Math.abs(r.startMovedM - 55) < 0.5, `moved ${r.startMovedM}`);

@@ -1,35 +1,44 @@
-// The walking graph of the farm route: roads + the farm's rows, noded where they touch, with short connectors from
-// row ends to the next row (headland) and to the road network, and every terminal (start, targets) spliced in.
+// The walking graph of the farm route: roads + the inter-row lanes of the farm (lanes.ts; never the row axes, which
+// run through the canopies), noded where they touch, with short connectors from lane ends to nearby lane ends and to
+// the road network, and every terminal (start, targets) spliced in.
 // Everything is in UTM 35N metres. Build once per request; the result is never mutated afterwards.
-import { closestOnSegment, dist, type XY } from "./geometry.ts";
+import { closestOnSegment, dist, SegmentGrid, segmentIntersection, type XY } from "./geometry.ts";
 
-export type LineKind = "road" | "row";
+/** road = roads.geojson clipped to the farm; lane = an inter-row lane (lanes.ts) */
+export type LineKind = "road" | "lane";
 
 export interface WalkLine {
   kind: LineKind;
-  /** row_id of a row piece (terminals of that row snap to it first), null for roads */
-  rowId: string | null;
+  /** rows beside a lane (targets on them are inspected from it); empty for roads */
+  rowIds: readonly string[];
   points: readonly XY[];
 }
 
 export interface Terminal {
   id: string;
   point: XY;
-  /** preferred row to snap to (a target's row_id) */
+  /** preferred row: the terminal snaps to a lane beside it (a target's row_id) */
   rowId?: string | null;
+  /** seen from the line (a target): its node is the snap point itself, the walk does not step off the lane */
+  seenFromLine?: boolean;
+  /** also a second candidate on the lane across its row (terminal id + SECOND_SIDE): a row gap can be inspected
+   *  from either side, the tour picks one (the pipeline's candidate sets, solve_gtsp) */
+  bothSides?: boolean;
 }
+
+export const SECOND_SIDE = "#2";
 
 export const GRAPH_LIMITS = {
   /** coordinates closer than this share a node (m) */
   nodeGrid: 0.5,
-  /** a row end connects to row ends of other pieces within this distance: the headland turn (m) */
+  /** a lane end connects to other lanes within this distance: the headland turn round a row end, or another block (m) */
   headlandM: 8,
-  /** a row end connects to the nearest road within this distance (m) */
-  rowToRoadM: 120,
+  /** a lane end connects to the nearest road within this distance (m) */
+  laneToRoadM: 60,
   /** a dangling road end connects to another road within this distance: T-junctions not noded in OSM (m) */
   roadGapM: 5,
-  /** a target snaps to its own row when that row is closer than this, otherwise to the nearest line (m) */
-  ownRowM: 5,
+  /** a target snaps to a lane beside its own row when one is closer than this, otherwise to the nearest line (m) */
+  ownLaneM: 4,
 } as const;
 
 export interface WalkGraph {
@@ -194,8 +203,24 @@ function bridgeComponents(e: EdgeList, anchor: number, terminalNodes: readonly n
   }
 }
 
-export function buildWalkGraph(lines: readonly WalkLine[], terminals: readonly Terminal[]): WalkGraph {
+/** Hits on the segments near p within `radius`, nearest first (each segment once). */
+function hitsNear(p: XY, grid: SegmentGrid<Segment>, radius: number, accept: (s: Segment) => boolean) {
+  return grid
+    .near(p[0] - radius, p[1] - radius, p[0] + radius, p[1] + radius)
+    .filter((i) => accept(grid.items[i]))
+    .map((seg) => ({ seg, hit: closestOnSegment(p, grid.items[seg].a, grid.items[seg].b) }))
+    .filter((h) => h.hit.d <= radius)
+    .sort((x, y) => x.hit.d - y.hit.d);
+}
+
+/**
+ * @param obstacles the row axes: no connector may cross one (the canopies); the lanes themselves run between them
+ */
+export function buildWalkGraph(lines: readonly WalkLine[], terminals: readonly Terminal[], obstacles: readonly (readonly [XY, XY])[] = []): WalkGraph {
   const segs = segmentsOf(lines);
+  const grid = new SegmentGrid(segs);
+  const rows = new SegmentGrid(obstacles.map(([a, b]) => ({ a, b })));
+  const clear = (p: XY, q: XY) => !rows.crossedBy(p, q);
   const splits: Split[][] = segs.map(() => []);
   const e = new EdgeList();
   const addSplit = (seg: number, t: number, point: XY) => {
@@ -204,36 +229,64 @@ export function buildWalkGraph(lines: readonly WalkLine[], terminals: readonly T
     return key;
   };
   const connectors: [XY, string][] = [];
+  const kindOf = (s: Segment) => lines[s.line].kind;
+  const endsOf = (l: WalkLine) => (l.points.length < 2 ? [] : [l.points[0], l.points[l.points.length - 1]]);
 
-  // row ends: headland to other row pieces, and the nearest road
-  const isRoad = (s: Segment) => lines[s.line].kind === "road";
+  // lane ends: the nearest point of each other lane close by (the headland turn, round the row end), and the
+  // nearest road; never across a row
   lines.forEach((l, li) => {
-    if (l.kind !== "row" || l.points.length < 2) return;
-    for (const end of [l.points[0], l.points[l.points.length - 1]]) {
-      const road = nearestSegment(end, segs, isRoad);
-      if (road && road.hit.d <= GRAPH_LIMITS.rowToRoadM) connectors.push([end, addSplit(road.seg, road.hit.t, road.hit.point)]);
-      lines.forEach((o, oi) => {
-        if (oi === li || o.kind !== "row") return;
-        for (const oe of [o.points[0], o.points[o.points.length - 1]])
-          if (dist(end, oe) <= GRAPH_LIMITS.headlandM) connectors.push([end, gridKey(oe)]);
-      });
+    if (l.kind !== "lane") return;
+    for (const end of endsOf(l)) {
+      const perLane = new Map<number, { seg: number; hit: ReturnType<typeof closestOnSegment> }>();
+      for (const h of hitsNear(end, grid, GRAPH_LIMITS.headlandM, (s) => s.line !== li && kindOf(s) === "lane"))
+        if (!perLane.has(segs[h.seg].line) && clear(end, h.hit.point)) perLane.set(segs[h.seg].line, h);
+      for (const h of perLane.values()) connectors.push([end, addSplit(h.seg, h.hit.t, h.hit.point)]);
+      const road = hitsNear(end, grid, GRAPH_LIMITS.laneToRoadM, (s) => kindOf(s) === "road").find((h) => clear(end, h.hit.point));
+      if (road) connectors.push([end, addSplit(road.seg, road.hit.t, road.hit.point)]);
     }
   });
   // dangling road ends onto a road passing close by
   lines.forEach((l, li) => {
-    if (l.kind !== "road" || l.points.length < 2) return;
-    for (const end of [l.points[0], l.points[l.points.length - 1]]) {
-      const hit = nearestSegment(end, segs, (s) => isRoad(s) && s.line !== li);
-      if (hit && hit.hit.d <= GRAPH_LIMITS.roadGapM && hit.hit.d > 0) connectors.push([end, addSplit(hit.seg, hit.hit.t, hit.hit.point)]);
+    if (l.kind !== "road") return;
+    for (const end of endsOf(l)) {
+      const hit = hitsNear(end, grid, GRAPH_LIMITS.roadGapM, (s) => kindOf(s) === "road" && s.line !== li)[0];
+      if (hit && hit.hit.d > 0) connectors.push([end, addSplit(hit.seg, hit.hit.t, hit.hit.point)]);
     }
   });
-  // terminals: own row first, then the nearest line of any kind
-  const terminalKey = new Map<string, { at: XY; key: string }>();
+  // a road (a passage) crossing a lane: a junction, so the walk can switch lanes there
+  segs.forEach((r, ri) => {
+    if (kindOf(r) !== "road") return;
+    for (const li of grid.near(Math.min(r.a[0], r.b[0]), Math.min(r.a[1], r.b[1]), Math.max(r.a[0], r.b[0]), Math.max(r.a[1], r.b[1]))) {
+      if (kindOf(segs[li]) !== "lane") continue;
+      const x = segmentIntersection(r.a, r.b, segs[li].a, segs[li].b);
+      if (!x) continue;
+      const point: XY = [r.a[0] + x.t * (r.b[0] - r.a[0]), r.a[1] + x.t * (r.b[1] - r.a[1])];
+      addSplit(ri, x.t, point);
+      addSplit(li, x.u, point);
+    }
+  });
+  // terminals: a lane beside their own row first, then the nearest line (for the start: one it reaches without
+  // crossing a row, when there is one)
+  const terminalKey = new Map<string, { at: XY; key: string; seenFromLine: boolean }>();
   for (const term of terminals) {
-    const own = term.rowId ? nearestSegment(term.point, segs, (s) => lines[s.line].rowId === term.rowId) : null;
-    const hit = own && own.hit.d <= GRAPH_LIMITS.ownRowM ? own : nearestSegment(term.point, segs, () => true);
+    const rowId = term.rowId;
+    if (term.bothSides && rowId) {
+      // the nearest lane beside the row on each side: two hits whose directions from the target are opposite
+      const hits = hitsNear(term.point, grid, GRAPH_LIMITS.ownLaneM, (s) => lines[s.line].rowIds.includes(rowId));
+      const first = hits[0];
+      if (first) {
+        const v1: XY = [first.hit.point[0] - term.point[0], first.hit.point[1] - term.point[1]];
+        const second = hits.find((h) => (h.hit.point[0] - term.point[0]) * v1[0] + (h.hit.point[1] - term.point[1]) * v1[1] < 0);
+        terminalKey.set(term.id, { at: term.point, key: addSplit(first.seg, first.hit.t, first.hit.point), seenFromLine: true });
+        if (second) terminalKey.set(term.id + SECOND_SIDE, { at: term.point, key: addSplit(second.seg, second.hit.t, second.hit.point), seenFromLine: true });
+        continue;
+      }
+    }
+    const own = rowId ? nearestSegment(term.point, segs, (s) => lines[s.line].rowIds.includes(rowId)) : null;
+    const reachable = term.seenFromLine ? null : nearestSegment(term.point, segs, (s) => clear(term.point, closestOnSegment(term.point, s.a, s.b).point));
+    const hit = own && own.hit.d <= GRAPH_LIMITS.ownLaneM ? own : (reachable ?? nearestSegment(term.point, segs, () => true));
     const key = hit ? addSplit(hit.seg, hit.hit.t, hit.hit.point) : gridKey(term.point);
-    terminalKey.set(term.id, { at: term.point, key });
+    terminalKey.set(term.id, { at: term.point, key, seenFromLine: Boolean(term.seenFromLine && hit) });
   }
 
   // nodes + edges along every segment, split at the sorted cut points
@@ -247,10 +300,14 @@ export function buildWalkGraph(lines: readonly WalkLine[], terminals: readonly T
     const b = e.node(p, key); // key exists: it was created by a split or a line vertex
     e.edge(a, b);
   }
-  // terminals sit a short straight walk away from their snap point (0 m for targets on their row)
+  // a target is inspected from its snap point on the lane; the start is a short straight walk away from its own
   const terminalNode = new Map<string, number>();
-  for (const [id, { at, key }] of terminalKey) {
+  for (const [id, { at, key, seenFromLine }] of terminalKey) {
     const onLine = e.node(at, key);
+    if (seenFromLine) {
+      terminalNode.set(id, onLine);
+      continue;
+    }
     const own = e.node(at, `t:${id}`);
     e.edge(own, onLine, undefined, true);
     terminalNode.set(id, own);
