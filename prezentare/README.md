@@ -7,6 +7,8 @@ section outline at the start of every section. The colours come from the web the
 
 | File | Content |
 |---|---|
+| `gigahack/gigahack.tex` | **the deck to present and submit**: the organisers' template (`GigaHack_2026_Pitch_Template.pptx`) rebuilt in Beamer, with the template's backgrounds, logo, boxes, colours and Arial at the template's own coordinates. 9 main slides plus 4 backup. Build: `cd gigahack && xelatex -output-directory=build gigahack.tex` twice, then `cp build/gigahack.pdf .` |
+| `gigahack/make_pptx.mjs` | `node make_pptx.mjs <template.pptx>` writes `gigahack/gigahack.pptx` (the platform asks for a .pptx): every PDF page as a full-slide picture in the template's own package |
 | `pitch.tex` | main deck (10 slides), in the organisers' order: title (team), problem (roles, user stories), business case, architecture, data pipeline, route result, demo, impact (economics, deployment time), scaling, summary |
 | `tech.tex` | technical detail moved to backup (slides 11–17): challenge, CV first, rows, canopies, waste, measures, engineering |
 | `CONTINUT_TEMPLATE.md` | slide-by-slide text to paste into the organisers' mandatory template |
