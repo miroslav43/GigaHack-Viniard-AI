@@ -15,9 +15,9 @@
   "height_m": 1.1,
   "blur_m": 0.45,
   "tiles": "{z}/{x}/{y}.png",
-  "canopy_count": 13554,
+  "canopy_count": 13702,
   "tile_count": 1334,
-  "relief_tile_count": 262,
-  "bytes": 4106721,
-  "generated_at": "2026-09-26T20:11:51.529Z"
+  "relief_tile_count": 264,
+  "bytes": 4133297,
+  "generated_at": "2026-09-27T10:19:18.220Z"
 }

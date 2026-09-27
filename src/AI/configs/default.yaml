@@ -633,7 +633,10 @@ route:                                     # D4 §4 (A§4.11 names)
     include_optional: true
     # An optional target is routed only when its cheapest insertion into the must tour costs at most
     # this much graph cost (metres + outside penalty); with no must target every optional one is routed.
-    optional_max_detour_m: 25.0
+    # 100000 = no detour cap: the rules ask to visit "every reachable target", coverage is scored against
+    # the organizers' hidden list and efficiency only counts from 90 % coverage (27.09: rc10f 14.04 km /
+    # 455 targets at 25 m -> 25.19 km / 790 targets, outside 1.23 %).
+    optional_max_detour_m: 100000.0
     probe_time_limit_s: 5                  # per-policy probe solve (the chosen policy is re-solved in full)
     budget_rounds: 10                      # drop_* policies: re-solves while trimming outside length
   validate:

@@ -357,6 +357,8 @@ The pipeline runs on CPU with 8 worker processes (`runtime.n_workers`), each sin
 
 **Current pipeline (RC10f, the uploaded pre-annotation), same machine:** U-Net inference on the 88 tiles holding completion regions 12.9 s (`vineyard nn infer`); perception `vineyard run --run-id rc10f` **384 s** (waste probe on, part of the tile cache reused); CVAT export 24 s; post chain (derive → … → route → measure → farms → web_bundle) **603 s**. Total ≈ 17 min.
 
+**Route through every reachable target (published 27.09, run `20260927T1310-post-rc10f-allreach`, `route.solver.optional_max_detour_m: 100000`):** the route stage takes **464 s** instead of 393 s (2 policies, a cover iteration and the final OR-Tools solve, 30 s limit), so the post chain is ≈ 674 s and the total ≈ 18 min. The route is 25.19 km, visits 790 of the 833 reachable targets and has 1.23 % of its length outside the passable area.
+
 **The waste probe adds time.** The default config has `waste.probe.enabled: true`. When `models/waste-probe/v1` is installed (§5), the waste stage also runs OpenCLIP and the linear probe (verify level L1), not the rules alone. The `full-v2` re-run at 08:48 used 6 workers and measured this stage at **166.5 s** instead of 35.4 s. With the probe, perception takes ≈ 288 s and the total is ≈ 977 s ≈ 16 min.
 
 The route stage dominates the total. It probes several outside-share policies, each with an OR-Tools solve limited to 30 s (`route.solver.time_limit_s`). `vineyard final` / `--final` raises that limit to 60 s, so expect a longer route stage on the final Marcaj run.
