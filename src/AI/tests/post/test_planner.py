@@ -213,8 +213,7 @@ def _cheap_case():
 
 def test_optional_targets_are_routed_only_when_cheap(cfg) -> None:
     m, targets = _cheap_case()
-    params = _params(cfg, m.start_xy)
-    assert params.optional_max_detour_m == pytest.approx(25.0)
+    params = _params(cfg, m.start_xy, optional_max_detour_m=25.0)  # the default is now 100000 (every reachable target)
     plan = plan_route(m.graph, targets, m.inner, m.eroded, params)
     visit = {v.target_id: v for v in plan.visits}
     assert plan.validation.passed and visit["T-GAP-0001"].covered and visit["T-MSP-0001"].covered

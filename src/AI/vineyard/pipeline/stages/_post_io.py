@@ -188,6 +188,10 @@ def static_geometry(ctx: RunContext, layer: str) -> BaseGeometry | None:
 
 
 def start_xy(ctx: RunContext, stage: str) -> tuple[float, float]:
+    """route.start_xy when set, else the single point of in_start (organizers' start.geojson)."""
+    configured = ctx.cfg.route.start_xy
+    if configured is not None:
+        return float(configured[0]), float(configured[1])
     start = static_geometry(ctx, "in_start")
     if not isinstance(start, Point):
         raise StageError("START must be one point (in_start / 02_route/start.geojson)", stage=stage,

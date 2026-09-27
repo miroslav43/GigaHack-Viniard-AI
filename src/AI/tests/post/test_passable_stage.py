@@ -64,7 +64,7 @@ def _context(work: Path, *, with_rows: bool = True, with_start: bool = True):
     from vineyard.config import load_config
 
     write_annset(make_annset(SPEC, linked=True), work / "runs" / REF_RUN / "annset")
-    ctx = new_run_context(load_config(), source=Source.REFERENCE, kind="post", annset_ref=REF_RUN)
+    ctx = new_run_context(load_config(overrides=("route.start_xy=null",)), source=Source.REFERENCE, kind="post", annset_ref=REF_RUN)
     ensure_run_dirs(ctx.paths)
     static = ctx.paths.static_layers_dir
     write_layer(_static("in_passages", [headland_passages(SPEC)]), "in_passages", static / "in_passages.parquet")

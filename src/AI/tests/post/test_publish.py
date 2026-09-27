@@ -216,7 +216,7 @@ def post_run(tmp_path, monkeypatch):
     runner = types.ModuleType("vineyard.pipeline.runner")
     runner.StageResult = _FakeStageResult  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "vineyard.pipeline.runner", runner)
-    cfg = load_config(overrides=(f"paths.publish_dir={tmp_path / 'root'}",),
+    cfg = load_config(overrides=(f"paths.publish_dir={tmp_path / 'root'}", "route.start_xy=null"),
                       environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
     write_annset(make_annset(BlockSpec(n_rows=2), prov=Prov(Source.MARCAJ, REF, "m")),
                  cfg.paths.work_dir / "runs" / REF / "annset")
@@ -284,7 +284,8 @@ def test_stage_refuses_without_a_passable_domain(post_run):
 
 def _bare_ctx(tmp_path: Path, *, data_root: Path | None = None, annset_ref: str | None = REF, run_id: str = "x1"):
     env = {"VINEYARD_WORK_DIR": str(tmp_path / "work")} | ({"VINEYARD_DATA_ROOT": str(data_root)} if data_root else {})
-    ctx = new_run_context(load_config(environ=env), source=Source.MARCAJ, kind="post", annset_ref=annset_ref,
+    ctx = new_run_context(load_config(overrides=("route.start_xy=null",), environ=env), source=Source.MARCAJ,
+                          kind="post", annset_ref=annset_ref,
                           run_id=run_id)
     ensure_run_dirs(ctx.paths)
     return ctx

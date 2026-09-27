@@ -88,4 +88,4 @@ def test_solver_planning_keys_moved_from_module_constants() -> None:
     assert solver.include_optional is True
     assert solver.probe_time_limit_s == 5
     assert solver.budget_rounds == 10
-    assert solver.optional_max_detour_m == pytest.approx(25.0)
+    assert solver.optional_max_detour_m == pytest.approx(100000.0)

@@ -192,3 +192,10 @@ def test_deep_merge_and_apply_override_are_pure() -> None:
     changed = apply_override(base, "a.e=[1, 2]")
     assert changed["a"]["e"] == [1, 2]
     assert "e" not in base["a"]
+
+
+def test_route_start_xy_defaults_to_the_pretest_start_and_can_be_overridden() -> None:
+    assert load_config(environ=NO_ENV).route.start_xy == (629663.8, 5220195.3)
+    moved = load_config(overrides=("route.start_xy=[629504.7, 5220250.75]",), environ=NO_ENV)
+    assert moved.route.start_xy == (629504.7, 5220250.75)
+    assert load_config(overrides=("route.start_xy=null",), environ=NO_ENV).route.start_xy is None

@@ -78,7 +78,7 @@ def _static(name: str, geom) -> gpd.GeoDataFrame:
 
 @pytest.fixture
 def post_ctx(tmp_path: Path, fake_runner: None):
-    cfg = load_config(overrides=("route.solver.time_limit_s=1", "route.solver.fallback_time_s=1"),
+    cfg = load_config(overrides=("route.solver.time_limit_s=1", "route.solver.fallback_time_s=1", "route.start_xy=null"),
                       environ={"VINEYARD_WORK_DIR": str(tmp_path / "work")})
     ctx = new_run_context(cfg, source=Source.MARCAJ, kind="post", annset_ref=REF, run_id=RUN_ID)
     ensure_run_dirs(ctx.paths)

@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 NAME: Final = "passable"
 # 2: tracks across the rows (cross_paths layers; their centrelines in the walk graph)
 VERSION: Final = "2"
-CFG_KEYS: Final = ("route.domain", "route.graph", "route.start_file", "route.max_outside_frac_publish", "cross_paths",
+CFG_KEYS: Final = ("route.domain", "route.graph", "route.start_file", "route.start_xy", "route.max_outside_frac_publish", "cross_paths",
                    "row_structure", "canopy.corridor_half_m", "targets.edge_margin_m", "targets.gap_min_m",
                    "targets.end_short_min_m", "targets.missing_min_m", "targets.include_missing",
                    "targets.include_sparse")
@@ -69,6 +69,14 @@ def _static(ctx: RunContext, name: str) -> gpd.GeoDataFrame:
 
 def _union(frame: gpd.GeoDataFrame) -> BaseGeometry | None:
     return shapely.union_all(list(frame.geometry)) if len(frame) else None
+
+
+def _start(ctx: RunContext) -> tuple[float, float]:
+    """route.start_xy when set, else the single point of in_start."""
+    configured = ctx.cfg.route.start_xy
+    if configured is not None:
+        return float(configured[0]), float(configured[1])
+    return _start_xy(_static(ctx, "in_start"))
 
 
 def _start_xy(frame: gpd.GeoDataFrame) -> tuple[float, float]:
@@ -94,7 +102,7 @@ def load_inputs(ctx: RunContext, cross: tuple[CrossPath, ...] | None = None) -> 
     cfg = ctx.cfg.cross_paths
     return PassableInputs(rows=rows, pieces=pieces,
                           canopies=tuple(annset.layer("canopies").geometry), passages=passages,
-                          forbidden=_union(_static(ctx, "in_forbidden")), start_xy=_start_xy(_static(ctx, "in_start")),
+                          forbidden=_union(_static(ctx, "in_forbidden")), start_xy=_start(ctx),
                           cross_lines=route_lines(paths) if cfg.route else (),
                           cross_domain=shapely.union_all([p.polygon for p in paths]) if cfg.passable and paths
                           else None,

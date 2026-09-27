@@ -142,6 +142,7 @@ class RouteValidateConfig(Section):
 
 class RouteConfig(Section):
     start_file: Path
+    start_xy: tuple[float, float] | None  # EPSG:32635; when set it replaces the START from start_file
     start_tolerance_m: NonNegFloat
     visit_radius_m: PosFloat
     candidate_radius_m: PosFloat

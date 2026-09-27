@@ -588,6 +588,9 @@ cross_paths:
 
 route:                                     # D4 §4 (A§4.11 names)
   start_file: 02_route/start.geojson       # relative to data_root
+  # START override [x, y] in EPSG:32635 (null = the point in start_file). The organizers moved the start on
+  # 27.09 for the pre-test: UTM 35N X 629663.8 Y 5220195.3 (WGS 84 47.1225039 N, 28.7094577 E).
+  start_xy: [629663.8, 5220195.3]
   start_tolerance_m: 5.0
   visit_radius_m: 2.0
   candidate_radius_m: 1.9

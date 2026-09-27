@@ -110,7 +110,7 @@ def _tile_valid(cfg: AppConfig, examples_dir: Path, tile_ids: list[str]) -> gpd.
 
 def _context(root: Path, data_root: Path, examples_dir: Path, examples_xml: bytes) -> RunContext:
     cfg = load_config(overrides=(f"route.solver.time_limit_s={TIME_LIMIT_S}", f"paths.publish_dir={root / 'publish'}",
-                                 f"web.out_dir={root / 'web'}"),
+                                 f"web.out_dir={root / 'web'}", "route.start_xy=null"),
                       environ={"VINEYARD_WORK_DIR": str(root / "work"), "VINEYARD_DATA_ROOT": str(data_root)})
     ann = reference_annset(examples_xml)
     write_annset(ann, cfg.paths.work_dir / "runs" / REF_RUN / "annset")

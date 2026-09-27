@@ -257,6 +257,15 @@ uv run --no-sync vineyard publish --annset LATEST_MODEL
 
 The single stages are also commands: `derive`, `passable`, `targets`, `route`, `measure`, `web build`.
 
+**Start point.** The route starts and ends at `route.start_xy` in `src/AI/configs/default.yaml`. It is set to the organizers' pre-test start of 27.09: X = 629663.8, Y = 5220195.3 (EPSG:32635), i.e. 47.1225039° N, 28.7094577° E. Another start point needs no code change:
+
+```bash
+uv run --no-sync vineyard post --annset LATEST_MARCAJ --final --set 'route.start_xy=[629663.8, 5220195.3]'
+uv run --no-sync vineyard post --annset LATEST_MARCAJ --final --set route.start_xy=null   # the point in data & info/02_route/start.geojson
+```
+
+`passable`, `route` and `publish` all read the same start point, and `publish` checks the closure against it.
+
 ### Makefile shortcuts (from `src/AI`)
 
 | Target | Runs |
@@ -357,7 +366,9 @@ The pipeline runs on CPU with 8 worker processes (`runtime.n_workers`), each sin
 
 **Current pipeline (RC10f, the uploaded pre-annotation), same machine:** U-Net inference on the 88 tiles holding completion regions 12.9 s (`vineyard nn infer`); perception `vineyard run --run-id rc10f` **384 s** (waste probe on, part of the tile cache reused); CVAT export 24 s; post chain (derive → … → route → measure → farms → web_bundle) **603 s**. Total ≈ 17 min.
 
-**Route through every reachable target (published 27.09, run `20260927T1310-post-rc10f-allreach`, `route.solver.optional_max_detour_m: 100000`):** the route stage takes **464 s** instead of 393 s (2 policies, a cover iteration and the final OR-Tools solve, 30 s limit), so the post chain is ≈ 674 s and the total ≈ 18 min. The route is 25.19 km, visits 790 of the 833 reachable targets and has 1.23 % of its length outside the passable area.
+**Route through every reachable target (27.09, run `20260927T1310-post-rc10f-allreach`, `route.solver.optional_max_detour_m: 100000`):** the route stage takes **464 s** instead of 393 s (2 policies, a cover iteration and the final OR-Tools solve, 30 s limit), so the post chain is ≈ 674 s and the total ≈ 18 min.
+
+**Published route, from the organizers' pre-test start (27.09, run `20260927T1400-post-rc10f-pretest`, `vineyard post --annset rc10f --final`):** post chain **806 s** (derive 39 · passable 119 · targets 38 · route 574 with the final 60 s solver limit · measure 5 · farms 18 · web_bundle 11), then `publish` 15 s. Total from the tiles ≈ 20 min.
 
 **The waste probe adds time.** The default config has `waste.probe.enabled: true`. When `models/waste-probe/v1` is installed (§5), the waste stage also runs OpenCLIP and the linear probe (verify level L1), not the rules alone. The `full-v2` re-run at 08:48 used 6 workers and measured this stage at **166.5 s** instead of 35.4 s. With the probe, perception takes ≈ 288 s and the total is ≈ 977 s ≈ 16 min.
 
@@ -429,7 +440,7 @@ All geometry is in **EPSG:32635** (WGS 84 / UTM 35N, metres). Measurements are p
 
 **`route.geojson`** is a FeatureCollection with a single LineString Feature and the `crs` member `urn:ogc:def:crs:EPSG::32635`. Coordinates have 2 decimals.
 
-- The route starts and ends exactly at START, X = 629504.70, Y = 5220250.75. The rules allow 5 m; `publish` requires ≤ 0.01 m.
+- The route starts and ends exactly at START, the organizers' pre-test start point X = 629663.80, Y = 5220195.30 (`route.start_xy`, §4). The rules allow 5 m; `publish` requires ≤ 0.01 m.
 - Properties:
   - `length_m`;
   - `duration_min` (at 4 km/h);
@@ -455,7 +466,7 @@ level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canop
 
 ## 10. Current results (model run RC10f, uploaded to Marcaj, before the manual corrections)
 
-These values come from the uploaded model annotations: run `rc10f` → post run `20260927T0452-post-rc10f` (27 Sep 2026, 04:52), published to the repo root. **The final `route.geojson` and `measurements.csv` are produced from the Marcaj export with `vineyard final`, so their values will differ.**
+These values come from the uploaded model annotations: run `rc10f` → post run `20260927T1400-post-rc10f-pretest` (27 Sep 2026, 14:00, route from the pre-test start), published to the repo root. **The final `route.geojson` and `measurements.csv` are produced from the Marcaj export with `vineyard final`, so their values will differ.**
 
 | Quantity | Value |
 |---|---|
@@ -466,10 +477,11 @@ These values come from the uploaded model annotations: run `rc10f` → post run 
 | Canopy area (union) | 15,427.54 m² (1.5428 ha) |
 | Inter-row area (union) | 93,244.01 m² (9.3244 ha) |
 | Plants (canopy polygons) | 13,702 |
-| Inspection targets | 1,226 (246 must-visit, 980 optional; 11 waste targets), in `targets.geojson` |
+| Inspection targets | 1,215 (waste is not routed: `targets.include_waste: false`), in `targets.geojson` |
 | Waste boxes | 11 |
-| Route length | 14,037.77 m (≈ 211 min at 4 km/h) |
-| Route share outside the allowed area | 1.28% (179.3 m; the rule limit is 2%) |
+| Route start = finish | X 629663.80, Y 5220195.30 (organizers' pre-test start, EPSG:32635) |
+| Route length | 24,184.92 m (≈ 363 min at 4 km/h); visits ≈ 795 targets |
+| Route share outside the allowed area | 1.29% (the rule limit is 2%) |
 | Route closure at START | 0.00 m |
 | Example tiles (official metrics, `eval-examples --gates`) | canopy 0.876, rows F1 1.0, attributes 1.0, grouping 1.0 |
 
