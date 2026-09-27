@@ -1412,7 +1412,8 @@
       "sign_in": "Autentifică-te din nou.",
       "unreachable": "Placa nu răspunde. E pornită și pe același Wi-Fi cu acest calculator?",
       "timeout": "Placa nu a răspuns la timp.",
-      "failed": "Comanda nu a reușit."
+      "failed": "Comanda nu a reușit.",
+      "saveFailed": "Panorama nu s-a putut salva pe laptop."
     },
     "keys": "Taste: ține apăsat săgețile (camera) sau W A S D (robotul); X sau Esc oprește tot; spațiu face poză.",
     "record": {
@@ -1431,7 +1432,19 @@
       "download": "Descarcă panorama",
       "downloadFrames": "Cele 3 poze",
       "downloadAll": "Descarcă toate panoramele",
-      "remove": "Șterge"
+      "remove": "Șterge",
+      "saved": "Salvate pe laptop (src/Web/data/robot): rămân după refresh. Gemini caută struguri și frunze în fiecare poză.",
+      "label": {
+        "grape": "Struguri",
+        "leaf": "Frunze"
+      },
+      "detecting": "Gemini caută struguri și frunze…",
+      "grapes": "{n, plural, one {# ciorchine} few {# ciorchini} other {# de ciorchini}}",
+      "leaves": "{n, plural, one {# frunză} few {# frunze} other {# de frunze}}",
+      "detectOff": "Detecția nu e configurată (lipsește OPENROUTER_API_KEY).",
+      "redetect": "Detectează din nou",
+      "detectError": "Detecția n-a reușit: {detail}",
+      "downloadJson": "Detecțiile (JSON)"
     }
   }
 }

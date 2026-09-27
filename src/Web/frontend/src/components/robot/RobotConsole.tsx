@@ -30,6 +30,7 @@ import { useRobotSettings } from "./useRobotSettings";
 import { useCameraFrames } from "./useCameraFrames";
 import { useRobotMotion } from "./useRobotMotion";
 import { useRecorder, type Panorama } from "./useRecorder";
+import { usePanoramas } from "./usePanoramas";
 import { orientCss, orientJpeg } from "./orient";
 
 /** how often the distance sensor is read (ms): every second, and 4 times a second while the robot goes forward */
@@ -76,16 +77,17 @@ export function RobotConsole() {
   const frames = useCameraFrames(cam, streamOn);
   const [status, setStatus] = useState<Status>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [panoramas, setPanoramas] = useState<Panorama[]>([]);
+  // panoramas are saved on the laptop (with Gemini's grape / leaf boxes); the page keeps none of its own
+  const saved = usePanoramas();
   const [distance, setDistance] = useState<string | null>(null);
   useReleaseOnUnmount(photos, (p) => [p.url]);
-  useReleaseOnUnmount(panoramas, (p) => [p.strip.url, ...p.frames.map((f) => f.url)]);
 
   const fail = useCallback((e: unknown) => {
     const code: RobotError = e instanceof RobotCallError ? e.code : "failed";
     setStatus({ severity: "error", text: t(`errors.${code}`) });
   }, [t]);
 
+  const saveOne = saved.save;
   const motion = useRobotMotion({ motors, drive, settings, onError: fail });
   const recorder = useRecorder({
     cam,
@@ -93,7 +95,14 @@ export function RobotConsole() {
     panTo: motion.panTo,
     forwardFor: motion.forwardFor,
     stopWheels: motion.stopWheels,
-    onPanorama: useCallback((p: Panorama) => setPanoramas((ps) => [p, ...ps]), []),
+    onPanorama: useCallback(
+      async (p: Panorama) => {
+        const ok = await saveOne(p);
+        [p.strip.url, ...p.frames.map((f) => f.url)].forEach((u) => URL.revokeObjectURL(u)); // the saved copies are shown
+        if (!ok) setStatus({ severity: "error", text: t("errors.saveFailed") });
+      },
+      [saveOne, t],
+    ),
     onError: fail,
   });
 
@@ -316,7 +325,7 @@ export function RobotConsole() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {t("camera.hint", { pan: Math.round(motion.pose.pan), height: motion.pose.height })}
             </Typography>
-            <Button size="small" variant="outlined" onClick={calibrate90} disabled={!motors} sx={{ mb: 1 }} data-testid="robot-calibrate-90">
+            <Button size="small" variant="outlined" onClick={calibrate90} disabled={!motors || motion.holding?.kind === "camera"} sx={{ mb: 1 }} data-testid="robot-calibrate-90">
               {t("camera.set90")}
             </Button>
             {motors && (
@@ -379,16 +388,7 @@ export function RobotConsole() {
           <SettingsCard settings={settings} onChange={update} />
         </Box>
       </Box>
-      <PanoramaGallery
-        panoramas={panoramas}
-        onRemove={(id) =>
-          setPanoramas((ps) => {
-            const p = ps.find((x) => x.id === id);
-            if (p) [p.strip.url, ...p.frames.map((f) => f.url)].forEach((u) => URL.revokeObjectURL(u));
-            return ps.filter((x) => x.id !== id);
-          })
-        }
-      />
+      <PanoramaGallery panoramas={saved.panoramas} onRedetect={(id) => void saved.redetect(id)} onRemove={(id) => void saved.remove(id)} />
       <PhotoGallery
         photos={photos}
         onRemove={(id) =>

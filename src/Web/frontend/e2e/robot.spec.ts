@@ -77,7 +77,8 @@ test.describe("with the stand-in boards", () => {
 
     await holdButton(page, "robot-camera-pad", "Camera la dreapta", 600);
     await expect(page.getByText(/Poziție: [1-9]\d*° orizontal, înălțime 0 pași\./)).toBeVisible();
-    // calibration: the turn from 0° counts as exactly 90°
+    // calibration: the turn from 0° counts as exactly 90° (the button waits for the camera's last move to end)
+    await expect(page.getByTestId("robot-calibrate-90")).toBeEnabled();
     await page.getByTestId("robot-calibrate-90").click();
     await expect(page.getByTestId("robot-status")).toContainText(/Calibrat: 90° = \d+ pași/);
     await expect(page.getByText(/Poziție: 90° orizontal/)).toBeVisible();
@@ -110,7 +111,12 @@ test.describe("with the stand-in boards", () => {
     await expect(address(page, "cam")).toHaveValue(`${lan}:${port}`);
   });
 
-  test("panorama: each Start drives forward, takes 0° / 90° / 180° and saves one panorama", async ({ page }) => {
+  test("panorama: each Start drives forward, takes 0° / 90° / 180°, is saved on the laptop with grape and leaf boxes", async ({ page }, info) => {
+    const request = page.request; // with the page's demo cookie (the API checks it)
+    // the panoramas live on the one test server, shared by both projects: this checks them from one of them
+    test.skip(info.project.name !== "desktop", "server-side panoramas are checked once");
+    for (const p of ((await (await request.get("/api/robot/panoramas")).json()) as { panoramas: { id: string }[] }).panoramas)
+      await request.delete(`/api/robot/panoramas/${p.id}`);
     await page.goto("/robot");
     await address(page, "cam").fill(`${lan}:${port}`);
     await address(page, "motors").fill(`${lan}:${port + 1}`);
@@ -124,12 +130,24 @@ test.describe("with the stand-in boards", () => {
       await expect(page.getByTestId("robot-panorama")).toHaveCount(n, { timeout: 30_000 });
       await expect(page.getByTestId("robot-record-start")).toBeVisible(); // done, ready for the next
     }
-    await expect(page.getByTestId("robot-panorama").first()).toContainText("Panorama 2 · la 100 cm");
+    const newest = page.getByTestId("robot-panorama").first();
+    await expect(newest).toContainText("Panorama 2 · la 100 cm");
+    // the detection (fake model: one grape, two leaves per photo) is drawn on the three photos
+    await expect(newest.getByTestId("robot-detection")).toHaveAttribute("data-status", "done", { timeout: 15_000 });
+    await expect(newest.locator('rect[data-label="grape"]')).toHaveCount(3);
+    await expect(newest.locator('rect[data-label="leaf"]')).toHaveCount(6);
+    await expect(newest.getByTestId("robot-detection")).toContainText("3 ciorchini");
+    await expect(newest.getByTestId("robot-detection")).toContainText("6 frunze");
     const download = page.waitForEvent("download");
-    await page.getByTestId("robot-panorama").first().getByRole("button", { name: "Descarcă panorama" }).click();
+    await newest.getByRole("button", { name: "Descarcă panorama" }).click();
     expect((await download).suggestedFilename()).toMatch(/^panorama_\d{8}_\d{6}_statia02_100cm\.jpg$/);
     expect((await wheels()).some((w) => w.running)).toBe(false);
     await expect(page.getByText(/Poziție: 0° orizontal/)).toBeVisible(); // the camera is back at 0°
+
+    // saved: still there after a reload
+    await page.reload();
+    await expect(page.getByTestId("robot-panorama")).toHaveCount(2);
+    await expect(page.getByTestId("robot-panorama").first().locator("rect[data-label]")).toHaveCount(9);
   });
 
   test("an obstacle closer than 20 cm blocks forward and stops the wheels going forward; back still works", async ({ page }) => {

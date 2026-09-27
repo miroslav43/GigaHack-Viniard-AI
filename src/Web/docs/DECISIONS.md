@@ -377,3 +377,24 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - laptopul care rulează site-ul trebuie să fie pe același Wi-Fi cu robotul;
   - pozele trăiesc doar în tab până sunt descărcate;
   - **modul street view** (mers 50 cm, apoi poze la 0°, 90° și 180°) se poate construi peste aceleași comenzi, după calibrarea distanței parcurse pe secundă la o anumită viteză.
+
+### ADR-031 — Struguri și frunze pe panoramele robotului: Gemini prin OpenRouter, salvate local pe laptop
+- **Context:** panoramele robotului (3 poze la 0°, 90° și 180° la fiecare pas de 50 cm, ADR-029) trebuie să arate unde sunt struguri și frunze și să rămână salvate.
+- **Decizie:**
+  - **salvare:** fiecare panoramă se salvează **pe laptop**, în `src/Web/data/robot/panoramas/<uuid>/` (ignorat de git): `0.jpg`, `90.jpg`, `180.jpg`, `strip.jpg` și `meta.json` (stația, distanța, ora, detecțiile). Scrierea e atomică (tmp + rename). `ROBOT_DATA_DIR` mută folderul (e2e). Rutele sunt `GET|POST /api/robot/panoramas`, `DELETE /api/robot/panoramas/<id>`, `GET …/<id>/<0|90|180|strip>.jpg` și `POST …/<id>/detect`, toate cu aceeași regulă de acces ca paginile. Upload-ul acceptă doar JPEG (verificat pe octeți), cel mult 5 MB pe fișier, iar id-ul e generat de server;
+  - **detecție:** imediat după salvare, în fundal, fiecare poză merge la **Gemini prin OpenRouter** (`OPENROUTER_API_KEY` / `OPENROUTER_MODEL` din `frontend/.env.local`, doar pe server; aceeași cheie ca asistentul, ADR-027). Promptul (`src/lib/robot/detections.ts`) cere `{"objects":[{"label":"grape"|"leaf","box_2d":[ymin,xmin,ymax,xmax],"score"}]}` pe scara 0–1000, cu fiecare frunză și fiecare ciorchine separat, cel mult 60. Parametrii: `response_format: json_object` și `reasoning: {effort: "low"}`;
+  - **parsare:** răspunsul se validează strict; se acceptă doar etichetele cunoscute (și sinonimele lor), iar colțurile se ordonează și se limitează la imagine. Orice altceva se ignoră;
+  - **pagina:** reîncarcă lista la 2 s cât timp o detecție rulează. Desenează box-urile peste cele 3 poze (struguri chihlimbariu, frunze turcoaz), cu numărătoare, „Detectează din nou”, descărcare panoramă / poze / detecții (JSON) și ștergere;
+  - `ROBOT_DETECT=fake` întoarce box-uri fixe fără rețea; Playwright îl setează pentru e2e.
+- **Măsurat** (`google/gemini-3.8-flash`, o poză VGA):
+  - fără limită de gândire: ~23 s și ~0,009 $;
+  - `effort: low`: ~9 s și ~0,003 $, cu aceleași box-uri și cu scoruri;
+  - `minimal`: ~5,5 s, dar a pus o singură cutie peste toate frunzele;
+  - pe robot, o panoramă întreagă (3 poze în paralel) e gata în ~8 s după salvare. A găsit corect ciorchinii unui decor cu struguri și nu a numărat ca frunze de viță frunzele altei plante.
+- **Respins:**
+  - **Supabase (DB + Storage):** cere migrație și internet la salvare; panoramele sunt date de teren ale laptopului de demo;
+  - **cheia în browser:** ar fi publică;
+  - **detecție pe banda lipită:** cele 3 poze separate dau box-uri mai precise și se desenează direct pe ele.
+- **Consecințe:**
+  - fără cheie, galeria salvează panoramele și afișează „Detecția nu e configurată”;
+  - o detecție întreruptă de un restart apare ca eșuată după 5 minute și se reia cu „Detectează din nou”.

@@ -1,64 +1,163 @@
 "use client";
 
-// Panoramas of the record mode: one per station (the 0° / 90° / 180° photos side by side), downloadable as the
-// panorama or as its three photos; all of them at once.
+// The panoramas saved on the laptop: the three photos (0° / 90° / 180°) with the grape and leaf boxes Gemini found
+// drawn over them, the counts, and downloads (the panorama strip, the photos, the detections as JSON).
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
+import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
 import { useTranslations } from "next-intl";
-import type { Panorama } from "./useRecorder";
+import { countByLabel, type DetectionBox, type DetectionLabel } from "@/lib/robot/detections";
+import type { PanoramaMeta } from "@/lib/robot/panoramaStore";
 
+const ANGLES = [0, 90, 180] as const;
 const pad = (n: number) => String(n).padStart(2, "0");
-const stamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-export const panoramaFileName = (p: Panorama, deg?: number) =>
-  `panorama_${stamp(p.takenAt)}_statia${pad(p.station)}_${p.atCm}cm${deg === undefined ? "" : `_${deg}grade`}.jpg`;
+const stamp = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+};
+const baseName = (p: PanoramaMeta) => `panorama_${stamp(p.takenAt)}_statia${pad(p.station)}_${p.atCm}cm`;
+const fileUrl = (p: PanoramaMeta, file: string) => `/api/robot/panoramas/${p.id}/${file}`;
 
-function save(url: string, name: string) {
+function save(href: string, name: string) {
   const a = document.createElement("a");
-  a.href = url;
+  a.href = href;
   a.download = name;
   a.click();
 }
 
-export function PanoramaGallery({ panoramas, onRemove }: { panoramas: Panorama[]; onRemove: (id: string) => void }) {
+function saveJson(p: PanoramaMeta) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(p, null, 2)], { type: "application/json" }));
+  save(url, `${baseName(p)}_detectii.json`);
+  URL.revokeObjectURL(url);
+}
+
+/** One photo with its boxes (an SVG over the image, in fractions of it). */
+function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: DetectionBox[]; colors: Record<DetectionLabel, string> }) {
+  return (
+    <Box sx={{ position: "relative", lineHeight: 0 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a photo served by our API */}
+      <img src={src} alt={alt} style={{ width: "100%", display: "block" }} />
+      <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} data-testid="robot-boxes">
+        {boxes.map((b, i) => (
+          <rect
+            key={i}
+            x={b.box[0]}
+            y={b.box[1]}
+            width={b.box[2] - b.box[0]}
+            height={b.box[3] - b.box[1]}
+            fill="none"
+            stroke={colors[b.label]}
+            strokeWidth={2.5}
+            vectorEffect="non-scaling-stroke"
+            data-label={b.label}
+          >
+            <title>{`${b.label}${b.score === null ? "" : ` ${Math.round(b.score * 100)}%`}`}</title>
+          </rect>
+        ))}
+      </svg>
+    </Box>
+  );
+}
+
+export function PanoramaGallery({ panoramas, onRedetect, onRemove }: { panoramas: PanoramaMeta[]; onRedetect: (id: string) => void; onRemove: (id: string) => void }) {
   const t = useTranslations("robot.panoramas");
+  const theme = useTheme();
+  // amber grapes and teal leaves: both stand out on soil, foliage and indoor photos alike
+  const colors: Record<DetectionLabel, string> = { grape: theme.palette.warning.main, leaf: theme.palette.success.main };
   if (panoramas.length === 0) return null;
   return (
     <Paper sx={{ p: 4 }} data-testid="robot-panoramas">
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, gap: 2, flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1, gap: 2, flexWrap: "wrap" }}>
         <Typography variant="h3">{t("title", { n: panoramas.length })}</Typography>
-        <Button size="small" variant="outlined" startIcon={<FileDownloadOutlined />} onClick={() => panoramas.forEach((p) => save(p.strip.url, panoramaFileName(p)))}>
-          {t("downloadAll")}
-        </Button>
-      </Box>
-      <Box sx={{ display: "grid", gap: 2 }}>
-        {panoramas.map((p) => (
-          <Box key={p.id} sx={{ border: 1, borderColor: "divider", borderRadius: 2, overflow: "hidden" }} data-testid="robot-panorama">
-            {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL */}
-            <img src={p.strip.url} alt={panoramaFileName(p)} style={{ width: "100%", display: "block" }} />
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 1, flexWrap: "wrap" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-                {t("caption", { station: p.station, cm: p.atCm, time: p.takenAt.toLocaleTimeString() })}
-              </Typography>
-              <Button size="small" startIcon={<FileDownloadOutlined />} onClick={() => save(p.strip.url, panoramaFileName(p))}>
-                {t("download")}
-              </Button>
-              <Button size="small" onClick={() => p.frames.forEach((f) => save(f.url, panoramaFileName(p, f.deg)))}>
-                {t("downloadFrames")}
-              </Button>
-              <Tooltip title={t("remove")}>
-                <IconButton size="small" onClick={() => onRemove(p.id)} aria-label={t("remove")}>
-                  <DeleteOutlined fontSize="small" />
-                </IconButton>
-              </Tooltip>
+        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+          {(["grape", "leaf"] as const).map((l) => (
+            <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+              <Box sx={{ width: 14, height: 10, border: 2.5, borderColor: colors[l], borderRadius: 0.5 }} />
+              <Typography variant="caption">{t(`label.${l}`)}</Typography>
             </Box>
-          </Box>
-        ))}
+          ))}
+        </Box>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {t("saved")}
+      </Typography>
+      <Box sx={{ display: "grid", gap: 3 }}>
+        {panoramas.map((p) => {
+          const d = p.detection;
+          const all = Object.values(d.frames).flat();
+          const counts = countByLabel(all);
+          return (
+            <Box key={p.id} sx={{ border: 1, borderColor: "divider", borderRadius: 2, overflow: "hidden" }} data-testid="robot-panorama">
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
+                {ANGLES.map((deg) => (
+                  <Frame key={deg} src={fileUrl(p, `${deg}.jpg`)} alt={`${baseName(p)} ${deg}°`} boxes={d.frames[String(deg)] ?? []} colors={colors} />
+                ))}
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 1, flexWrap: "wrap" }}>
+                <Typography variant="caption" color="text.secondary">
+                  {t("caption", { station: p.station, cm: p.atCm, time: new Date(p.takenAt).toLocaleString() })}
+                </Typography>
+                <Box sx={{ flex: 1 }} />
+                <Box data-testid="robot-detection" data-status={d.status} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {(d.status === "pending" || d.status === "running") && (
+                    <>
+                      <CircularProgress size={14} />
+                      <Typography variant="caption">{t("detecting")}</Typography>
+                    </>
+                  )}
+                  {d.status === "done" && (
+                    <>
+                      <Chip size="small" variant="outlined" label={t("grapes", { n: counts.grape })} sx={{ borderColor: colors.grape }} />
+                      <Chip size="small" variant="outlined" label={t("leaves", { n: counts.leaf })} sx={{ borderColor: colors.leaf }} />
+                    </>
+                  )}
+                  {d.status === "off" && <Typography variant="caption" color="text.secondary">{t("detectOff")}</Typography>}
+                </Box>
+                {(d.status === "done" || d.status === "error") && (
+                  <Tooltip title={t("redetect")}>
+                    <IconButton size="small" onClick={() => onRedetect(p.id)} aria-label={t("redetect")}>
+                      <RefreshOutlined fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+              {d.status === "error" && (
+                <Alert severity="error" sx={{ mx: 1.5, mb: 1 }}>
+                  {t("detectError", { detail: d.error ?? "?" })}
+                </Alert>
+              )}
+              <Box sx={{ display: "flex", gap: 1, px: 1.5, pb: 1, flexWrap: "wrap" }}>
+                <Button size="small" startIcon={<FileDownloadOutlined />} onClick={() => save(fileUrl(p, "strip.jpg"), `${baseName(p)}.jpg`)}>
+                  {t("download")}
+                </Button>
+                <Button size="small" onClick={() => ANGLES.forEach((deg) => save(fileUrl(p, `${deg}.jpg`), `${baseName(p)}_${deg}grade.jpg`))}>
+                  {t("downloadFrames")}
+                </Button>
+                {d.status === "done" && (
+                  <Button size="small" onClick={() => saveJson(p)}>
+                    {t("downloadJson")}
+                  </Button>
+                )}
+                <Box sx={{ flex: 1 }} />
+                <Tooltip title={t("remove")}>
+                  <IconButton size="small" onClick={() => onRemove(p.id)} aria-label={t("remove")}>
+                    <DeleteOutlined fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+          );
+        })}
       </Box>
     </Paper>
   );

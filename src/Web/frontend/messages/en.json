@@ -1412,7 +1412,8 @@
       "sign_in": "Sign in again.",
       "unreachable": "The board does not answer. Is it on and on the same Wi-Fi as this computer?",
       "timeout": "The board did not answer in time.",
-      "failed": "The command failed."
+      "failed": "The command failed.",
+      "saveFailed": "The panorama could not be saved on the laptop."
     },
     "keys": "Keys: hold the arrows (camera) or W A S D (robot); X or Esc stops everything; space takes a photo.",
     "record": {
@@ -1431,7 +1432,19 @@
       "download": "Download the panorama",
       "downloadFrames": "The 3 photos",
       "downloadAll": "Download all panoramas",
-      "remove": "Delete"
+      "remove": "Delete",
+      "saved": "Saved on the laptop (src/Web/data/robot): they stay after a refresh. Gemini looks for grapes and leaves in each photo.",
+      "label": {
+        "grape": "Grapes",
+        "leaf": "Leaves"
+      },
+      "detecting": "Gemini is looking for grapes and leaves…",
+      "grapes": "{n, plural, one {# cluster} other {# clusters}}",
+      "leaves": "{n, plural, one {# leaf} other {# leaves}}",
+      "detectOff": "Detection is not set up (OPENROUTER_API_KEY missing).",
+      "redetect": "Detect again",
+      "detectError": "The detection failed: {detail}",
+      "downloadJson": "Detections (JSON)"
     }
   }
 }

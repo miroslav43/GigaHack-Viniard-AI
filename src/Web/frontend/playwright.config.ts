@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -32,6 +33,12 @@ export default defineConfig({
   ],
   webServer: {
     command: `pnpm start --port ${PORT}`,
+    // the robot page's panorama detection answers fixed boxes (no model call, no credit) and saves to a scratch folder
+    env: {
+      ...Object.fromEntries(Object.entries(process.env).filter((e): e is [string, string] => typeof e[1] === "string")),
+      ROBOT_DETECT: "fake",
+      ROBOT_DATA_DIR: path.join(os.tmpdir(), `solemtrix-e2e-robot-${PORT}`),
+    },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
