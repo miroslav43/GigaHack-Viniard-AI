@@ -132,12 +132,16 @@ test.describe("with the stand-in boards", () => {
     }
     const newest = page.getByTestId("robot-panorama").first();
     await expect(newest).toContainText("Panorama 2 · la 100 cm");
-    // the detection (fake model: one grape, two leaves per photo) is drawn on the three photos
+    // the detection (fake model: per photo one grape, two leaves, one waste, one other object) is drawn on the photos
     await expect(newest.getByTestId("robot-detection")).toHaveAttribute("data-status", "done", { timeout: 15_000 });
     await expect(newest.locator('rect[data-label="grape"]')).toHaveCount(3);
     await expect(newest.locator('rect[data-label="leaf"]')).toHaveCount(6);
+    await expect(newest.locator('rect[data-label="waste"]')).toHaveCount(3);
+    await expect(newest.locator('rect[data-label="object"]')).toHaveCount(3);
     await expect(newest.getByTestId("robot-detection")).toContainText("3 ciorchini");
     await expect(newest.getByTestId("robot-detection")).toContainText("6 frunze");
+    await expect(newest.getByTestId("robot-detection")).toContainText("3 gunoaie");
+    await expect(newest.getByTestId("robot-detection")).toContainText("3 obiecte");
     const download = page.waitForEvent("download");
     await newest.getByRole("button", { name: "Descarcă panorama" }).click();
     expect((await download).suggestedFilename()).toMatch(/^panorama_\d{8}_\d{6}_statia02_100cm\.jpg$/);
@@ -147,7 +151,7 @@ test.describe("with the stand-in boards", () => {
     // saved: still there after a reload
     await page.reload();
     await expect(page.getByTestId("robot-panorama")).toHaveCount(2);
-    await expect(page.getByTestId("robot-panorama").first().locator("rect[data-label]")).toHaveCount(9);
+    await expect(page.getByTestId("robot-panorama").first().locator("rect[data-label]")).toHaveCount(15);
   });
 
   test("an obstacle closer than 20 cm blocks forward and stops the wheels going forward; back still works", async ({ page }) => {

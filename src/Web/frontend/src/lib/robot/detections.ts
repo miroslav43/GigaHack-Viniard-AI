@@ -1,9 +1,11 @@
-// Grape and leaf detections on the robot's photos: the prompt, and the model's answer turned into boxes. The model
+// Grape, leaf, waste and other-object detections on the robot's photos: the prompt, and the model's answer turned into boxes. The model
 // (Gemini) answers `{"objects":[{"label","box_2d":[ymin,xmin,ymax,xmax],"score"}]}` on a 0–1000 scale; anything else
 // in the answer is dropped, never trusted. Pure: no network, no files.
 
-export type DetectionLabel = "grape" | "leaf";
-export const DETECTION_LABELS: readonly DetectionLabel[] = ["grape", "leaf"];
+/** grape = a grape cluster; leaf = a grapevine leaf; waste = litter (bottles, wood, plastic, cans…); object = any other
+ *  distinct object that is none of those */
+export type DetectionLabel = "grape" | "leaf" | "waste" | "object";
+export const DETECTION_LABELS: readonly DetectionLabel[] = ["grape", "leaf", "waste", "object"];
 
 export interface DetectionBox {
   label: DetectionLabel;
@@ -16,15 +18,22 @@ export interface DetectionBox {
 export const MAX_BOXES = 60;
 
 export const DETECTION_PROMPT = `You are inspecting a photo taken by a field robot in a vineyard.
-Detect every grape cluster and every grapevine leaf. Box each leaf separately (never one box over a group of leaves)
-and each grape cluster separately. Return JSON only, no prose:
-{"objects":[{"label":"grape"|"leaf","box_2d":[ymin,xmin,ymax,xmax],"score":0..1}]}
+Detect, each one separately (never one box over a group):
+- "grape": every grape cluster;
+- "leaf": every grapevine leaf;
+- "waste": every piece of litter or garbage — bottles, cans, pieces of wood, plastic, bags, paper, cardboard, rubble;
+- "object": any other distinct object that is not a grape cluster, a grapevine leaf or waste (e.g. a tool, a box, a
+  post, a chair, a person). Do not box the ground, the sky or walls.
+Return JSON only, no prose:
+{"objects":[{"label":"grape"|"leaf"|"waste"|"object","box_2d":[ymin,xmin,ymax,xmax],"score":0..1}]}
 box_2d is on a 0-1000 scale of the image height (y) and width (x). At most ${MAX_BOXES} objects, the most confident
 first. If there is nothing, return {"objects":[]}.`;
 
 const LABEL_OF: Record<string, DetectionLabel> = {
   grape: "grape", grapes: "grape", "grape cluster": "grape", grape_cluster: "grape", bunch: "grape",
   leaf: "leaf", leaves: "leaf", "grape leaf": "leaf", grape_leaf: "leaf", "vine leaf": "leaf",
+  waste: "waste", garbage: "waste", trash: "waste", litter: "waste", rubbish: "waste", bottle: "waste", can: "waste", wood: "waste", plastic: "waste",
+  object: "object", other: "object", item: "object",
 };
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -63,4 +72,4 @@ export function parseDetections(text: string): DetectionBox[] | null {
 
 /** How many of each label. */
 export const countByLabel = (boxes: readonly DetectionBox[]): Record<DetectionLabel, number> =>
-  ({ grape: boxes.filter((b) => b.label === "grape").length, leaf: boxes.filter((b) => b.label === "leaf").length });
+  Object.fromEntries(DETECTION_LABELS.map((l) => [l, boxes.filter((b) => b.label === l).length])) as Record<DetectionLabel, number>;

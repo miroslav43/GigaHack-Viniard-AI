@@ -11,12 +11,12 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
 import { useTranslations } from "next-intl";
-import { countByLabel, type DetectionBox, type DetectionLabel } from "@/lib/robot/detections";
+import { countByLabel, DETECTION_LABELS, type DetectionBox, type DetectionLabel } from "@/lib/robot/detections";
+import { robotPalette } from "@/theme/robotPalette";
 import type { PanoramaMeta } from "@/lib/robot/panoramaStore";
 
 const ANGLES = [0, 90, 180] as const;
@@ -42,7 +42,7 @@ function saveJson(p: PanoramaMeta) {
 }
 
 /** One photo with its boxes (an SVG over the image, in fractions of it). */
-function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: DetectionBox[]; colors: Record<DetectionLabel, string> }) {
+function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: DetectionBox[]; colors: Readonly<Record<DetectionLabel, string>> }) {
   return (
     <Box sx={{ position: "relative", lineHeight: 0 }}>
       {/* eslint-disable-next-line @next/next/no-img-element -- a photo served by our API */}
@@ -57,7 +57,8 @@ function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: D
             height={b.box[3] - b.box[1]}
             fill="none"
             stroke={colors[b.label]}
-            strokeWidth={2.5}
+            strokeWidth={b.label === "waste" ? 3.5 : 2.5}
+            strokeDasharray={b.label === "object" ? "6 4" : undefined}
             vectorEffect="non-scaling-stroke"
             data-label={b.label}
           >
@@ -71,18 +72,16 @@ function Frame({ src, alt, boxes, colors }: { src: string; alt: string; boxes: D
 
 export function PanoramaGallery({ panoramas, onRedetect, onRemove }: { panoramas: PanoramaMeta[]; onRedetect: (id: string) => void; onRemove: (id: string) => void }) {
   const t = useTranslations("robot.panoramas");
-  const theme = useTheme();
-  // amber grapes and teal leaves: both stand out on soil, foliage and indoor photos alike
-  const colors: Record<DetectionLabel, string> = { grape: theme.palette.warning.main, leaf: theme.palette.success.main };
+  const colors = robotPalette;
   if (panoramas.length === 0) return null;
   return (
     <Paper sx={{ p: 4 }} data-testid="robot-panoramas">
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1, gap: 2, flexWrap: "wrap" }}>
         <Typography variant="h3">{t("title", { n: panoramas.length })}</Typography>
         <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-          {(["grape", "leaf"] as const).map((l) => (
+          {DETECTION_LABELS.map((l) => (
             <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <Box sx={{ width: 14, height: 10, border: 2.5, borderColor: colors[l], borderRadius: 0.5 }} />
+              <Box sx={{ width: 14, height: 10, border: l === "waste" ? 3 : 2.5, borderStyle: l === "object" ? "dashed" : "solid", borderColor: colors[l], borderRadius: 0.5 }} />
               <Typography variant="caption">{t(`label.${l}`)}</Typography>
             </Box>
           ))}
@@ -117,8 +116,9 @@ export function PanoramaGallery({ panoramas, onRedetect, onRemove }: { panoramas
                   )}
                   {d.status === "done" && (
                     <>
-                      <Chip size="small" variant="outlined" label={t("grapes", { n: counts.grape })} sx={{ borderColor: colors.grape }} />
-                      <Chip size="small" variant="outlined" label={t("leaves", { n: counts.leaf })} sx={{ borderColor: colors.leaf }} />
+                      {DETECTION_LABELS.map((l) => (
+                        <Chip key={l} size="small" variant="outlined" label={t(`count.${l}`, { n: counts[l] })} sx={{ borderColor: colors[l], borderWidth: 2 }} data-label={l} />
+                      ))}
                     </>
                   )}
                   {d.status === "off" && <Typography variant="caption" color="text.secondary">{t("detectOff")}</Typography>}

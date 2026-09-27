@@ -1433,18 +1433,24 @@
       "downloadFrames": "3 снимка",
       "downloadAll": "Скачать все панорамы",
       "remove": "Удалить",
-      "saved": "Сохранены на ноутбуке (src/Web/data/robot): остаются после обновления. Gemini ищет виноград и листья на каждом снимке.",
+      "saved": "Сохранены на ноутбуке (src/Web/data/robot): остаются после обновления. Gemini ищет виноград, листья, мусор (бутылки, дерево, пластик…) и другие предметы на каждом снимке.",
       "label": {
         "grape": "Виноград",
-        "leaf": "Листья"
+        "leaf": "Листья",
+        "waste": "Мусор",
+        "object": "Другие предметы"
       },
-      "detecting": "Gemini ищет виноград и листья…",
-      "grapes": "{n, plural, one {# гроздь} few {# грозди} other {# гроздей}}",
-      "leaves": "{n, plural, one {# лист} few {# листа} other {# листьев}}",
+      "detecting": "Gemini анализирует снимки…",
       "detectOff": "Детекция не настроена (нет OPENROUTER_API_KEY).",
       "redetect": "Определить снова",
       "detectError": "Детекция не удалась: {detail}",
-      "downloadJson": "Детекции (JSON)"
+      "downloadJson": "Детекции (JSON)",
+      "count": {
+        "grape": "{n, plural, one {# гроздь} few {# грозди} other {# гроздей}}",
+        "leaf": "{n, plural, one {# лист} few {# листа} other {# листьев}}",
+        "waste": "{n, plural, one {# мусор} few {# мусора} other {# мусора}}",
+        "object": "{n, plural, one {# предмет} few {# предмета} other {# предметов}}"
+      }
     }
   }
 }

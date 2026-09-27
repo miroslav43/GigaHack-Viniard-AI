@@ -1433,18 +1433,24 @@
       "downloadFrames": "Cele 3 poze",
       "downloadAll": "Descarcă toate panoramele",
       "remove": "Șterge",
-      "saved": "Salvate pe laptop (src/Web/data/robot): rămân după refresh. Gemini caută struguri și frunze în fiecare poză.",
+      "saved": "Salvate pe laptop (src/Web/data/robot): rămân după refresh. Gemini caută struguri, frunze, gunoi (sticle, lemne, plastic…) și alte obiecte în fiecare poză.",
       "label": {
         "grape": "Struguri",
-        "leaf": "Frunze"
+        "leaf": "Frunze",
+        "waste": "Gunoi",
+        "object": "Alte obiecte"
       },
-      "detecting": "Gemini caută struguri și frunze…",
-      "grapes": "{n, plural, one {# ciorchine} few {# ciorchini} other {# de ciorchini}}",
-      "leaves": "{n, plural, one {# frunză} few {# frunze} other {# de frunze}}",
+      "detecting": "Gemini analizează pozele…",
       "detectOff": "Detecția nu e configurată (lipsește OPENROUTER_API_KEY).",
       "redetect": "Detectează din nou",
       "detectError": "Detecția n-a reușit: {detail}",
-      "downloadJson": "Detecțiile (JSON)"
+      "downloadJson": "Detecțiile (JSON)",
+      "count": {
+        "grape": "{n, plural, one {# ciorchine} few {# ciorchini} other {# de ciorchini}}",
+        "leaf": "{n, plural, one {# frunză} few {# frunze} other {# de frunze}}",
+        "waste": "{n, plural, one {# gunoi} few {# gunoaie} other {# de gunoaie}}",
+        "object": "{n, plural, one {# obiect} few {# obiecte} other {# de obiecte}}"
+      }
     }
   }
 }
