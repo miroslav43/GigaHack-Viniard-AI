@@ -9,7 +9,7 @@ from vineyard.config import load_config
 from vineyard.nn.probs import prob_png_path, write_prob_png
 from vineyard.perception.row_seeds import RowSeed
 from vineyard.perception.rows_detect import DetectParams
-from vineyard.pipeline.stages._rows_seeded_io import SeededJob, nn_in_seed_zones
+from vineyard.pipeline.stages._rows_seeded_io import SeededJob, nn_in_seed_zones, usable_job_seeds
 
 TILE = "siret3_r021_c012"
 
@@ -38,3 +38,11 @@ def test_other_kinds_or_no_raster_keep_the_veg_mask(tmp_path: Path) -> None:
     assert nn_in_seed_zones(veg, job(tmp_path, "manual_review")) is veg
     assert nn_in_seed_zones(veg, job(tmp_path, "cadastre_auto")) is veg  # no probability raster
     assert nn_in_seed_zones(veg, job(tmp_path, "cadastre_auto", nn_version="")) is veg
+
+
+def test_nn_seeds_are_skipped_without_a_raster(tmp_path: Path) -> None:
+    assert usable_job_seeds(job(tmp_path, "cadastre_auto")) == ()          # no raster: never on the veg mask
+    assert len(usable_job_seeds(job(tmp_path, "manual_review"))) == 1     # other kinds are untouched
+    prob = np.zeros((1024, 1024), dtype=np.float32)
+    write_prob_png(prob_png_path(tmp_path, "v1", "canopy_prob", TILE), prob)
+    assert len(usable_job_seeds(job(tmp_path, "cadastre_auto"))) == 1     # raster present: kept

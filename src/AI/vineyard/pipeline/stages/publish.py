@@ -17,10 +17,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Final
 
+import geopandas as gpd
 from shapely.geometry import LineString
 from shapely.geometry.base import BaseGeometry
 
 from vineyard.errors import StageError
+from vineyard.geo.vector_io import read_layer, write_geojson
 from vineyard.logging_setup import get_logger, log_event
 from vineyard.measure.csv_format import check_measurements_bytes
 from vineyard.pipeline.atomic import atomic_write_bytes, atomic_write_json
@@ -38,11 +40,13 @@ if TYPE_CHECKING:
     from vineyard.pipeline.context import RunContext
 
 STAGE_NAME: Final = "publish"
-STAGE_VERSION: Final = "2"  # 2: block interrow_area_m2 sum check (publish.sum_check_tol_m2)
+STAGE_VERSION: Final = "3"  # 2: block interrow_area_m2 sum check (publish.sum_check_tol_m2); 3: + targets.geojson
 CFG_KEYS: Final = ("publish", "paths.publish_dir", "route.max_outside_frac_publish", "route.validate",
                    "route.domain")
 ROUTE_NAME: Final = "route.geojson"
 CSV_NAME: Final = "measurements.csv"
+TARGETS_NAME: Final = "targets.geojson"
+TARGET_COLUMNS: Final = ("target_id", "kind", "vineyard_id", "row_id", "x", "y", "priority", "reachable", "visited")
 STAGING_DIR: Final = "publish"
 REPORT_NAME: Final = "publish_report.json"
 EVENT_PUBLISHED: Final = "publish.written"
@@ -188,6 +192,25 @@ def write_published(report: PublishReport, dest_dir: Path) -> tuple[Path, ...]:
             atomic_write_bytes(dest / CSV_NAME, report.staged.csv.read_bytes()))
 
 
+def published_targets(layers_dir: Path) -> gpd.GeoDataFrame | None:
+    """The inspection locations of a post run (layers/targets) with `visited` from route_stops; None without."""
+    path = layers_dir / "targets.parquet"
+    if not path.is_file():
+        return None
+    targets = read_layer(path, "targets")
+    visits_path, stops_path = layers_dir / "target_visits.parquet", layers_dir / "route_stops.parquet"
+    visited = set()
+    if visits_path.is_file():  # the route passes within route.visit_radius_m (stops and pass-bys)
+        v = read_layer(visits_path, "target_visits")
+        visited = {str(t) for t, c in zip(v.target_id, v.covered, strict=True) if c}
+    elif stops_path.is_file():
+        visited = {str(t) for t in read_layer(stops_path, "route_stops").target_id.dropna()}
+    frame = targets.assign(visited=[str(t) in visited for t in targets.target_id],
+                           vineyard_id=[v or None for v in targets.vineyard_id],
+                           x=targets.x.round(2), y=targets.y.round(2))
+    return frame[[*TARGET_COLUMNS, "geometry"]].sort_values("target_id", kind="stable").reset_index(drop=True)
+
+
 # ------------------------------------------------------------------ stage
 
 
@@ -210,6 +233,9 @@ def run(ctx: RunContext) -> Any:
     if not report.passed:
         log_event(_log, EVENT_REFUSED, stage=STAGE_NAME, failed=doc["failed"])
     outputs = write_published(report, ctx.cfg.paths.publish_dir)
+    targets = published_targets(paths.layers_dir)
+    if targets is not None:
+        outputs = (*outputs, write_geojson(targets, Path(ctx.cfg.paths.publish_dir) / TARGETS_NAME, decimals=2))
     log_event(_log, EVENT_PUBLISHED, stage=STAGE_NAME, outputs=[str(p) for p in outputs])
     return stage_result(STAGE_NAME, n_items=len(outputs), outputs=(*outputs, report_path),
                         metrics={"passed": 1.0, "n_checks": float(len(report.checks))})
@@ -217,5 +243,5 @@ def run(ctx: RunContext) -> Any:
 
 STAGE: Final = StageSpec(
     name=STAGE_NAME, version=STAGE_VERSION, scope="global", cfg_keys=CFG_KEYS, requires=("route", "measure"),
-    run=run, description="validated copy of route.geojson + measurements.csv to the repo root",
+    run=run, description="validated copy of route.geojson + measurements.csv (+ targets.geojson) to the repo root",
 )

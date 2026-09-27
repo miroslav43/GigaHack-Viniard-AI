@@ -13,7 +13,8 @@ GigaHack 2026, Vineyard AI Field Challenge (Marcaj). This project turns the 311 
 | `measurements.csv` (blocks, rows, lengths, areas by `vineyard_id` / `row_id`) | repo root, same commands |
 | Processing code | [`src/AI/`](src/AI) (Python package `vineyard`) |
 | Web application | [`src/Web/`](src/Web) (Next.js) |
-| Deployed interface | **TODO before submission: deployed URL.** SUBMISSION requires a link to the working web interface. The pitch demo from the team laptop is in addition to this link, not a replacement for it |
+| `targets.geojson` (inspection locations: ID, EPSG:32635 coordinates, `vineyard_id` / `row_id`, visited by the route) | repo root, written by `vineyard publish` together with the route |
+| Web interface | Demo from the team laptop (accepted by the rules): run it locally with §8 (`pnpm start` → `http://localhost:3000/harta`). There is no public deployment |
 
 ## Contents
 
@@ -33,26 +34,33 @@ GigaHack 2026, Vineyard AI Field Challenge (Marcaj). This project turns the 311 
 
 ```
 5 tile ZIPs (311 GeoTIFF, EPSG:32635, 2.5 cm/px)
- │  vineyard run   ingest → tile_prep → nn_infer* → rows_detect → rows_link → blocks → canopy
- │                 → interrow → row_attrs → waste → assemble → qa_previews
+ │  vineyard nn infer   vine-unet canopy probability (used inside the cadastral completion seeds)
+ │  vineyard run   ingest → tile_prep → nn_infer* → rows_detect → rows_link (+ guided and seeded rows)
+ │                 → blocks (+ road cuts, regularisation) → canopy → interrow → row_attrs → waste
+ │                 → assemble → qa_previews
  ▼
 AnnSet(model): canopies, row axes, inter-rows, row_structure, interrow_cover, vineyard_id / row_id, waste
  │  vineyard export-cvat      → 5 validated CVAT-for-images-1.1 ZIPs (≤ 85,000,000 B each)
  ▼
 Marcaj: upload the 5 ZIPs → publish → manual correction → export CVAT 1.1
  │  vineyard from-marcaj      → AnnSet(marcaj) + QA issues
- │  vineyard post             derive → passable → targets → route → measure → web_bundle
- │  vineyard publish          → validated copy to the repo root
+ │  vineyard post             derive → passable → targets → route → measure → farms → web_bundle
+ │  vineyard publish          → validated copy to the repo root (+ targets.geojson)
  ▼
 route.geojson + measurements.csv (repo root) · web bundle → src/Web
 ```
 
-`*` `nn_infer` runs only with `nn.enabled=true` (off by default, see §5).
+`*` The `nn_infer` stage inside `vineyard run` runs only with `nn.enabled=true` (off by default). The U-Net is used through `vineyard nn infer` for the parcel completion below (see §5).
 
 The perception is classical computer vision, ported from the prototype that we validated on the 2 example tiles:
 
 - **Vegetation:** a threshold on the Lab a* channel, restricted to valid (non-nodata) pixels.
 - **Row axes:** per tile we find the dominant row orientation, the row spacing (autocorrelation), an SNR gate and a Huber line fit. Rows are linked across tiles in UTM with union-find. Each connected group of rows becomes a block (`V01`…), with rows numbered `R001`…. A row keeps one `vineyard_id` / `row_id` across tile edges.
+- **Row completion (neighbours, seeds, cadastre):**
+  - A guided pass continues rows from the lattice (angle, spacing, phase) of neighbouring tiles and of the tile's own accepted rows, laterally and along the row. It also accepts older vines up to 2.2 m wide.
+  - Reviewed seeds (`configs/row_seeds.csv`: a tile region, the row angle and spacing) re-run the detector inside the region at that lattice.
+  - Cadastral completion: every AGCC parcel that already holds ≥ 3 rows is a vineyard parcel. The part of it not yet covered (minus roads) is searched at the parcel's own angle and spacing, on the **vine-unet canopy probability** instead of the vegetation mask, so grass between old vines and neighbouring meadows do not become rows. Without the U-Net raster these regions are skipped.
+- **Block shape:** rows are cut where an OpenStreetMap road or track crosses them on a vine-free stretch (the rules: a road always separates blocks). A row-frame regularisation then trims row ends that overshoot the headland line, and removes off-lattice and stray rows. `configs/overrides.yaml` holds the visual-QA corrections: exclusion areas, deleted rows and force-empty tiles.
 - **Canopies:** the vegetation mask inside each row corridor, split into connected components, so each separable plant is its own polygon.
 - **Inter-rows:** the band between two adjacent row axes, inset 0.30 m from each axis and trimmed to the shorter row. Forbidden zones are notched out, and the band is cut per tile.
 - **Attributes:**
@@ -62,6 +70,7 @@ The perception is classical computer vision, ported from the prototype that we v
   - Candidates are found by rule: HSV colour/brightness blobs, filtered by shape and lattice (vine tubes, stakes).
   - Optionally, an OpenCLIP linear probe and SAM 3 verification rank the candidates for review.
   - Nothing is exported automatically. Only the boxes the team accepted in `src/AI/configs/waste_confirmed.csv` are exported. SAM 3 and the probe pre-screen them, then the team approves them. The current file accepts 3 boxes.
+- **Farms and roads (web map):** blocks at most 10 m apart that no public road separates form a farm (`F01`…). OpenStreetMap roads are classed public, field or farm-internal, with the tracks across the rows detected by the pipeline. AGCC cadastral parcels, when the local snapshot exists, add parcel counts per block and farm and flag the roads a road parcel confirms.
 - **Route:**
   - The walking domain is (inter-rows ∪ authorised passages) − forbidden zones − canopies.
   - A graph is built from the inter-row centrelines and the passage skeletons.
@@ -175,6 +184,8 @@ All commands run from `src/AI` with `unset PROJ_DATA PROJ_LIB GDAL_DATA` done on
 ### Step 1: pre-annotation (AI model, 311 tiles)
 
 ```bash
+uv run --no-sync vineyard nn fetch --url <vine-unet v1 link, §5> --sha256 8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19
+uv run --no-sync vineyard nn infer                              # U-Net canopy probability (MPS/CPU, ~1-2 min for 311 tiles)
 uv run --no-sync vineyard run --until qa_previews --workers 8   # perception → AnnSet(model), link runs/LATEST_MODEL
 uv run --no-sync vineyard export-cvat --annset LATEST_MODEL     # 5 validated upload ZIPs
 # or both in one command:
@@ -263,13 +274,13 @@ The single stages are also commands: `derive`, `passable`, `targets`, `route`, `
 
 ## 5. Model weights
 
-The **submitted annotations need no weights.** The classical pipeline is the default: `nn.enabled=false`, `nn.fusion=A`. The U-Net ablation (`vineyard nn ablate`) kept variant A, because no NN variant beat it on both reference tiles. The mean canopy score was 0.816 for A and 0.773 for the best NN variant, D.
+**vine-unet v1 is used by the submitted pre-annotation**, only inside the cadastral completion regions: there it replaces the vegetation mask as the evidence for new rows (`rows_seeded.nn_kinds`). Everywhere else the classical pipeline decides, and canopies are still drawn from the vegetation mask (`nn.fusion=A`). The U-Net ablation (`vineyard nn ablate`) kept variant A for canopies, because no NN variant beat it on both reference tiles: the mean canopy score was 0.816 for A and 0.773 for the best NN variant, D. Without the weights, `vineyard run` still runs; it skips the cadastral completion regions and warns (`rows_seeded.nn_seeds_skipped`).
 
 Weights live under `src/AI/models/` (git-ignored):
 
 | Model | Path | Used for | How to get it |
 |---|---|---|---|
-| **vine-unet v1** (U-Net, ResNet-18 encoder, canopy probability at 5 cm/px) | `src/AI/models/vine-unet/v1/{weights.pt, model_card.json}` (57,414,739 B, sha256 `8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19`) | optional canopy fusion (`--set nn.enabled=true --set nn.fusion=B\|C\|D`) | **WEIGHTS LINK: TODO** (host `weights.pt` and `model_card.json` together), or reproduce (below) |
+| **vine-unet v1** (U-Net, ResNet-18 encoder, canopy probability at 5 cm/px) | `src/AI/models/vine-unet/v1/{weights.pt, model_card.json}` (57,414,739 B, sha256 `8b17fea024a3a0ffea13da03a660ef55439ed2209404100ca7c0c866de95ca19`) | row evidence inside the cadastral completion regions (`vineyard nn infer`); optional canopy fusion (`--set nn.enabled=true --set nn.fusion=B\|C\|D`) | GitHub release `vine-unet-v1` of this repository (`weights.pt` + `model_card.json`), or reproduce (below) |
 | **SAM 3** (`facebook/sam3`, transformers `Sam3Model`) | `src/AI/models/hf/sam3/` (~3.4 GB) | waste verification (`waste.sam3.enabled=true`) | Hugging Face, gated: request access and accept the SAM License |
 | **OpenCLIP ViT-B-32 `laion2b_s34b_b79k`** | Hugging Face cache | waste probe embeddings | downloaded automatically by `open_clip` on first use |
 | **waste-probe v1** (logistic regression on CLIP embeddings) | `src/AI/models/waste-probe/v1/{probe.npz, model_card.json}` (12 KB) | waste ranking | reproduce from UAVVaste (below) |
@@ -344,6 +355,8 @@ The pipeline runs on CPU with 8 worker processes (`runtime.n_workers`), each sin
 | &nbsp;&nbsp;of which | derive 28.9 · passable 79.6 · targets 31.9 · route 508.7 · measure 4.0 · web_bundle 1.7 | |
 | **Total** | | **≈ 846 s ≈ 14 min** |
 
+**Current pipeline (RC10f, the uploaded pre-annotation), same machine:** U-Net inference on the 88 tiles holding completion regions 12.9 s (`vineyard nn infer`); perception `vineyard run --run-id rc10f` **384 s** (waste probe on, part of the tile cache reused); CVAT export 24 s; post chain (derive → … → route → measure → farms → web_bundle) **603 s**. Total ≈ 17 min.
+
 **The waste probe adds time.** The default config has `waste.probe.enabled: true`. When `models/waste-probe/v1` is installed (§5), the waste stage also runs OpenCLIP and the linear probe (verify level L1), not the rules alone. The `full-v2` re-run at 08:48 used 6 workers and measured this stage at **166.5 s** instead of 35.4 s. With the probe, perception takes ≈ 288 s and the total is ≈ 977 s ≈ 16 min.
 
 The route stage dominates the total. It probes several outside-share policies, each with an OR-Tools solve limited to 30 s (`route.solver.time_limit_s`). `vineyard final` / `--final` raises that limit to 60 s, so expect a longer route stage on the final Marcaj run.
@@ -380,7 +393,7 @@ Optional ML steps (not needed for the deliverables), same machine:
 
 ## 8. Web interface
 
-**Deployed interface: TODO before submission (URL).** SUBMISSION requires a link to the working web interface. The pitch demo on the team laptop is in addition to that link. The commands below build the same site locally.
+**The web interface is demonstrated from the team laptop** (the rules accept a laptop demo); there is no public deployment. The commands below build and run it locally.
 
 It shows:
 
@@ -438,26 +451,25 @@ level,vineyard_id,row_id,block_count,row_count,row_length_m,canopy_area_m2,canop
 | `plant_count` | number of canopy polygons |
 | `row_structure` | row lines only: `disrupted` if any piece is disrupted, `unassessable` if all are, else `regular` |
 
-## 10. Current results (model run, before Marcaj corrections)
+## 10. Current results (model run RC10f, uploaded to Marcaj, before the manual corrections)
 
-These values come from the model annotations: run `full-v2` → `post-full-v2`, whose `run.end` is at 06:04:45 on 26 Sep 2026. **They are the model run before Marcaj corrections, and the final run refreshes them.** The final `route.geojson` and `measurements.csv` are produced from the Marcaj export with `vineyard final`, so their values will differ.
-
-`post-full-v2` ran before the `full-v2` re-run at 08:51, which exports the 3 accepted waste boxes. That re-run left the canopies, rows and inter-rows unchanged (the same parquet contents apart from `model_version`), so the rows from Tiles processed through Plants still hold. The waste, target and route rows change with the post re-run. **TODO before submission:** re-run `post-full-v2` on the current `full-v2` and publish it (§4). Then refresh the waste, target and route rows from that run's `exports/route.geojson`, `metrics/targets.json` and `metrics/route_validation.json`, and from the published root files.
+These values come from the uploaded model annotations: run `rc10f` → post run `20260927T0452-post-rc10f` (27 Sep 2026, 04:52), published to the repo root. **The final `route.geojson` and `measurements.csv` are produced from the Marcaj export with `vineyard final`, so their values will differ.**
 
 | Quantity | Value |
 |---|---|
-| Tiles processed | 311 |
-| Vineyard blocks | 53 |
-| Rows | 695 |
-| Total row length | 43,962.50 m |
-| Canopy area (union) | 13,575.82 m² (1.3576 ha) |
-| Inter-row area (union) | 86,201.00 m² (8.6201 ha) |
-| Plants (canopy polygons) | 11,153 |
-| Inspection targets | 1,289 (378 must-visit, 911 optional), with no waste target in this run |
-| Waste boxes | 0 in this run. 3 accepted waste boxes (SAM 3-verified, ≤ 10 m from a block) are included from the next post run |
-| Route length | 17,451.45 m (≈ 262 min at 4 km/h) |
-| Route share outside the allowed area | 1.14% (198.7 m; the rule limit is 2%) |
+| Tiles processed | 311 (124 with vine rows) |
+| Vineyard blocks | 44 |
+| Rows | 674 |
+| Total row length | 47,737.51 m |
+| Canopy area (union) | 15,427.54 m² (1.5428 ha) |
+| Inter-row area (union) | 93,244.01 m² (9.3244 ha) |
+| Plants (canopy polygons) | 13,702 |
+| Inspection targets | 1,226 (246 must-visit, 980 optional; 11 waste targets), in `targets.geojson` |
+| Waste boxes | 11 |
+| Route length | 14,037.77 m (≈ 211 min at 4 km/h) |
+| Route share outside the allowed area | 1.28% (179.3 m; the rule limit is 2%) |
 | Route closure at START | 0.00 m |
+| Example tiles (official metrics, `eval-examples --gates`) | canopy 0.876, rows F1 1.0, attributes 1.0, grouping 1.0 |
 
 ## 11. Licences and attribution
 
@@ -465,6 +477,9 @@ These values come from the model annotations: run `full-v2` → `post-full-v2`, 
 |---|---|
 | Sireț3 orthomosaic / tiles | CC BY 4.0. Credit 3DATA COLLECT / OpenAerialMap, contributors to the Open Imagery Network (re-projected to EPSG:32635 and tiled by the organizers) |
 | Route inputs (passages, forbidden zones), UAT boundary in the web app | contain OpenStreetMap data © OpenStreetMap contributors, ODbL |
+| OpenStreetMap highway snapshot `src/AI/data/osm/siret3_highways.geojson` (road classes, road cuts, farms) | © OpenStreetMap contributors, ODbL 1.0 |
+| AGCC cadastral parcels (`cadastru_data:terenuri`, geodata.gov.md) | public WMS/WFS of the Agency for Geodesy, Cartography and Cadastre, informative data. The local snapshot is not redistributed (git-ignored); the web map shows the live WMS with attribution. The derived completion seeds (parcel geometry in tile pixels, row angle, spacing) are in `configs/row_seeds.csv` |
+| vine-unet v1 weights (this project) | trained by the team on pseudo-labels from the CC BY 4.0 tiles; published as a GitHub release of this repository |
 | UAVVaste dataset (waste probe positives) | CC BY 4.0, Zenodo record 8214061, doi:10.5281/zenodo.8214061 |
 | SAM 3 (`facebook/sam3`) | SAM License (Meta; gated on Hugging Face; not redistributed here) |
 | OpenCLIP ViT-B-32 `laion2b_s34b_b79k` weights · `open_clip` | MIT · MIT |

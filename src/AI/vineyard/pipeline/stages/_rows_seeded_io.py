@@ -7,6 +7,7 @@ numbers after the tile's own, and after linking every chain with a seeded member
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -63,6 +64,7 @@ EVENT_SEED_FAIL: Final = "rows_link.seed_region_failed"
 EVENT_NO_PREP: Final = "rows_link.seeded_no_tile_prep"
 
 NN_CANOPY_CHANNEL: Final = "canopy_prob"
+EVENT_NN_SEEDS_SKIPPED: Final = "rows_seeded.nn_seeds_skipped"  # run `vineyard nn infer` first
 
 _log = get_logger("pipeline.stages.rows_link")
 
@@ -108,12 +110,31 @@ def run_seeded_job(job: SeededJob) -> tuple[SeededResult, int] | None:
     if load_tile_stats(cache, job.tile_id).status == TileStatus.EMPTY_NODATA:
         return None
     tile = tile_ref(job.tile_id)
+    seeds = usable_job_seeds(job)
+    if not seeds:
+        return None
+    job = replace(job, seeds=seeds)
     veg = nn_in_seed_zones(load_veg_mask(cache, job.tile_id), job)
     if job.forbidden:
         veg = veg & ~forbidden_mask(list(job.forbidden), tile)
     inp = SeededInputs(veg=veg, clip_px=job.clip_px, tile=tile, valid=load_valid_mask(cache, job.tile_id),
                        existing_utm=job.existing)
     return seeded_detect(inp, job.seeds, job.params, job.s), int(veg.sum())
+
+
+def _nn_prob_path(job: SeededJob) -> Path:
+    return prob_png_path(job.cache_dir, job.nn_version, NN_CANOPY_CHANNEL, job.tile_id)
+
+
+def usable_job_seeds(job: SeededJob) -> tuple[RowSeed, ...]:
+    """The job's seeds, without the NN-kind seeds when the tile has no NN probability raster: on the plain veg
+    mask those regions (grass between old vines, meadows next to vineyards) would give false rows."""
+    kinds = set(job.s.nn_kinds)
+    if not any(s.kind in kinds for s in job.seeds) or (job.nn_version and _nn_prob_path(job).is_file()):
+        return job.seeds
+    log_event(_log, EVENT_NN_SEEDS_SKIPPED, level=logging.WARNING, tile_id=job.tile_id,
+              n=sum(s.kind in kinds for s in job.seeds))
+    return tuple(s for s in job.seeds if s.kind not in kinds)
 
 
 def nn_in_seed_zones(veg: np.ndarray, job: SeededJob) -> np.ndarray:
@@ -123,8 +144,7 @@ def nn_in_seed_zones(veg: np.ndarray, job: SeededJob) -> np.ndarray:
     zones = [s.polygon_px for s in job.seeds if s.kind in kinds]
     if not zones or not job.nn_version:
         return veg
-    prob = upsample_prob(load_canopy_prob(prob_png_path(job.cache_dir, job.nn_version, NN_CANOPY_CHANNEL, job.tile_id)),
-                         veg.shape[0])
+    prob = upsample_prob(load_canopy_prob(_nn_prob_path(job)), veg.shape[0])
     if prob is None:
         return veg
     zone = np.zeros(veg.shape, dtype=np.uint8)

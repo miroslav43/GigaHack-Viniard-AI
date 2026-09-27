@@ -362,3 +362,28 @@ def test_find_post_run_matches_a_latest_alias_of_the_same_annset(tmp_path):
     with pytest.raises(StageError, match="no post run"):
         _post_io.find_post_run(ctx, ("exports/route.geojson",), "publish")
     assert _post_io.find_optional_post_run(ctx, ("exports/route.geojson",)) is None
+
+
+def test_published_targets_carry_ids_links_and_visits(tmp_path: Path) -> None:
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    from vineyard.geo.vector_io import write_layer
+    from vineyard.pipeline.stages.publish import TARGET_COLUMNS, published_targets
+
+    assert published_targets(tmp_path) is None
+    prov = {"source": ["model"] * 2, "run_id": ["r"] * 2, "model_version": ["m"] * 2, "confidence": [1.0] * 2,
+            "qa_flags": [""] * 2}
+    targets = gpd.GeoDataFrame({"target_id": ["T-GAP-0002", "T-WST-0001"], "kind": ["row_gap", "waste"],
+                                "vineyard_id": ["V01", ""], "tile_id": ["siret3_r021_c012"] * 2,
+                                "row_id": ["V01-R003", None], "interrow_id": [None, None],
+                                "waste_id": [None, "W0001"], "x": [629500.0, 629510.0], "y": [5220200.0, 5220210.0],
+                                "gap_length_m": [6.0, 0.0], "priority": [2, 1], "reachable": [True, True],
+                                "reach_note": ["", ""], "snap_dist_m": [0.5, 0.5], **prov},
+                               geometry=[Point(629500, 5220200), Point(629510, 5220210)], crs="EPSG:32635")
+    write_layer(targets, "targets", tmp_path / "targets.parquet")
+    out = published_targets(tmp_path)
+    assert tuple(c for c in out.columns if c != "geometry") == TARGET_COLUMNS
+    assert list(out.target_id) == ["T-GAP-0002", "T-WST-0001"]
+    assert out.vineyard_id.iloc[0] == "V01" and out.vineyard_id.isna().iloc[1]  # null in the GeoJSON
+    assert list(out.visited) == [False, False]
