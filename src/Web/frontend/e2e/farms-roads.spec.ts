@@ -67,10 +67,15 @@ test("farm and road switches follow the files the survey ships; the map loads ei
   await expect(page.getByText("Datele hărții nu s-au putut încărca")).toHaveCount(0);
 
   const hasInternal = shipsRoads && (summary.roads?.internal_m ?? 0) > 0;
-  for (const [box, ships] of [[farmsSwitch(page), shipsFarms], [roadsSwitch(page), shipsRoads], [internalSwitch(page), hasInternal]] as const) {
+  for (const [box, ships, onByDefault] of [
+    [farmsSwitch(page), shipsFarms, false], // the farm outlines start off: the farms are reached from the list
+    [roadsSwitch(page), shipsRoads, true],
+    [internalSwitch(page), hasInternal, true],
+  ] as const) {
     if (ships) {
       await expect(box).toBeEnabled();
-      await expect(box).toBeChecked();
+      if (onByDefault) await expect(box).toBeChecked();
+      else await expect(box).not.toBeChecked();
     } else {
       await expect(box).toBeDisabled();
       await expect(box).not.toBeChecked();
@@ -83,16 +88,16 @@ test("farm and road switches follow the files the survey ships; the map loads ei
     return;
   }
 
-  // on by default: the legend shows every layer that is on
+  // the legend shows every layer that is on: the farm outlines only once switched on
   if (shipsFarms) {
     await expect(kpi).toBeVisible();
     await expect(kpi.locator("xpath=preceding-sibling::*[1]")).toHaveText(f.int(summary.totals.farm_count!));
-    await expect(page.getByText(/^Fermă \(blocuri/)).toBeVisible();
-    await farmsSwitch(page).uncheck();
     await expect(page.getByText(/^Fermă \(blocuri/)).toHaveCount(0);
     await expect(labels(page)).toHaveCount(0);
     await farmsSwitch(page).check();
     await expect(page.getByText(/^Fermă \(blocuri/)).toBeVisible();
+    await farmsSwitch(page).uncheck();
+    await expect(page.getByText(/^Fermă \(blocuri/)).toHaveCount(0);
   }
   if (shipsRoads) {
     await expect(page.getByText("Drum public", { exact: true })).toBeVisible();
@@ -116,6 +121,10 @@ test("clicking a farm label opens the farm panel with its blocks and the summed 
   const summary = (await (await request.get(`${DATA}/summary.json`)).json()) as SurveySummary;
   await page.goto("/harta");
   await expect(page.getByText("Se încarcă harta…")).toHaveCount(0);
+  // the outlines and labels start off
+  await openLayers(page);
+  await farmsSwitch(page).check();
+  if (page.viewportSize()!.width < 1200) await page.getByRole("button", { name: "Închide panoul" }).dispatchEvent("click");
 
   // the labels appear from medium zoom on; zoom in (keeping the view centred) until one can be clicked
   let farmId: string | null = null;
@@ -142,4 +151,17 @@ test("clicking a farm label opens the farm panel with its blocks and the summed 
   // a block chip moves on to that block
   await panel.getByRole("button", { name: farm.vineyard_ids[0], exact: true }).click();
   await expect(page.getByRole("heading", { level: 3, name: `Bloc ${farm.vineyard_ids[0]}`, exact: true })).toBeVisible();
+});
+
+test("the farm list in the layer panel flies to a farm and opens its panel, with the outlines off", async ({ page, request }) => {
+  test.skip(!(await request.get(`${DATA}/farms.geojson`)).ok(), `${SURVEY_ID} ships no farms.geojson`);
+  const summary = (await (await request.get(`${DATA}/summary.json`)).json()) as SurveySummary;
+  const farm = summary.farms![0];
+  await page.goto("/harta");
+  await expect(page.getByText("Se încarcă harta…")).toHaveCount(0);
+  await openLayers(page);
+  await expect(farmsSwitch(page)).not.toBeChecked();
+  await page.getByTestId("farm-list").getByRole("button", { name: farm.farm_id, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 3, name: `Ferma ${farm.farm_id}`, exact: true })).toBeVisible();
+  await expect(page.getByTestId("farm-attributes").getByText(`Blocuri (${farm.n_blocks})`)).toBeVisible();
 });

@@ -345,7 +345,8 @@
       "noteAll": "Along the inter-rows (never on a row, over the canopies) and the roads, public ones between farms included; a row target is seen from the inter-row on its left or right. Planar computation in UTM 35N, indicative."
     },
     "layerTargets": "Inspection targets",
-    "legendTargetPlain": "Inspection target"
+    "legendTargetPlain": "Inspection target",
+    "groupFarms": "Farms"
   },
   "blocks": {
     "title": "Blocks & rows",

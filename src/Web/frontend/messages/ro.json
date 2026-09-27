@@ -345,7 +345,8 @@
       "noteAll": "Pe culoarele dintre rânduri (niciodată pe rând, peste coroane) și pe drumuri, inclusiv cele publice dintre ferme; o țintă din rând e văzută din culoarul din stânga sau din dreapta ei. Calcul plan în UTM 35N, orientativ."
     },
     "layerTargets": "Ținte de inspecție",
-    "legendTargetPlain": "Țintă de inspecție"
+    "legendTargetPlain": "Țintă de inspecție",
+    "groupFarms": "Ferme"
   },
   "blocks": {
     "title": "Blocuri și rânduri",

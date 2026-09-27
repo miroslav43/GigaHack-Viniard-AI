@@ -128,6 +128,11 @@ export function MapExplorer({
   const pickingStart = farmRoute.state.status === "picking";
   const choosingFarm = farmRoute.state.status === "choosingFarm";
   const farmRouteActive = farmRoute.state.status !== "idle";
+  // step 1 of the farm route tool picks a farm on the map: its outlines show while it waits, even if switched off
+  const farmsOnMap = useMemo(
+    () => (choosingFarm && farmsRoads.available.farms ? { ...farmsRoads, visible: { ...farmsRoads.visible, farms: true } } : farmsRoads),
+    [choosingFarm, farmsRoads],
+  );
   const farmRouteFarm = useMemo(
     () => farmsRoads.farms?.features.find((f) => f.properties.farm_id === farmRoute.farmId)?.geometry ?? null,
     [farmsRoads.farms, farmRoute.farmId],
@@ -373,7 +378,7 @@ export function MapExplorer({
           <CadastreRaster on={cadastre.on} />
           {/* ---- optional farms and roads: above the orthophoto and the tiles, under blocks, canopies and rows ---- */}
           <FarmRoadLayers
-            data={farmsRoads}
+            data={farmsOnMap}
             selectedRoad={selection?.layer === "roads" ? String(selection.props.road_id) : null}
             selectedFarm={selection?.layer === "farms" ? String(selection.props.farm_id) : null}
           />
@@ -525,7 +530,7 @@ export function MapExplorer({
             ))}
 
           {/* ---- markers: farm labels (medium zoom and closer), numbered route stops in view (refreshDetail) ---- */}
-          <FarmLabels data={farmsRoads} zoom={zoom} onPick={(id) => (choosingFarm ? startFarmRoute(id) : selectFarm(id, false))} />
+          <FarmLabels data={farmsOnMap} zoom={zoom} onPick={(id) => (choosingFarm ? startFarmRoute(id) : selectFarm(id, false))} />
           {visible.route &&
             !farmRouteShown &&
             targetLabels.map((f) => {
@@ -568,6 +573,8 @@ export function MapExplorer({
           blocks={summary.blocks.map((b) => b.vineyard_id)}
           onPickRow={selectRow}
           onPickBlock={selectBlock}
+          farms={(farmsRoads.farms?.features.map((f) => f.properties.farm_id) ?? []).sort()}
+          onPickFarm={hasFarms ? (id) => (choosingFarm ? startFarmRoute(id) : selectFarm(id)) : undefined}
           onFitAll={() => fit(studyBbox, 17)}
           extraLayers={
             <>

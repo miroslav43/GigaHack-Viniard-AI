@@ -64,26 +64,15 @@ test("a farm's panel jumps straight to step 2 of the tool", async ({ page, reque
   test.skip(!(await shipsFarmsAndRoads(request)), `${SURVEY_ID} ships no farms.geojson / roads.geojson`);
   test.setTimeout(120_000);
   const summary = (await (await request.get(`${DATA}/summary.json`)).json()) as SurveySummary;
-  const withTargets = summary.farms!.filter((x) => x.target_count > 0).map((x) => x.farm_id);
+  const farmId = summary.farms!.find((x) => x.target_count > 0)!.farm_id;
 
   await page.goto("/harta");
   await expect(page.getByText("Se încarcă harta…")).toHaveCount(0);
-  // zoom in until a farm label with targets can be clicked
-  let farmId: string | null = null;
-  for (let i = 0; i <= 3 && !farmId; i++) {
-    await page.waitForTimeout(1000);
-    farmId = await page.evaluate((ids) => {
-      for (const el of Array.from(document.querySelectorAll<HTMLElement>("[data-farm-label]"))) {
-        const r = el.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        if (r.width > 0 && hit && el.contains(hit) && ids.includes(el.dataset.farmLabel ?? "")) return el.dataset.farmLabel ?? null;
-      }
-      return null;
-    }, withTargets);
-    if (!farmId) await page.getByRole("button", { name: "Zoom in" }).click();
-  }
-  expect(farmId, "a farm label with targets on screen").not.toBeNull();
-  await page.locator(`[data-farm-label="${farmId}"]`).click();
+  // the farm list in the layer panel opens the farm's panel
+  if (page.viewportSize()!.width < 1200) await page.getByRole("button", { name: "Deschide straturile" }).click();
+  await page.getByTestId("farm-list").getByRole("button", { name: farmId, exact: true }).click();
+  // on a phone the open layer panel covers the map: close it (a tooltip may sit over its button)
+  if (page.viewportSize()!.width < 1200) await page.getByRole("button", { name: "Închide panoul" }).dispatchEvent("click");
   await page.getByTestId("farm-route-begin").click();
 
   const card = page.getByTestId("farm-route-card");

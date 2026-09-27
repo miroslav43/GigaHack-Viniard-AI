@@ -217,7 +217,8 @@ export function AttributePanel({
         top: 16,
         right: 16,
         width: { xs: "calc(100% - 32px)", sm: 320 },
-        maxHeight: "calc(100% - 32px)",
+        // desktop: it stops above the tool buttons of the bottom right (route tools, ruler), which stay reachable
+        maxHeight: { xs: "calc(100% - 32px)", md: "calc(100% - 300px)" },
         overflow: "auto",
         zIndex: 3,
         boxShadow: 3,

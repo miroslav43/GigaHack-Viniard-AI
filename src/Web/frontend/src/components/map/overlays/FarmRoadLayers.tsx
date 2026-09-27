@@ -61,8 +61,9 @@ export function FarmRoadLayers({ data, selectedRoad, selectedFarm }: { data: Far
           <Layer id="farms-casing" type="line" paint={{ "line-color": mapPalette.farm.halo, "line-width": byZoom([13, 2.4], [16, 3.6], [19, 5]), "line-opacity": 0.55 }}
             layout={{ ...vis(visible.farms), "line-join": "round" }} />
           <Layer id="farms-line" type="line" paint={{ "line-color": mapPalette.farm.line, "line-width": FARM_WIDTH }} layout={{ ...vis(visible.farms), "line-join": "round" }} />
+          {/* the selected farm stays outlined even with the outlines off (it was picked from the list) */}
           <Layer id="farms-selected" type="line" filter={["==", ["get", "farm_id"], selectedFarm ?? ""]}
-            paint={{ "line-color": mapPalette.selected, "line-width": 3.5 }} layout={vis(visible.farms)} />
+            paint={{ "line-color": mapPalette.selected, "line-width": 3.5 }} />
         </Source>
       )}
     </>

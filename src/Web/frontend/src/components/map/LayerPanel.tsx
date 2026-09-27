@@ -52,7 +52,7 @@ const LAYERS: { key: LayerKey; label: string; minZoom?: number }[] = [
   { key: "reference", label: "layerReference" },
 ];
 
-type SearchOption = { kind: "row" | "block"; id: string; group: string };
+type SearchOption = { kind: "row" | "block" | "farm"; id: string; group: string };
 
 function Swatch({ color, line, dashed }: { color: string; line?: boolean; dashed?: boolean }) {
   return (
@@ -88,6 +88,8 @@ export function LayerPanel({
   blocks,
   onPickRow,
   onPickBlock,
+  farms = [],
+  onPickFarm,
   onFitAll,
   extraLayers,
   extraLegend,
@@ -100,6 +102,9 @@ export function LayerPanel({
   blocks: string[];
   onPickRow: (id: string) => void;
   onPickBlock: (id: string) => void;
+  /** farms of the survey (empty without farms.geojson): a list to fly to each one */
+  farms?: string[];
+  onPickFarm?: (id: string) => void;
   onFitAll: () => void;
   /** optional switches after the built-in layers (the survey overlays) and their legend entries */
   extraLayers?: ReactNode;
@@ -121,6 +126,7 @@ export function LayerPanel({
   }
 
   const options: SearchOption[] = [
+    ...(onPickFarm ? farms.map((id) => ({ kind: "farm" as const, id, group: t("groupFarms") })) : []),
     ...blocks.map((id) => ({ kind: "block" as const, id, group: t("groupBlocks") })),
     ...rows.map((r) => ({ kind: "row" as const, id: r.row_id, group: t("groupRows") })),
   ];
@@ -152,7 +158,7 @@ export function LayerPanel({
           options={options}
           groupBy={(o) => o.group}
           getOptionLabel={(o) => o.id}
-          onChange={(_, o) => o && (o.kind === "row" ? onPickRow(o.id) : onPickBlock(o.id))}
+          onChange={(_, o) => o && (o.kind === "row" ? onPickRow(o.id) : o.kind === "farm" ? onPickFarm?.(o.id) : onPickBlock(o.id))}
           renderInput={(p) => (
             <TextField
               {...p}
@@ -172,6 +178,18 @@ export function LayerPanel({
             {t("wholeArea")}
           </Button>
         </Box>
+        {onPickFarm && farms.length > 0 && (
+          <>
+            <Typography variant="overline" color="text.secondary" component="p" sx={{ mt: 2 }}>
+              {t("groupFarms")}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }} data-testid="farm-list">
+              {farms.map((id) => (
+                <Chip key={id} size="small" color="secondary" variant="outlined" label={id} onClick={() => onPickFarm(id)} />
+              ))}
+            </Box>
+          </>
+        )}
       </Box>
       <Divider />
       <Box sx={{ overflow: "auto", flex: 1, px: 4, py: 2 }}>

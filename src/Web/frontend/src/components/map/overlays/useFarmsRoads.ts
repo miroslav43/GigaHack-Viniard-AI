@@ -1,7 +1,7 @@
 "use client";
 
 // The optional farm and road layers of a survey (farms.geojson, roads.geojson; src/Web/CLAUDE.md §6.3). Unlike the
-// tile / mask overlays they are ON by default: each file the survey ships is fetched once, on mount. A survey without
+// tile / mask overlays the roads are ON by default (the farm outlines start off): each file the survey ships is fetched once, on mount. A survey without
 // them (the mock, older bundles) keeps the switches disabled and never requests anything.
 import { useCallback, useEffect, useState } from "react";
 import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Polygon } from "geojson";
@@ -42,7 +42,8 @@ export function useFarmsRoads(dataBase: string, files: OverlayFiles | undefined,
     roads: hasRoads,
     internalRoads: hasRoads && (roadsSummary ? roadsSummary.internal_m > 0 : true),
   };
-  const [visible, setVisibleState] = useState<Record<FarmRoadKey, boolean>>({ farms: true, roads: true, internalRoads: true });
+  // farm outlines start off (a farm is reached from the list in the layer panel); roads start on
+  const [visible, setVisibleState] = useState<Record<FarmRoadKey, boolean>>({ farms: false, roads: true, internalRoads: true });
   const [failed, setFailed] = useState(NO_FAILURE);
   const [farms, setFarms] = useState<FarmsFc | null>(null);
   const [roads, setRoads] = useState<RoadsFc | null>(null);
