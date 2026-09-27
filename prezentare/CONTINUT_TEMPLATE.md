@@ -11,7 +11,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
 ---
 
 ## 1 · Title
-- **From 311 drone tiles to a 25 km inspection walk**
+- **From 311 drone tiles to a 24 km inspection walk**
 - AI vineyard inventory and inspection routes from one drone flight
 - Team **Solemtrix Hardware & Software**
 - Team lead: **TODO**
@@ -24,7 +24,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
 - **Roles and user stories:**
   1. **State inspector** (vine registry, subsidy control): I want every block and row measured from one drone flight, so that I can verify declared areas and plantings without walking every parcel.
   2. **Farmer / vineyard owner:** I want a map of missing plants, gaps and waste per row, so that I can replant and clean where it matters, before the harvest.
-  3. **Agronomist / field inspector:** I want the shortest closed walk through every problem spot, as GPX on my phone, so that one inspection takes 6.3 h instead of 17 h.
+  3. **Agronomist / field inspector:** I want the shortest closed walk through every problem spot, as GPX on my phone, so that one inspection takes 6.0 h instead of 17 h.
   4. **Municipality (primăria):** I want farms, roads, cadastre parcels and dumped waste on one map, so that I can plan land use and clean-ups.
 - Sources, small print: agroexpert.md (registry vs statistics, 2024); telegraph.md (subsidy); maia.gov.md (vine registry).
 
@@ -37,7 +37,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
   - → walk or robot (shortest route, GPX)
   - → decision (subsidy check, replanting, clean-up)
   - → next season: fly again and compare.
-- **Sireț3:** 81.5 ha · 311 GeoTIFF tiles · 27 farms · 44 vineyard blocks · 674 rows (47.7 km) · 13,702 plants · 1,226 inspection targets.
+- **Sireț3:** 81.5 ha · 311 GeoTIFF tiles · 27 farms · 44 vineyard blocks · 674 rows (47.7 km) · 13,702 plants · 1,215 inspection targets.
 - Image: the diagram in `export/slide-03.png`.
 
 ## 4 · Solution: architecture (CV/ML algorithms + rule logic)
@@ -88,9 +88,9 @@ Title → Problem → Solution → Demo → Impact → Scaling.
   - **455/455** targets visited;
   - **2 h 26 min** at 4 km/h, solved in 1.5 s in the browser.
 - **Whole survey, official `route.geojson`:**
-  - **25.2 km** vs a 68.2 km serpentine (−63 %);
-  - **147/147** reachable must-visit targets, +643 optional (790 on the walk);
-  - **1.23 %** outside the allowed area (limit 2 %), closed at START.
+  - **24.2 km** vs a 68.2 km serpentine (−65 %);
+  - **145/145** reachable must-visit targets, +650 optional (795 on the walk);
+  - **1.29 %** outside the allowed area (limit 2 %), closed at the organizers' pre-test START.
 - **Organisers' 2 example tiles:** row F1 1.00 (51/51), canopy score 0.876, inter-row IoU 0.96, counts score 0.973.
 - Image: `img/farm_ortho.jpg` (F09 orthophoto), or the map from `export/slide-06.png`.
 
@@ -112,8 +112,8 @@ Title → Problem → Solution → Demo → Impact → Scaling.
 
 ## 8 · Impact: economics and deployment time
 - **Economic effect** (Sireț3, 81.5 ha, walking at 4 km/h):
-  - one full inspection walk takes **6.3 h instead of 17 h** (25.2 km vs 68.2 km);
-  - **≈ 10.7 h** of inspector time saved per survey (−63 %); farm F09 alone takes 2 h 26 instead of 6 h 52;
+  - one full inspection walk takes **6.0 h instead of 17 h** (24.2 km vs 68.2 km);
+  - **≈ 11.0 h** of inspector time saved per survey (−65 %); farm F09 alone takes 2 h 26 instead of 6 h 52;
   - marginal compute cost is **≈ 0**: 17 min on a laptop CPU, no paid API, no GPU, open weights.
 - **Deployment time: ≈ 11–20 h from zero to the first inspected region.**
   - One-time setup:
@@ -141,7 +141,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
   - This is a linear extrapolation. Tiles are independent, so the work parallelises.
 - **Features for the industry:**
   1. **Ground robot, "Street View" for every row:**
-     - it drives our route (25 km instead of ≥ 41 km);
+     - it drives our route (24 km instead of ≥ 41 km);
      - side cameras image two rows per pass;
      - on-board ML flags disease symptoms;
      - every image is tied to its `row_id`.
@@ -159,7 +159,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
 |---|---|
 | Efficient | 17 min from tiles to deliverables, one laptop, CPU only |
 | Accurate | row F1 1.00, canopy 0.876, inter-row IoU 0.96 (organisers' 2 example tiles) |
-| Short routes | −63 % vs a serpentine, ≈ 10.7 h saved per walk |
+| Short routes | −65 % vs a serpentine, ≈ 11.0 h saved per walk |
 | Deployable | 11–20 h from zero to the first inspected region (estimate) |
 
 **Thank you! Questions?**

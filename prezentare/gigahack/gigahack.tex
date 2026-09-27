@@ -78,7 +78,7 @@
 \begin{gslide}
   \node[anchor=north west,inner sep=0] at (8.4,8.4) {\includegraphics[width=48mm,height=3.6mm]{media/image-2-3.png}};
   \node[anchor=west,inner sep=0,text=gGreen,font={\fs{60}\bfseries}] at (8.4,26.4) {Solemtrix Vineyard AI};
-  \gtxt{8.4}{35.4}{126}{22}{For vineyard inspectors and farmers who can't check every vine on foot, we built an offline AI pipeline and web map that turns one drone flight into a per-plant inventory and a 25\,km inspection walk.}
+  \gtxt{8.4}{35.4}{126}{22}{For vineyard inspectors and farmers who can't check every vine on foot, we built an offline AI pipeline and web map that turns one drone flight into a per-plant inventory and a 24\,km inspection walk.}
   \gbox{8.4}{54}{142.8}{22.8}{gBorder}
   \glab{12}{56.6}{48}{gPurple}{CHALLENGE}
   \gtxt{12}{61.2}{74.4}{16}{AI/ML · AgriFood · GeoTech — Vineyard AI Field Challenge (Sireț3) — Marcaj}
@@ -123,7 +123,7 @@
   \gbox{106}{41.4}{47.4}{36.6}{gBorder}
   \gnum{109.6}{44.4}{3}
   \gtxt{109.6}{53.4}{40.2}{20}{\bfseries Inspection route}
-  \gtxt{109.6}{60.6}{40.2}{16}{Walk, or send a robot, along a closed 25\,km route through 790 targets; GPX per farm.}
+  \gtxt{109.6}{60.6}{40.2}{16}{Walk, or send a robot, along a closed 24\,km route through 795 targets; GPX per farm.}
 \end{gslide}
 \end{frame}
 
@@ -199,10 +199,10 @@
 \begin{gslide}
   \gtitle{Impact}
   \gbox{6.6}{19.8}{47.4}{33.6}{gGreen}
-  \gbig{6.6}{22.2}{47.4}{15.6}{54}{−63\,\%}
-  \gtxtc{10.2}{39.6}{40.2}{16}{shorter inspection walk: 25.2\,km instead of a 68.2\,km serpentine}
+  \gbig{6.6}{22.2}{47.4}{15.6}{54}{−65\,\%}
+  \gtxtc{10.2}{39.6}{40.2}{16}{shorter inspection walk: 24.2\,km instead of a 68.2\,km serpentine}
   \gbox{56.3}{19.8}{47.4}{33.6}{gBorder}
-  \gbig{56.3}{22.2}{47.4}{15.6}{54}{10.7 h}
+  \gbig{56.3}{22.2}{47.4}{15.6}{54}{11.0 h}
   \gtxtc{59.9}{39.6}{40.2}{16}{inspector time saved per survey: 6.3\,h instead of 17\,h}
   \gbox{106}{19.8}{47.4}{33.6}{gBorder}
   \gbig{106}{22.2}{47.4}{15.6}{54}{17 min}
@@ -248,7 +248,7 @@
 \bg{10}
 \begin{frame}[plain]
 \begin{gslide}
-  \node[anchor=west,inner sep=0,text=white,text width=142.8mm,font={\fs{32}}] at (8.4,28.8) {One drone flight: every vine measured with an ID, and a 25\,km walk instead of 68\,km. Offline, on one laptop, in 17 minutes.};
+  \node[anchor=west,inner sep=0,text=white,text width=142.8mm,font={\fs{32}}] at (8.4,28.8) {One drone flight: every vine measured with an ID, and a 24\,km walk instead of 68\,km. Offline, on one laptop, in 17 minutes.};
   \node[anchor=west,inner sep=0,text=gGreen,font={\fs{48}\bfseries}] at (8.4,51.6) {Thank you!};
   \gtxt{8.4}{58.8}{102}{18}{Solemtrix Hardware \& Software · \todo{email / LinkedIn}\\github.com/miroslav43/Solemtrix\_Hardware\_Software\_\_\\Vineyard\_AI\_Field\_Challenge}
   \gdbox{121.2}{45}{30}{30}
@@ -275,7 +275,7 @@
     \textbf{Rows:} dominant angle, 1-D projection, autocorrelation spacing (1.8–3.8\,m), SNR\,$\geq$\,3 rejects orchards, Huber fit, union-find across tiles.\\[0.8mm]
     \textbf{Canopies:} Lab a* threshold inside the row corridor, one polygon per plant; U-Net only on 88 tiles (13\,s).\\[0.8mm]
     \textbf{Waste:} colour and shape rules, OpenCLIP probe, SAM\,3 on the top crops; a human approves every box.\\[0.8mm]
-    \textbf{Route:} walking graph on inter-rows and authorised passages, generalised TSP (OR-Tools, 2-opt), closed at START, 1.23\,\% outside.\\[0.8mm]
+    \textbf{Route:} walking graph on inter-rows and authorised passages, generalised TSP (OR-Tools, 2-opt), closed at START, 1.29\,\% outside.\\[0.8mm]
     \textbf{2 labelled tiles:} row F1 1.00 (51/51), canopy 0.876, inter-row IoU 0.96, counts 0.973.\\[0.8mm]
     \textbf{Engineering:} $\approx$\,17 min on an Apple M3 Pro CPU; 2,378 tests, CI, offline Docker.}
   \gbox{82}{19.8}{71.4}{58.2}{gBorder}
