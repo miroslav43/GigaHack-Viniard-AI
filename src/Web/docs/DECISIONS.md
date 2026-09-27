@@ -343,3 +343,28 @@ Format: **Context · Decizie · Respins (și de ce) · Consecințe.** Starea tut
   - `forbidden.geojson` nu e încă ocolit;
   - calcul plan în UTM 35N (ADR-010), orientativ;
   - teste: unitare în `src/lib/farmRoute/farmRoute.test.ts`, din `pnpm test:scripts` (Node ≥ 22.18 elimină tipurile, deci `tsconfig` are `allowImportingTsExtensions`, iar modulele se importă cu extensia `.ts`, fără parameter properties); e2e în `e2e/farm-route.spec.ts`.
+
+### ADR-029 — Pagina „Robot de teren”: plăcile ESP32 comandate printr-un proxy din serverul Next
+- **Context:** robotul echipei are trei plăci ESP32 pe Wi-Fi-ul local:
+  - **ESP32-CAM:** `/stream` (MJPEG), `/capture`, `/flash/*`, `/json`;
+  - **placa cu două motoare pas cu pas,** pan/tilt pentru cameră: `/move?motor&dir&speed&steps`, `/toggle_en`;
+  - **placa roților,** al cărei cod nu e încă în repo.
+
+  Vrem să le comandăm din site: mișcarea camerei, deplasarea, poza. Plăcile nu trimit antete CORS.
+- **Decizie:**
+  - **pagina `/robot`** (meniu: „Robot de teren”) conține:
+    - stream-ul live, afișat direct de la cameră (un `<img>` nu are nevoie de CORS);
+    - „Fă poză”, cu pozele în galerie și descărcare JPEG; numele fișierului conține unghiurile camerei, pregătit pentru un mod street view;
+    - un pad pentru cameră (motorul 1 = stânga/dreapta, motorul 2 = sus/jos; unghiul e estimat din pași, cu „poziția curentă = 0°”);
+    - un pad pentru deplasare (înainte, înapoi, stânga, dreapta, stop), plus flash;
+    - setările: adresele plăcilor și parametrii, ținute în `localStorage` prin `useSyncExternalStore`, cu valori implicite din `NEXT_PUBLIC_ROBOT_*_URL`;
+    - taste: săgeți = cameră, W A S D = deplasare, spațiu = poză;
+  - **`GET /api/robot`** trimite mai departe doar comenzi din lista albă (`src/lib/robot/commands.ts`), cu parametri validați (motor 1|2, dir 0|1, viteză 50–5000, pași 1–20000, durată 100–10000 ms). Acceptă doar adrese IPv4 private (10/8, 172.16/12, 192.168/16), fără cale, deci nu poate fi folosit ca SSRF spre internet sau spre server. Aplică timeout pe comandă și are aceeași regulă de acces ca paginile (`mayAnalyse`);
+  - **captura:** ESP32-CAM servește o singură cerere odată, așa că stream-ul se oprește 300 ms înainte de captură;
+  - **roțile:** pagina așteaptă contractul `GET /drive?cmd=forward|back|left|right|stop&ms=<durată>` de la placa lor;
+  - **`scripts/robot/fake-robot.mjs`:** simulează cele trei plăci pe adresa LAN a laptopului, ca să se poată testa fără hardware; e2e-ul `e2e/robot.spec.ts` îl pornește singur.
+- **Respins:** comenzi direct din browser (CORS blocat, fără validare), relay pentru stream (inutil, costă o conexiune lungă pe server), adrese fixe în cod.
+- **Consecințe:**
+  - laptopul care rulează site-ul trebuie să fie pe același Wi-Fi cu robotul;
+  - pozele trăiesc doar în tab (URL-uri obiect) până sunt descărcate;
+  - **modul street view** (mers 50 cm, apoi poze la 0°, 90° și 180°) se poate construi peste aceleași comenzi, cu `/drive` pentru distanță (după calibrare) și `/move` pentru unghiuri.

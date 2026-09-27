@@ -19,7 +19,9 @@
     "architecture": "Arhitectura AI",
     "architectureShort": "Arhitectură",
     "analysis": "Analiză TIF",
-    "analysisShort": "Analiză"
+    "analysisShort": "Analiză",
+    "robot": "Robot de teren",
+    "robotShort": "Robot"
   },
   "analiza": {
     "title": "Analiză TIF live",
@@ -1283,5 +1285,81 @@
       "demo": "Demo fără cont",
       "signIn": "Autentificare"
     }
+  },
+  "robot": {
+    "title": "Robot de teren",
+    "subtitle": "Camera live, poze, camera sus / jos / stânga / dreapta și deplasarea robotului, pe Wi-Fi-ul local (plăcile ESP32).",
+    "live": {
+      "title": "Camera live",
+      "flash": "Flash (pornit / oprit)",
+      "stop": "Oprește imaginea",
+      "start": "Pornește imaginea",
+      "capture": "Fă poză",
+      "noAddress": "Scrie adresa camerei (ESP32-CAM) în Setări.",
+      "failed": "Camera nu răspunde la {url}. E pornită și pe același Wi-Fi?",
+      "capturing": "Se face poza…",
+      "off": "Imaginea live e oprită."
+    },
+    "camera": {
+      "title": "Camera: sus, jos, stânga, dreapta",
+      "hint": "Câte {deg}° pe apăsare. Poziție estimată: {pan}° orizontal, {tilt}° vertical.",
+      "up": "Camera în sus",
+      "down": "Camera în jos",
+      "left": "Camera la stânga",
+      "right": "Camera la dreapta",
+      "zero": "Poziția curentă devine 0°",
+      "noAddress": "Scrie adresa plăcii cu motoare în Setări."
+    },
+    "drive": {
+      "title": "Deplasare",
+      "hint": "Fiecare apăsare mișcă robotul {ms} ms.",
+      "forward": "Înainte",
+      "back": "Înapoi",
+      "left": "Stânga",
+      "right": "Dreapta",
+      "stop": "Stop",
+      "noAddress": "Scrie adresa plăcii roților în Setări (ea trebuie să răspundă la /drive?cmd=forward|back|left|right|stop&ms=…)."
+    },
+    "settings": {
+      "title": "Setări",
+      "hint": "Adresele plăcilor pe Wi-Fi (le afișează fiecare placă pe Serial la pornire). Se țin minte în acest browser.",
+      "url": {
+        "cam": "Camera (ESP32-CAM)",
+        "motors": "Motoarele camerei (pan / tilt)",
+        "drive": "Roțile"
+      },
+      "badAddress": "Doar o adresă din rețeaua locală, de ex. 192.168.1.50",
+      "stepDeg": "Grade pe apăsare",
+      "stepsPerRev": "Pași pe o rotație",
+      "speedPps": "Viteza motoarelor (pași/s)",
+      "driveMs": "Durata unei mișcări (ms)"
+    },
+    "gallery": {
+      "title": "Poze ({n})",
+      "empty": "Încă nicio poză. Apasă „Fă poză” sau tasta spațiu.",
+      "download": "Descarcă",
+      "downloadAll": "Descarcă toate",
+      "remove": "Șterge",
+      "angles": "{pan}° / {tilt}°"
+    },
+    "status": {
+      "cameraMoving": "{dir}…",
+      "cameraDone": "Camera s-a mișcat.",
+      "driving": "{dir}…",
+      "driveDone": "Mișcare trimisă.",
+      "capturing": "Se face poza…",
+      "captured": "Poza a fost salvată în galerie.",
+      "flash": "Flash: {state}"
+    },
+    "errors": {
+      "no_address": "Lipsește adresa plăcii (Setări).",
+      "bad_address": "Adresa nu e din rețeaua locală.",
+      "bad_request": "Comandă invalidă.",
+      "sign_in": "Autentifică-te din nou.",
+      "unreachable": "Placa nu răspunde. E pornită și pe același Wi-Fi cu acest calculator?",
+      "timeout": "Placa nu a răspuns la timp.",
+      "failed": "Comanda nu a reușit."
+    },
+    "keys": "Taste: săgețile mișcă camera, W A S D mută robotul, spațiu face poză."
   }
 }

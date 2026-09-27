@@ -19,7 +19,9 @@
     "architecture": "AI architecture",
     "architectureShort": "Architecture",
     "analysis": "TIF analysis",
-    "analysisShort": "Analysis"
+    "analysisShort": "Analysis",
+    "robot": "Field robot",
+    "robotShort": "Robot"
   },
   "analiza": {
     "title": "Live TIF analysis",
@@ -1283,5 +1285,81 @@
       "demo": "Demo without an account",
       "signIn": "Sign in"
     }
+  },
+  "robot": {
+    "title": "Field robot",
+    "subtitle": "Live camera, photos, camera up / down / left / right and driving the robot, over the local Wi-Fi (the ESP32 boards).",
+    "live": {
+      "title": "Live camera",
+      "flash": "Flash (on / off)",
+      "stop": "Stop the picture",
+      "start": "Start the picture",
+      "capture": "Take a photo",
+      "noAddress": "Enter the camera's address (ESP32-CAM) in Settings.",
+      "failed": "The camera does not answer at {url}. Is it on and on the same Wi-Fi?",
+      "capturing": "Taking the photo…",
+      "off": "The live picture is off."
+    },
+    "camera": {
+      "title": "Camera: up, down, left, right",
+      "hint": "{deg}° per press. Estimated position: {pan}° across, {tilt}° up.",
+      "up": "Camera up",
+      "down": "Camera down",
+      "left": "Camera left",
+      "right": "Camera right",
+      "zero": "Make the current position 0°",
+      "noAddress": "Enter the motor board's address in Settings."
+    },
+    "drive": {
+      "title": "Driving",
+      "hint": "Each press moves the robot for {ms} ms.",
+      "forward": "Forward",
+      "back": "Back",
+      "left": "Left",
+      "right": "Right",
+      "stop": "Stop",
+      "noAddress": "Enter the wheel board's address in Settings (it must answer /drive?cmd=forward|back|left|right|stop&ms=…)."
+    },
+    "settings": {
+      "title": "Settings",
+      "hint": "The boards' Wi-Fi addresses (each prints it on Serial at start). Kept in this browser.",
+      "url": {
+        "cam": "Camera (ESP32-CAM)",
+        "motors": "Camera motors (pan / tilt)",
+        "drive": "Wheels"
+      },
+      "badAddress": "A local network address only, e.g. 192.168.1.50",
+      "stepDeg": "Degrees per press",
+      "stepsPerRev": "Steps per turn",
+      "speedPps": "Motor speed (steps/s)",
+      "driveMs": "One move (ms)"
+    },
+    "gallery": {
+      "title": "Photos ({n})",
+      "empty": "No photo yet. Press “Take a photo” or the space bar.",
+      "download": "Download",
+      "downloadAll": "Download all",
+      "remove": "Delete",
+      "angles": "{pan}° / {tilt}°"
+    },
+    "status": {
+      "cameraMoving": "{dir}…",
+      "cameraDone": "The camera moved.",
+      "driving": "{dir}…",
+      "driveDone": "Move sent.",
+      "capturing": "Taking the photo…",
+      "captured": "The photo is in the gallery.",
+      "flash": "Flash: {state}"
+    },
+    "errors": {
+      "no_address": "The board's address is missing (Settings).",
+      "bad_address": "The address is not on the local network.",
+      "bad_request": "Invalid command.",
+      "sign_in": "Sign in again.",
+      "unreachable": "The board does not answer. Is it on and on the same Wi-Fi as this computer?",
+      "timeout": "The board did not answer in time.",
+      "failed": "The command failed."
+    },
+    "keys": "Keys: the arrows move the camera, W A S D drive, space takes a photo."
   }
 }

@@ -27,6 +27,7 @@ import TaskAltOutlined from "@mui/icons-material/TaskAltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import AccountTreeOutlined from "@mui/icons-material/AccountTreeOutlined";
 import ScienceOutlined from "@mui/icons-material/ScienceOutlined";
+import SmartToyOutlined from "@mui/icons-material/SmartToyOutlined";
 import { Link, routing, usePathname, useRouter, type Locale } from "@/i18n/routing";
 import { AssistantChat } from "@/components/assistant/AssistantChat";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -41,6 +42,7 @@ const BASE_NAV = [
   { href: "/blocuri", label: "nav.blocks", short: "nav.blocksShort", icon: <TableRowsOutlined /> },
   { href: "/ruta", label: "nav.route", short: "nav.routeShort", icon: <RouteOutlined /> },
   { href: "/analiza", label: "nav.analysis", short: "nav.analysisShort", icon: <ScienceOutlined /> },
+  { href: "/robot", label: "nav.robot", short: "nav.robotShort", icon: <SmartToyOutlined /> },
   { href: "/arhitectura", label: "nav.architecture", short: "nav.architectureShort", icon: <AccountTreeOutlined /> },
 ];
 
