@@ -107,7 +107,7 @@ Title → Problem → Solution → Demo → Impact → Scaling.
 - **Pre-test point 47.1225 N, 28.7095 E (UTM 629663.8, 5220195.3):**
   - farm F09, block V13;
   - inter-row V13-I020 (*mixed*), next to row V13-R020 (*disrupted*, 228.9 m, 70 plants);
-  - the route passes 0.34 m away, so the point counts as visited (≤ 2 m).
+  - the route now starts and ends exactly at this point (0.00 m closure), as the organisers asked.
 - Image: a screenshot of the web map.
 
 ## 8 · Impact: economics and deployment time
