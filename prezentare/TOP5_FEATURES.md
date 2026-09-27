@@ -4,12 +4,15 @@ These are the features we built during the challenge on top of the scored output
 attributes, measurements and the route). Each one runs in the web app and is shown on slide 5 of
 `gigahack/gigahack.pdf`.
 
-1. **A field robot that gives every row a "Street View".**
+1. **A field robot and our own grape detector.**
    - The robot is a working ESP32 ground robot, driven from the web app.
    - It has a live camera with pan and tilt, one-press panoramas at 0°, 90° and 180°, and an obstacle stop at 20 cm.
    - Grapes, leaves and waste are marked with boxes on its photos.
    - It is built to drive our inspection route, so each photo is tied to a row.
    - It lets inspectors check a row without walking it.
+   - Our own YOLO detector (YOLO11 / YOLO26) is fine-tuned on public vineyard datasets: WGISD and ViViD-5K for grape bunches, vineyard photos for trunks, and a Flavescence dorée set for diseased leaves.
+   - It finds grape bunches and trunks in row photos. It is not yet validated on Sireț3.
+   - The notebooks and tools are in `model_detectie_vita_de_vie/`.
 2. **Cadastre and farm registry.**
    - Every vineyard block is linked to its official AGCC cadastre parcels, with their codes and land use.
    - The 44 blocks are grouped into 27 farms: blocks at most 10 m apart that no public road splits.
