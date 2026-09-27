@@ -49,5 +49,3 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 
-# hero background clip (third-party footage): local only until the rights to publish it are confirmed
-/public/marketing/hero-drone.*
