@@ -105,24 +105,25 @@ test.describe("with the stand-in boards", () => {
     await expect(address(page, "cam")).toHaveValue(`${lan}:${port}`);
   });
 
-  test("record mode: two stations give two panoramas of three photos", async ({ page }) => {
+  test("panorama: each Start drives forward, takes 0° / 90° / 180° and saves one panorama", async ({ page }) => {
     await page.goto("/robot");
     await address(page, "cam").fill(`${lan}:${port}`);
     await address(page, "motors").fill(`${lan}:${port + 1}`);
     await address(page, "drive").fill(`${lan}:${port + 2}`);
-    await saveSettings(page);
-    await page.getByTestId("robot-set-recordStations").fill("2");
     await page.getByTestId("robot-set-recordStepMs").fill("300");
     await saveSettings(page);
 
-    await page.getByTestId("robot-record-start").click();
-    await expect(page.getByTestId("robot-record-phase")).toBeVisible();
-    await expect(page.getByTestId("robot-panorama")).toHaveCount(2, { timeout: 30_000 });
-    await expect(page.getByTestId("robot-record-start")).toBeVisible(); // done
-    await expect(page.getByTestId("robot-panorama").first()).toContainText("Stația 2 · 50 cm de la start");
+    for (const n of [1, 2]) {
+      await page.getByTestId("robot-record-start").click();
+      await expect(page.getByTestId("robot-record-phase")).toBeVisible();
+      await expect(page.getByTestId("robot-panorama")).toHaveCount(n, { timeout: 30_000 });
+      await expect(page.getByTestId("robot-record-start")).toBeVisible(); // done, ready for the next
+    }
+    await expect(page.getByTestId("robot-panorama").first()).toContainText("Panorama 2 · la 100 cm");
     const download = page.waitForEvent("download");
     await page.getByTestId("robot-panorama").first().getByRole("button", { name: "Descarcă panorama" }).click();
-    expect((await download).suggestedFilename()).toMatch(/^panorama_\d{8}_\d{6}_statia02_50cm\.jpg$/);
+    expect((await download).suggestedFilename()).toMatch(/^panorama_\d{8}_\d{6}_statia02_100cm\.jpg$/);
     expect((await wheels()).some((w) => w.running)).toBe(false);
+    await expect(page.getByText(/Poziție: 0° orizontal/)).toBeVisible(); // the camera is back at 0°
   });
 });

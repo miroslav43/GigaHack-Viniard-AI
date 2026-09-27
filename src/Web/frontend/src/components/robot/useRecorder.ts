@@ -1,8 +1,8 @@
 "use client";
 
-// Record mode: the robot stops at a row of stations `recordStepCm` apart. At each one the camera turns to 0°, 90° and
-// 180° (from the zeroed position) and takes a fresh photo at each, the three become one panorama (side by side), the
-// camera turns back to 0° and the wheels run forward for the calibrated time. A stop ends it at once (wheels too).
+// Panorama step: one press of Start drives `recordStepCm` forward (the calibrated time), then the camera turns to 0°,
+// 90° and 180° (from the zeroed position) with a fresh photo at each, the three become one panorama (side by side),
+// and the camera turns back to 0°. The next Start is the next station. Stop ends it at once (wheels too).
 import { useCallback, useRef, useState } from "react";
 import { callRobot, RobotCallError } from "./robotApi";
 import type { RobotSettings } from "./useRobotSettings";
@@ -35,7 +35,7 @@ export interface Panorama {
   strip: { blob: Blob; url: string };
 }
 
-export type RecordPhase = { station: number; of: number; step: "photo"; deg: number } | { station: number; of: number; step: "drive" };
+export type RecordPhase = { station: number; step: "photo"; deg: number } | { station: number; step: "drive" | "back" };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -80,42 +80,43 @@ export function useRecorder({
     await stopWheels();
   }, [stopWheels]);
 
+  // stations of this visit: each Start is the next one, `recordStepCm` further on
+  const station = useRef(0);
+
   const start = useCallback(async () => {
     if (!cam || running.current) return;
     running.current = true;
-    const recording = new Date().toISOString();
-    const of = settings.recordStations;
+    const n = station.current + 1;
+    const frames: PanoramaFrame[] = [];
     try {
-      for (let station = 1; station <= of && running.current; station++) {
-        const frames: PanoramaFrame[] = [];
-        for (const deg of RECORD_ANGLES) {
-          if (!running.current) break;
-          setPhase({ station, of, step: "photo", deg });
-          await panTo(deg);
-          await sleep(SETTLE_MS);
-          const blob = await orientJpeg(await (await callRobot("cam", cam, { cmd: "capture" })).blob(), settings);
-          frames.push({ deg, blob, url: URL.createObjectURL(blob) });
-        }
-        if (frames.length === RECORD_ANGLES.length) {
-          const strip = await stitch(frames);
-          onPanorama({
-            id: crypto.randomUUID(),
-            station,
-            recording,
-            atCm: (station - 1) * settings.recordStepCm,
-            takenAt: new Date(),
-            frames,
-            strip: { blob: strip, url: URL.createObjectURL(strip) },
-          });
-        } else frames.forEach((f) => URL.revokeObjectURL(f.url));
-        await panTo(0); // straight ahead again before driving (and no cable wound up)
-        if (station < of && running.current) {
-          setPhase({ station, of, step: "drive" });
-          await forwardFor(settings.recordStepMs);
-          await sleep(PAUSE_MS);
-        }
+      setPhase({ station: n, step: "drive" });
+      await forwardFor(settings.recordStepMs);
+      await sleep(PAUSE_MS);
+      for (const deg of RECORD_ANGLES) {
+        if (!running.current) break;
+        setPhase({ station: n, step: "photo", deg });
+        await panTo(deg);
+        await sleep(SETTLE_MS);
+        const blob = await orientJpeg(await (await callRobot("cam", cam, { cmd: "capture" })).blob(), settings);
+        frames.push({ deg, blob, url: URL.createObjectURL(blob) });
       }
+      if (frames.length === RECORD_ANGLES.length) {
+        const strip = await stitch(frames);
+        station.current = n;
+        onPanorama({
+          id: crypto.randomUUID(),
+          station: n,
+          recording: "",
+          atCm: n * settings.recordStepCm,
+          takenAt: new Date(),
+          frames,
+          strip: { blob: strip, url: URL.createObjectURL(strip) },
+        });
+      } else frames.forEach((f) => URL.revokeObjectURL(f.url));
+      setPhase({ station: n, step: "back" });
+      await panTo(0); // the camera straight ahead again, ready for the next Start
     } catch (e) {
+      frames.forEach((f) => URL.revokeObjectURL(f.url));
       onError(e);
       await stopWheels();
     } finally {

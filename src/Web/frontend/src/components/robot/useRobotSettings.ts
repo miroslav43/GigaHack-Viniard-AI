@@ -21,8 +21,7 @@ export interface RobotSettings {
   /** a camera axis turning the other way round */
   panInvert: boolean;
   liftInvert: boolean;
-  /** record mode: stations, the distance between two, and how long the wheels run to cover it (calibration) */
-  recordStations: number;
+  /** panorama step: how far the robot moves before its photos, and how long the wheels run to cover it (calibration) */
   recordStepCm: number;
   recordStepMs: number;
   /** wheel motor speed (PWM 0..255) */
@@ -53,7 +52,6 @@ export const DEFAULT_SETTINGS: RobotSettings = {
   flipH: false,
   panInvert: false,
   liftInvert: false,
-  recordStations: 5,
   recordStepCm: 50,
   recordStepMs: 1500,
   wheelSpeed: 150,
